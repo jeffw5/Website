@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeffrey Wallk — Enabling Value</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a0a0f;
+    --paper: #f4f0e8;
+    --blueprint: #0d1b2a;
+    --grid: #1a3a5c;
+    --accent: #c8a96e;
+    --accent2: #4a90b8;
+    --accent3: #7eb89a;
+    --faint: rgba(200,169,110,0.12);
+    --faint2: rgba(74,144,184,0.10);
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'DM Mono', 'Courier New', monospace;
+    --display: 'Bebas Neue', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--blueprint);
+    color: var(--paper);
+    font-family: var(--serif);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.1s ease;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    width: 32px; height: 32px;
+    border: 1px solid rgba(200,169,110,0.5);
+    border-radius: 50%;
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9998;
+    transition: transform 0.15s ease, width 0.2s, height 0.2s;
+  }
+
+  /* Blueprint grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(74,144,184,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,144,184,0.06) 1px, transparent 1px),
+      linear-gradient(rgba(74,144,184,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,144,184,0.03) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Noise texture overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 3rem;
+    background: linear-gradient(to bottom, rgba(13,27,42,0.95) 0%, transparent 100%);
+    backdrop-filter: blur(4px);
+  }
+
+  .nav-mark {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(244,240,232,0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+
+  .nav-cta {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--blueprint);
+    background: var(--accent);
+    padding: 0.5rem 1.2rem;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .nav-cta:hover { opacity: 0.85; }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 8rem 3rem 4rem;
+    gap: 4rem;
+  }
+
+  .hero-left {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeUp 1s ease 0.3s forwards;
+  }
+
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero-name {
+    font-family: var(--display);
+    font-size: clamp(4rem, 8vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    color: var(--paper);
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-name span {
+    display: block;
+    color: var(--accent);
+  }
+
+  .hero-title {
+    font-family: var(--serif);
+    font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+    font-style: italic;
+    font-weight: 300;
+    color: rgba(244,240,232,0.65);
+    margin: 1.5rem 0 2.5rem;
+    line-height: 1.5;
+    max-width: 480px;
+  }
+
+  .hero-values {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .value-pill {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid;
+  }
+
+  .value-pill:nth-child(1) { color: var(--accent3); border-color: var(--accent3); }
+  .value-pill:nth-child(2) { color: var(--accent2); border-color: var(--accent2); }
+  .value-pill:nth-child(3) { color: var(--accent); border-color: var(--accent); }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--blueprint);
+    background: var(--accent);
+    padding: 0.9rem 2rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .btn-primary:hover {
+    background: var(--paper);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--paper);
+    border: 1px solid rgba(244,240,232,0.3);
+    padding: 0.9rem 2rem;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  /* Hero right — knowledge map preview */
+  .hero-right {
+    opacity: 0;
+    transform: translateX(30px);
+    animation: fadeLeft 1s ease 0.6s forwards;
+    position: relative;
+  }
+
+  .knowledge-map {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    max-width: 520px;
+    margin-left: auto;
+  }
+
+  .knowledge-map svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── SECTION BASE ── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 6rem 3rem;
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 30px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .section-title {
+    font-family: var(--display);
+    font-size: clamp(2.5rem, 5vw, 5rem);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--paper);
+    margin-bottom: 1rem;
+  }
+
+  .section-subtitle {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-style: italic;
+    font-weight: 300;
+    color: rgba(244,240,232,0.55);
+    max-width: 600px;
+    line-height: 1.7;
+    margin-bottom: 3.5rem;
+  }
+
+  /* ── STORYBOARD / ABOUT ── */
+  .about {
+    border-top: 1px solid rgba(74,144,184,0.2);
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: start;
+  }
+
+  .about-statement {
+    font-family: var(--serif);
+    font-size: clamp(1.3rem, 2vw, 1.8rem);
+    font-weight: 300;
+    line-height: 1.55;
+    color: var(--paper);
+  }
+
+  .about-statement em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .about-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .stat-item {
+    border-left: 2px solid var(--accent);
+    padding-left: 1.2rem;
+  }
+
+  .stat-number {
+    font-family: var(--display);
+    font-size: 3rem;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(244,240,232,0.5);
+    line-height: 1.4;
+  }
+
+  /* ── FRAMEWORKS ── */
+  .frameworks {
+    border-top: 1px solid rgba(74,144,184,0.2);
+  }
+
+  .frameworks-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5px;
+    background: rgba(74,144,184,0.15);
+    border: 1px solid rgba(74,144,184,0.15);
+  }
+
+  .framework-card {
+    background: var(--blueprint);
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+    cursor: none;
+  }
+
+  .framework-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s ease;
+  }
+
+  .framework-card:hover { background: rgba(13,27,42,0.8); }
+  .framework-card:hover::before { transform: scaleX(1); }
+
+  .framework-card:nth-child(2)::before { background: var(--accent2); }
+  .framework-card:nth-child(3)::before { background: var(--accent3); }
+  .framework-card:nth-child(4)::before { background: var(--accent2); }
+  .framework-card:nth-child(5)::before { background: var(--accent3); }
+  .framework-card:nth-child(6)::before { background: var(--accent); }
+
+  .fc-number {
+    font-family: var(--display);
+    font-size: 5rem;
+    line-height: 1;
+    color: rgba(74,144,184,0.12);
+    position: absolute;
+    top: 1rem; right: 1.5rem;
+    pointer-events: none;
+  }
+
+  .fc-tag {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .framework-card:nth-child(2) .fc-tag { color: var(--accent2); }
+  .framework-card:nth-child(3) .fc-tag { color: var(--accent3); }
+
+  .fc-title {
+    font-family: var(--serif);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--paper);
+    margin-bottom: 0.8rem;
+    line-height: 1.2;
+  }
+
+  .fc-desc {
+    font-family: var(--serif);
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: rgba(244,240,232,0.55);
+    line-height: 1.65;
+  }
+
+  .fc-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-decoration: none;
+    margin-top: 1.5rem;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+
+  .framework-card:hover .fc-link {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── SERVICES ── */
+  .services {
+    border-top: 1px solid rgba(74,144,184,0.2);
+  }
+
+  .services-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .service-item {
+    padding: 2.5rem;
+    border: 1px solid rgba(74,144,184,0.12);
+    margin: -1px 0 0 -1px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .service-item:hover {
+    border-color: rgba(200,169,110,0.4);
+    z-index: 2;
+  }
+
+  .service-icon {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .service-title {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--paper);
+    margin-bottom: 0.6rem;
+  }
+
+  .service-desc {
+    font-family: var(--serif);
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: rgba(244,240,232,0.5);
+    line-height: 1.65;
+  }
+
+  .service-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1.2rem;
+  }
+
+  .service-tag {
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(244,240,232,0.35);
+    border: 1px solid rgba(244,240,232,0.15);
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* ── PORTFOLIO BRIDGE ── */
+  .portfolio-bridge {
+    border-top: 1px solid rgba(74,144,184,0.2);
+    background: linear-gradient(135deg, rgba(74,144,184,0.06) 0%, transparent 60%);
+  }
+
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+
+  .portfolio-card {
+    border: 1px solid rgba(74,144,184,0.2);
+    padding: 1.8rem;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+    display: block;
+    transition: all 0.3s;
+    background: rgba(13,27,42,0.5);
+  }
+
+  .portfolio-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    background: rgba(13,27,42,0.8);
+  }
+
+  .pc-domain {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 0.8rem;
+  }
+
+  .pc-title {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--paper);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+
+  .pc-desc {
+    font-family: var(--serif);
+    font-size: 0.8rem;
+    color: rgba(244,240,232,0.45);
+    line-height: 1.55;
+  }
+
+  .pc-arrow {
+    position: absolute;
+    bottom: 1.5rem; right: 1.5rem;
+    font-size: 1rem;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    transform: translate(-4px, 4px);
+  }
+
+  .portfolio-card:hover .pc-arrow {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+
+  /* ── AVATAR CTA ── */
+  .avatar-cta {
+    border-top: 1px solid rgba(74,144,184,0.2);
+    text-align: center;
+    padding: 8rem 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .avatar-cta::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(200,169,110,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .avatar-ring {
+    width: 120px; height: 120px;
+    border: 1px solid rgba(200,169,110,0.3);
+    border-radius: 50%;
+    margin: 0 auto 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    animation: pulseRing 3s ease-in-out infinite;
+  }
+
+  .avatar-ring::before {
+    content: '';
+    position: absolute;
+    width: 140px; height: 140px;
+    border: 1px solid rgba(200,169,110,0.1);
+    border-radius: 50%;
+    animation: pulseRing 3s ease-in-out infinite 0.5s;
+  }
+
+  .avatar-ring::after {
+    content: '';
+    position: absolute;
+    width: 160px; height: 160px;
+    border: 1px solid rgba(200,169,110,0.05);
+    border-radius: 50%;
+    animation: pulseRing 3s ease-in-out infinite 1s;
+  }
+
+  .avatar-icon {
+    font-size: 2.5rem;
+  }
+
+  .avatar-cta-title {
+    font-family: var(--display);
+    font-size: clamp(2.5rem, 5vw, 5rem);
+    color: var(--paper);
+    margin-bottom: 1rem;
+    line-height: 1;
+  }
+
+  .avatar-cta-sub {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-style: italic;
+    font-weight: 300;
+    color: rgba(244,240,232,0.5);
+    max-width: 480px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.65;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(74,144,184,0.2);
+    padding: 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-mark {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(244,240,232,0.3);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+  }
+
+  .footer-links a {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(244,240,232,0.3);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--accent); }
+
+  .footer-values {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    color: rgba(244,240,232,0.25);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeLeft {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes pulseRing {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  @keyframes drawLine {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes nodeAppear {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── SCROLL REVEAL ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding: 7rem 1.5rem 3rem; }
+    .hero-right { display: none; }
+    .about-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    .frameworks-grid { grid-template-columns: 1fr; }
+    .services-list { grid-template-columns: 1fr; }
+    .portfolio-grid { grid-template-columns: 1fr 1fr; }
+    nav { padding: 1.2rem 1.5rem; }
+    .nav-links { display: none; }
+    section { padding: 4rem 1.5rem; }
+  }
+
+  @media (max-width: 600px) {
+    .portfolio-grid { grid-template-columns: 1fr; }
+    footer { flex-direction: column; gap: 1.5rem; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-mark">© Enabling Value · MMXXVI</span>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#frameworks">Frameworks</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#portfolio">Portfolio</a></li>
+    <li><a href="https://jeffw5.github.io/Value/index.html" target="_blank">Demos</a></li>
+  </ul>
+  <a href="avatar.html" class="nav-cta">Ask Jeffrey ›</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">Managing Partner · The Value Enablement Group</div>
+    <h1 class="hero-name">
+      Jeffrey<br>
+      <span>Wallk</span>
+    </h1>
+    <p class="hero-title">
+      Enterprise Architect. Semantic Governance Pioneer.<br>
+      AI Trustworthiness Researcher. Value Creator.
+    </p>
+    <div class="hero-values">
+      <span class="value-pill">Planet</span>
+      <span class="value-pill">People</span>
+      <span class="value-pill">Profit</span>
+    </div>
+    <div class="hero-actions">
+      <a href="avatar.html" class="btn-primary">
+        <span>↗</span> Talk to Jeffrey
+      </a>
+      <a href="#frameworks" class="btn-secondary">Explore the Work</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="knowledge-map">
+      <!-- Animated SVG knowledge map -->
+      <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="glow1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#c8a96e" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#c8a96e" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="glow2" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#4a90b8" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#4a90b8" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="glow3" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#7eb89a" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#7eb89a" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="blur">
+            <feGaussianBlur stdDeviation="3"/>
+          </filter>
+        </defs>
+
+        <!-- Connector lines -->
+        <g stroke="rgba(74,144,184,0.25)" stroke-width="1" fill="none">
+          <line x1="250" y1="250" x2="140" y2="130" stroke-dasharray="200" stroke-dashoffset="200" style="animation: drawLine 1.5s ease 0.8s forwards"/>
+          <line x1="250" y1="250" x2="370" y2="140" stroke-dasharray="200" stroke-dashoffset="200" style="animation: drawLine 1.5s ease 1s forwards"/>
+          <line x1="250" y1="250" x2="100" y2="300" stroke-dasharray="200" stroke-dashoffset="200" style="animation: drawLine 1.5s ease 1.2s forwards"/>
+          <line x1="250" y1="250" x2="400" y2="310" stroke-dasharray="200" stroke-dashoffset="200" style="animation: drawLine 1.5s ease 1.4s forwards"/>
+          <line x1="250" y1="250" x2="220" y2="400" stroke-dasharray="200" stroke-dashoffset="200" style="animation: drawLine 1.5s ease 1.6s forwards"/>
+          <line x1="250" y1="250" x2="350" y2="420" stroke-dasharray="200" stroke-dashoffset="200" style="animation: drawLine 1.5s ease 1.8s forwards"/>
+        </g>
+
+        <!-- Secondary connectors -->
+        <g stroke="rgba(200,169,110,0.12)" stroke-width="0.5" fill="none">
+          <line x1="140" y1="130" x2="370" y2="140"/>
+          <line x1="100" y1="300" x2="140" y2="130"/>
+          <line x1="400" y1="310" x2="370" y2="140"/>
+          <line x1="220" y1="400" x2="100" y2="300"/>
+          <line x1="350" y1="420" x2="400" y2="310"/>
+        </g>
+
+        <!-- Glow backgrounds -->
+        <circle cx="250" cy="250" r="50" fill="url(#glow1)" filter="url(#blur)"/>
+        <circle cx="140" cy="130" r="30" fill="url(#glow2)" filter="url(#blur)" opacity="0" style="animation: nodeAppear 0.5s ease 1s forwards; transform-origin: 140px 130px; transform: scale(0)"/>
+        <circle cx="370" cy="140" r="30" fill="url(#glow2)" filter="url(#blur)" opacity="0" style="animation: nodeAppear 0.5s ease 1.2s forwards; transform-origin: 370px 140px; transform: scale(0)"/>
+        <circle cx="100" cy="300" r="30" fill="url(#glow3)" filter="url(#blur)" opacity="0" style="animation: nodeAppear 0.5s ease 1.4s forwards; transform-origin: 100px 300px; transform: scale(0)"/>
+        <circle cx="400" cy="310" r="30" fill="url(#glow3)" filter="url(#blur)" opacity="0" style="animation: nodeAppear 0.5s ease 1.6s forwards; transform-origin: 400px 310px; transform: scale(0)"/>
+        <circle cx="220" cy="400" r="30" fill="url(#glow2)" filter="url(#blur)" opacity="0" style="animation: nodeAppear 0.5s ease 1.8s forwards; transform-origin: 220px 400px; transform: scale(0)"/>
+        <circle cx="350" cy="420" r="30" fill="url(#glow1)" filter="url(#blur)" opacity="0" style="animation: nodeAppear 0.5s ease 2s forwards; transform-origin: 350px 420px; transform: scale(0)"/>
+
+        <!-- Central node -->
+        <circle cx="250" cy="250" r="32" fill="rgba(13,27,42,0.9)" stroke="#c8a96e" stroke-width="1.5"/>
+        <circle cx="250" cy="250" r="24" fill="rgba(200,169,110,0.1)"/>
+        <text x="250" y="247" text-anchor="middle" fill="#c8a96e" font-family="'Bebas Neue'" font-size="11" letter-spacing="1">VALUE</text>
+        <text x="250" y="260" text-anchor="middle" fill="#c8a96e" font-family="'Bebas Neue'" font-size="11" letter-spacing="1">ARCH</text>
+
+        <!-- Satellite nodes -->
+        <g opacity="0" style="animation: nodeAppear 0.5s ease 1s forwards; transform-origin: 140px 130px; transform: scale(0)">
+          <circle cx="140" cy="130" r="22" fill="rgba(13,27,42,0.9)" stroke="#4a90b8" stroke-width="1"/>
+          <text x="140" y="126" text-anchor="middle" fill="#4a90b8" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">AI</text>
+          <text x="140" y="137" text-anchor="middle" fill="#4a90b8" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">CIRCUIT</text>
+        </g>
+
+        <g opacity="0" style="animation: nodeAppear 0.5s ease 1.2s forwards; transform-origin: 370px 140px; transform: scale(0)">
+          <circle cx="370" cy="140" r="22" fill="rgba(13,27,42,0.9)" stroke="#4a90b8" stroke-width="1"/>
+          <text x="370" y="136" text-anchor="middle" fill="#4a90b8" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">RDSG</text>
+          <text x="370" y="147" text-anchor="middle" fill="#4a90b8" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">v2.0</text>
+        </g>
+
+        <g opacity="0" style="animation: nodeAppear 0.5s ease 1.4s forwards; transform-origin: 100px 300px; transform: scale(0)">
+          <circle cx="100" cy="300" r="22" fill="rgba(13,27,42,0.9)" stroke="#7eb89a" stroke-width="1"/>
+          <text x="100" y="296" text-anchor="middle" fill="#7eb89a" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">SEMANTIC</text>
+          <text x="100" y="307" text-anchor="middle" fill="#7eb89a" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">GOVERN</text>
+        </g>
+
+        <g opacity="0" style="animation: nodeAppear 0.5s ease 1.6s forwards; transform-origin: 400px 310px; transform: scale(0)">
+          <circle cx="400" cy="310" r="22" fill="rgba(13,27,42,0.9)" stroke="#7eb89a" stroke-width="1"/>
+          <text x="400" y="306" text-anchor="middle" fill="#7eb89a" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">HOLONIC</text>
+          <text x="400" y="317" text-anchor="middle" fill="#7eb89a" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">ARCH</text>
+        </g>
+
+        <g opacity="0" style="animation: nodeAppear 0.5s ease 1.8s forwards; transform-origin: 220px 400px; transform: scale(0)">
+          <circle cx="220" cy="400" r="22" fill="rgba(13,27,42,0.9)" stroke="#4a90b8" stroke-width="1"/>
+          <text x="220" y="396" text-anchor="middle" fill="#4a90b8" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">KNOWLEDGE</text>
+          <text x="220" y="407" text-anchor="middle" fill="#4a90b8" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">GRAPH</text>
+        </g>
+
+        <g opacity="0" style="animation: nodeAppear 0.5s ease 2s forwards; transform-origin: 350px 420px; transform: scale(0)">
+          <circle cx="350" cy="420" r="22" fill="rgba(13,27,42,0.9)" stroke="#c8a96e" stroke-width="1"/>
+          <text x="350" y="416" text-anchor="middle" fill="#c8a96e" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">DARPA</text>
+          <text x="350" y="427" text-anchor="middle" fill="#c8a96e" font-family="'DM Mono'" font-size="7" letter-spacing="0.5">AI TRUST</text>
+        </g>
+
+        <!-- Orbit ring -->
+        <circle cx="250" cy="250" r="100" fill="none" stroke="rgba(200,169,110,0.08)" stroke-width="1" stroke-dasharray="4 8"/>
+        <circle cx="250" cy="250" r="160" fill="none" stroke="rgba(74,144,184,0.06)" stroke-width="1" stroke-dasharray="2 12"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="about" id="about">
+  <div class="section-label">Who I Am</div>
+  <div class="about-grid reveal">
+    <div>
+      <h2 class="section-title">Architect<br>of Right<br>Value</h2>
+      <p class="about-statement">
+        I build <em>the connective tissue</em> between what organizations know, 
+        what they build, and what they deliver — grounding every decision in 
+        semantic precision, systems integrity, and trustworthy AI.
+      </p>
+      <br>
+      <p style="font-family: var(--serif); font-size: 0.9rem; color: rgba(244,240,232,0.45); line-height: 1.7; margin-top: 1rem;">
+        17 years spanning healthcare, pharma, telecom, and aerospace. 
+        Principal Engineer for Semantic Governance at Verizon. 
+        Governing 30,000+ data assets with a Unified Semantic Knowledge Layer. 
+        Co-authoring formal AI trustworthiness research with the University of Arizona. 
+        Pursuing DARPA funding for morphism-grounded AI assurance architecture.
+      </p>
+    </div>
+    <div class="about-stats">
+      <div class="stat-item">
+        <div class="stat-number">17+</div>
+        <div class="stat-label">Years Enterprise Architecture</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">30K</div>
+        <div class="stat-label">Data Assets Governed at Verizon</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">5</div>
+        <div class="stat-label">Industries: Healthcare · Pharma · Telecom · Aerospace · Energy</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">∞</div>
+        <div class="stat-label">Planet · People · Profit Values Hierarchy</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FRAMEWORKS -->
+<section class="frameworks" id="frameworks">
+  <div class="section-label reveal">Core Frameworks</div>
+  <h2 class="section-title reveal">The Body<br>of Work</h2>
+  <p class="section-subtitle reveal">
+    Original frameworks developed over years of applied systems thinking, 
+    category theory, and semantic engineering — each grounded, peer-reviewed, 
+    and battle-tested.
+  </p>
+  <div class="frameworks-grid reveal">
+    <div class="framework-card">
+      <span class="fc-number">01</span>
+      <div class="fc-tag">AI Governance · INCOSE</div>
+      <div class="fc-title">AI Circuit Breaker Architecture</div>
+      <div class="fc-desc">
+        Five-layer morphism-grounded assurance architecture with MTBH metric, 
+        Composition Theorem, GUM-based uncertainty quantification, and STPA/STAMP 
+        integration. Co-authored with University of Arizona for INCOSE SE4AI.
+      </div>
+      <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="fc-link">View Framework →</a>
+    </div>
+    <div class="framework-card">
+      <span class="fc-number">02</span>
+      <div class="fc-tag">Semantic Architecture · STPA</div>
+      <div class="fc-title">RDSG v2.0</div>
+      <div class="fc-desc">
+        Requirements-Driven Semantic Gateway Architecture with full STPA/STAMP 
+        integration, UCA coverage, irreversibility enforcement, temporal SWRL 
+        rules, and human-system process model synchronization.
+      </div>
+      <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="fc-link">View Framework →</a>
+    </div>
+    <div class="framework-card">
+      <span class="fc-number">03</span>
+      <div class="fc-tag">Systems Architecture · Holonics</div>
+      <div class="fc-title">Holonic Semantic Architecture</div>
+      <div class="fc-desc">
+        Four-level holarchic integration of all prior frameworks into a coherent 
+        whole-part architecture. Bridges ontological governance with operational 
+        AI assurance at enterprise scale.
+      </div>
+      <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="fc-link">View Framework →</a>
+    </div>
+    <div class="framework-card">
+      <span class="fc-number">04</span>
+      <div class="fc-tag">Knowledge Engineering · GraphDB</div>
+      <div class="fc-title">Unified Semantic Knowledge Layer</div>
+      <div class="fc-desc">
+        Built from scratch at Verizon: the Knowledge Engineering discipline governing 
+        30,000+ data assets using OWL, RDF, SPARQL, SHACL, and SKOS across the 
+        enterprise knowledge graph.
+      </div>
+      <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="fc-link">Explore →</a>
+    </div>
+    <div class="framework-card">
+      <span class="fc-number">05</span>
+      <div class="fc-tag">AI Trustworthiness · DARPA</div>
+      <div class="fc-title">Morphism-Grounded Assurance</div>
+      <div class="fc-desc">
+        Formal AI trustworthiness research targeting DARPA DSO Office-Wide BAA 
+        Thrust 4. Category-theoretic foundation with 15 SVG architectural diagrams 
+        and component content system.
+      </div>
+      <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="fc-link">View Research →</a>
+    </div>
+    <div class="framework-card">
+      <span class="fc-number">06</span>
+      <div class="fc-tag">Institutional Resilience · Policy</div>
+      <div class="fc-title">S.E.P.A. Framework</div>
+      <div class="fc-desc">
+        Systemic Exploitation Prevention Act — policy architecture grounded in 
+        Doughnut Economics, STPA/STAMP, and the Planet &gt; People &gt; Profit 
+        values hierarchy. Civilizational immune system design.
+      </div>
+      <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="fc-link">Read More →</a>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services" id="services">
+  <div class="section-label reveal">How I Work</div>
+  <h2 class="section-title reveal">Creating,<br>Building &amp;<br>Delivering</h2>
+  <p class="section-subtitle reveal">
+    The right value — not the most value, not the fastest value. 
+    The value that endures, compounds, and regenerates.
+  </p>
+  <div class="services-list reveal">
+    <div class="service-item">
+      <span class="service-icon">⬡</span>
+      <div class="service-title">Enterprise Architecture &amp; Semantic Governance</div>
+      <div class="service-desc">
+        Building the knowledge engineering discipline from scratch. Unified semantic layers, 
+        ontology design, knowledge graph deployment, and data asset governance at scale.
+      </div>
+      <div class="service-tags">
+        <span class="service-tag">OWL / RDF / SPARQL</span>
+        <span class="service-tag">GraphDB</span>
+        <span class="service-tag">SHACL / SKOS</span>
+        <span class="service-tag">Knowledge Graph</span>
+      </div>
+    </div>
+    <div class="service-item">
+      <span class="service-icon">◈</span>
+      <div class="service-title">AI Governance &amp; Trustworthiness Architecture</div>
+      <div class="service-desc">
+        Formal assurance frameworks for AI systems. Circuit breaker patterns, 
+        uncertainty quantification, STPA/STAMP integration, and human-system 
+        safety analysis for high-stakes deployments.
+      </div>
+      <div class="service-tags">
+        <span class="service-tag">STPA / STAMP</span>
+        <span class="service-tag">AI Assurance</span>
+        <span class="service-tag">Category Theory</span>
+        <span class="service-tag">INCOSE</span>
+      </div>
+    </div>
+    <div class="service-item">
+      <span class="service-icon">◇</span>
+      <div class="service-title">Digital Transformation Strategy</div>
+      <div class="service-desc">
+        Enterprise intelligence platforms, smart manufacturing architectures, 
+        and R&D semantic platforms. From Baxter FABRIC to Gulfstream Smart 
+        Manufacturing to AbbVie ARCH.
+      </div>
+      <div class="service-tags">
+        <span class="service-tag">Enterprise Intelligence</span>
+        <span class="service-tag">Smart Manufacturing</span>
+        <span class="service-tag">Platform Architecture</span>
+      </div>
+    </div>
+    <div class="service-item">
+      <span class="service-icon">○</span>
+      <div class="service-title">Research &amp; Proposal Development</div>
+      <div class="service-desc">
+        DARPA, NSF, and DoD proposal architecture. Morphism-grounded research 
+        frameworks, academic co-authorship, and INCOSE working group 
+        collaboration for knowledge systems.
+      </div>
+      <div class="service-tags">
+        <span class="service-tag">DARPA DSO</span>
+        <span class="service-tag">Academic Research</span>
+        <span class="service-tag">INCOSE KSWG</span>
+        <span class="service-tag">SE4AI</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PORTFOLIO BRIDGE -->
+<section class="portfolio-bridge" id="portfolio">
+  <div class="section-label reveal">Applied Work</div>
+  <h2 class="section-title reveal">Delivered<br>Outcomes</h2>
+  <p class="section-subtitle reveal">
+    Real solutions for real organizations — from concept through deployment.
+  </p>
+  <div class="portfolio-grid reveal">
+    <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="portfolio-card">
+      <div class="pc-domain">Healthcare · AI</div>
+      <div class="pc-title">Baxter FABRIC</div>
+      <div class="pc-desc">Enterprise intelligence platform for healthcare systems architecture</div>
+      <span class="pc-arrow">↗</span>
+    </a>
+    <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="portfolio-card">
+      <div class="pc-domain">Aerospace · Manufacturing</div>
+      <div class="pc-title">Gulfstream Smart Manufacturing</div>
+      <div class="pc-desc">AI governance blueprint for aerospace precision manufacturing</div>
+      <span class="pc-arrow">↗</span>
+    </a>
+    <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="portfolio-card">
+      <div class="pc-domain">Pharma · R&amp;D</div>
+      <div class="pc-title">AbbVie ARCH</div>
+      <div class="pc-desc">Semantic platform for pharmaceutical R&D knowledge management</div>
+      <span class="pc-arrow">↗</span>
+    </a>
+    <a href="https://jeffw5.github.io/Value/index.html" target="_blank" class="portfolio-card">
+      <div class="pc-domain">Telecom · Governance</div>
+      <div class="pc-title">Verizon USKL</div>
+      <div class="pc-desc">30,000+ data assets governed via Unified Semantic Knowledge Layer</div>
+      <span class="pc-arrow">↗</span>
+    </a>
+  </div>
+</section>
+
+<!-- AVATAR CTA -->
+<section class="avatar-cta">
+  <div class="avatar-ring">
+    <span class="avatar-icon">◎</span>
+  </div>
+  <h2 class="avatar-cta-title">Curious?<br>Ask Me Directly.</h2>
+  <p class="avatar-cta-sub">
+    My AI assistant is trained on my full body of work. 
+    Ask about any framework, challenge, or opportunity — 
+    it responds the way I would.
+  </p>
+  <a href="avatar.html" class="btn-primary" style="margin: 0 auto; display: inline-flex;">
+    <span>↗</span> Open the Assistant
+  </a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-mark">The Value Enablement Group, LLC · Deerfield, Illinois</span>
+  <ul class="footer-links">
+    <li><a href="https://jeffw5.github.io/Value/index.html" target="_blank">Portfolio</a></li>
+    <li><a href="https://linkedin.com" target="_blank">LinkedIn</a></li>
+    <li><a href="mailto:jeffrey@enablingvalue.com">Contact</a></li>
+    <li><a href="knowledge-architects.org">Knowledge Architects</a></li>
+  </ul>
+  <span class="footer-values">Planet › People › Profit</span>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.transform = `translate(${mx - 4}px, ${my - 4}px)`;
+  });
+
+  function animateRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.transform = `translate(${rx - 16}px, ${ry - 16}px)`;
+    requestAnimationFrame(animateRing);
+  }
+  animateRing();
+
+  document.querySelectorAll('a, button').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.transform += ' scale(2)';
+      ring.style.width = '50px';
+      ring.style.height = '50px';
+    });
+    el.addEventListener('mouseleave', () => {
+      ring.style.width = '32px';
+      ring.style.height = '32px';
+    });
+  });
+
+  // Scroll reveal
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
