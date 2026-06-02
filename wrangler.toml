@@ -1,0 +1,18 @@
+name = "ask-jeffrey"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Worker runs on Cloudflare's free tier
+# Deployed URL will be: https://ask-jeffrey.YOUR-SUBDOMAIN.workers.dev
+# After deploying, add a custom route like: api.enablingvalue.com/*
+
+[vars]
+# Non-secret environment variables (safe to commit)
+ENVIRONMENT = "production"
+
+# ── ROUTES (optional — add after you verify it works) ──
+# Uncomment and edit after deployment to use your custom domain:
+#
+# [[routes]]
+# pattern = "api.enablingvalue.com/chat"
+# zone_name = "enablingvalue.com"
