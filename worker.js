@@ -206,7 +206,7 @@ export default {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': env.ANTHROPIC_API_KEY,
+          'x-api-key': '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',
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
@@ -221,7 +221,7 @@ export default {
         const errBody = await anthropicResponse.text();
         console.error('Anthropic API error:', anthropicResponse.status, errBody);
         return new Response(JSON.stringify({
-          error: 'AI service temporarily unavailable. Please try again shortly.'
+          error: 'AI service temporarily unavailable. AHHHHHH  Please try again shortly.'
         }), {
           status: 502,
           headers: { 'Content-Type': 'application/json', ...corsHeaders(request) }
