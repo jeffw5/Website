@@ -131,15 +131,20 @@
     position: absolute;
     inset: 28px;
     border-radius: 50%;
-    background: radial-gradient(circle at 40% 35%, rgba(200,169,110,0.25) 0%, rgba(74,144,184,0.15) 50%, transparent 100%);
-    border: 1px solid rgba(200,169,110,0.4);
+    border: 2px solid rgba(200,169,110,0.4);
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--display);
-    font-size: 2rem;
-    color: var(--accent);
-    letter-spacing: 0.05em;
+  }
+
+  .orb-inner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    filter: grayscale(20%) contrast(1.05);
+    border-radius: 50%;
   }
 
   /* Animated SVG rings on orb */
@@ -747,7 +752,11 @@
 
   <!-- ── LEFT: AVATAR PANEL ── -->
   <div class="avatar-panel">
-    <a href="index.html" class="back-link">← Back to Enabling Value</a>
+    <a href="index.html" style="display:flex; align-items:center; text-decoration:none; margin-bottom:1.5rem;">
+    <img src="logo.png" alt="The Value Enablement Group" 
+      style="height:48px; width:auto; object-fit:contain; background:transparent; display:block;">
+  </a>
+  <a href="index.html" class="back-link">← Back to Enabling Value</a>
 
     <div class="avatar-visual">
       <div class="avatar-orb">
@@ -762,7 +771,9 @@
           <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(74,144,184,0.12)" stroke-width="0.5" stroke-dasharray="3 20"/>
         </svg>
 
-        <div class="orb-inner">JW</div>
+        <div class="orb-inner">
+          <img src="jeffrey.png" alt="Jeffrey Wallk">
+        </div>
       </div>
 
       <div class="speaking-bars" id="speakingBars">
@@ -867,7 +878,9 @@
 
     <!-- Typing indicator -->
     <div class="typing-indicator" id="typingIndicator">
-      <div class="msg-avatar" style="background: rgba(200,169,110,0.15); border: 1px solid rgba(200,169,110,0.3); color: var(--accent); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:0.6rem; flex-shrink:0; margin: 1rem 0 1rem 2rem;">JW</div>
+      <div class="msg-avatar" style="width:32px; height:32px; border-radius:50%; overflow:hidden; border:1px solid rgba(200,169,110,0.3); flex-shrink:0; margin: 1rem 0 1rem 2rem;">
+        <img src="jeffrey.png" style="width:100%; height:100%; object-fit:cover; object-position:center top;">
+      </div>
       <div class="typing-dots" style="margin: 1rem 0;">
         <div class="dot"></div>
         <div class="dot"></div>
@@ -1080,7 +1093,12 @@ function renderMessage(role, content) {
 
   const avatar = document.createElement('div');
   avatar.className = 'msg-avatar';
-  avatar.textContent = role === 'assistant' ? 'JW' : 'YOU';
+  if (role === 'assistant') {
+    avatar.style.cssText = 'width:32px; height:32px; border-radius:50%; overflow:hidden; border:1px solid rgba(200,169,110,0.3); flex-shrink:0; margin-top:2px;';
+    avatar.innerHTML = '<img src="jeffrey.png" style="width:100%; height:100%; object-fit:cover; object-position:center top;">';
+  } else {
+    avatar.textContent = 'YOU';
+  }
 
   const contentDiv = document.createElement('div');
   contentDiv.className = 'msg-content';
