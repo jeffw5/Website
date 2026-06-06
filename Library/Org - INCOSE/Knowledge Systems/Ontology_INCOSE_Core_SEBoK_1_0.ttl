@@ -1,0 +1,1265 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix incose: <https://ontologies.incose.org/sebok/core/> .
+@prefix sebok: <https://ontologies.incose.org/sebok/> .
+
+# =============================================================================
+# ONTOLOGY METADATA
+# =============================================================================
+
+<https://ontologies.incose.org/sebok/core/> a owl:Ontology ;
+    rdfs:label "INCOSE SEBoK Core Ontology"@en ;
+    dct:title "INCOSE Systems Engineering Body of Knowledge - Core Ontology"@en ;
+    dct:description """This ontology defines the core concepts from the Systems Engineering Body of Knowledge (SEBoK) 
+    that are applicable across all systems engineering domains. It captures the fundamental principles, processes, 
+    artifacts, life cycle stages, and relationships essential to systems engineering practice as defined by INCOSE 
+    and the SEBoK community. Based on SEBoK v2.13 and ISO/IEC/IEEE 15288:2023."""@en ;
+    dct:creator "Jeffrey Wallk" ;
+    dct:contributor "INCOSE", "SEBoK Community" ;
+    dct:created "2025-02-06T00:00:00Z"^^xsd:dateTime ;
+    dct:modified "2025-02-06T00:00:00Z"^^xsd:dateTime ;
+    owl:versionInfo "1.0" ;
+    dct:source "SEBoK v2.13", "ISO/IEC/IEEE 15288:2023", "INCOSE Systems Engineering Handbook v5.0" ;
+    dct:license <https://creativecommons.org/licenses/by-sa/4.0/> ;
+    skos:changeNote "Initial version capturing core SEBoK concepts and relationships" ;
+    <http://purl.org/ontology/bibo/status> <http://purl.org/spar/pso/published> .
+
+# =============================================================================
+# TOP-LEVEL CONCEPTS
+# =============================================================================
+
+## System Concept
+incose:System a owl:Class ;
+    rdfs:label "System"@en ;
+    skos:definition """An integrated combination of elements to accomplish a defined objective. 
+    These elements include products (hardware, software, firmware), processes, people, information, 
+    techniques, facilities, services, and other support elements."""@en ;
+    skos:scopeNote "Encompasses natural systems, social systems, and engineered systems"@en ;
+    dct:source "ISO/IEC/IEEE 15288:2023" ;
+    rdfs:isDefinedBy incose: .
+
+incose:EngineeredSystem a owl:Class ;
+    rdfs:subClassOf incose:System ;
+    rdfs:label "Engineered System"@en ;
+    skos:definition """A technical or socio-technical system designed or adapted to interact with an 
+    anticipated operational environment to achieve one or more intended purposes while complying with 
+    applicable constraints."""@en ;
+    skos:scopeNote "The primary focus of systems engineering activities"@en ;
+    dct:source "SEBoK Part 2" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemContext a owl:Class ;
+    rdfs:label "System Context"@en ;
+    skos:definition """The environment in which a system exists, including all external entities, 
+    conditions, and influences that interact with or affect the system."""@en ;
+    dct:source "SEBoK Part 2" ;
+    rdfs:isDefinedBy incose: .
+
+incose:NaturalSystem a owl:Class ;
+    rdfs:subClassOf incose:System ;
+    rdfs:label "Natural System"@en ;
+    skos:definition """A system that exists in nature without human intervention, such as ecosystems, 
+    weather systems, or biological organisms."""@en ;
+    dct:source "SEBoK Part 2 - The Nature of Systems" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SocialSystem a owl:Class ;
+    rdfs:subClassOf incose:System ;
+    rdfs:label "Social System"@en ;
+    skos:definition """A system composed primarily of human interactions, organizations, and social 
+    structures."""@en ;
+    dct:source "SEBoK Part 2" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# SYSTEM TYPES (Part 4 Applications)
+# =============================================================================
+
+incose:ProductSystem a owl:Class ;
+    rdfs:subClassOf incose:EngineeredSystem ;
+    rdfs:label "Product System"@en ;
+    skos:definition """An engineered system that is a tangible good or integrated product designed 
+    to fulfill specific functions and meet stakeholder needs."""@en ;
+    dct:source "SEBoK Part 4 - Product Systems Engineering" ;
+    rdfs:isDefinedBy incose: .
+
+incose:ServiceSystem a owl:Class ;
+    rdfs:subClassOf incose:EngineeredSystem ;
+    rdfs:label "Service System"@en ;
+    skos:definition """An engineered system designed to deliver intangible value through activities, 
+    processes, and interactions with service providers and beneficiaries."""@en ;
+    dct:source "SEBoK Part 4 - Service Systems Engineering" ;
+    rdfs:isDefinedBy incose: .
+
+incose:EnterpriseSystem a owl:Class ;
+    rdfs:subClassOf incose:EngineeredSystem ;
+    rdfs:label "Enterprise System"@en ;
+    skos:definition """An engineered system comprising an organization or multiple organizations 
+    working together to achieve common goals and deliver value."""@en ;
+    dct:source "SEBoK Part 4 - Enterprise Systems Engineering" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemOfSystems a owl:Class ;
+    rdfs:subClassOf incose:EngineeredSystem ;
+    rdfs:label "System of Systems"@en ;
+    skos:definition """A set of independent systems that are integrated to provide unique capabilities 
+    that none of the individual systems could provide alone."""@en ;
+    dct:source "SEBoK Part 4 - Systems of Systems" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# LIFE CYCLE CONCEPTS
+# =============================================================================
+
+incose:LifeCycle a owl:Class ;
+    rdfs:label "Life Cycle"@en ;
+    skos:definition """The evolution of a system, product, service, project or other human-made entity 
+    from conception through retirement."""@en ;
+    dct:source "ISO/IEC/IEEE 24748-1:2024" ;
+    rdfs:isDefinedBy incose: .
+
+incose:LifeCycleModel a owl:Class ;
+    rdfs:label "Life Cycle Model"@en ;
+    skos:definition """A framework of processes and activities concerned with the life cycle that can 
+    be organized into stages, acting as a common reference for communication and understanding."""@en ;
+    dct:source "ISO/IEC/IEEE 24748-1:2024" ;
+    rdfs:isDefinedBy incose: .
+
+incose:LifeCycleStage a owl:Class ;
+    rdfs:label "Life Cycle Stage"@en ;
+    skos:definition """A period within the life cycle of an entity that relates to the state of its 
+    description or realization."""@en ;
+    dct:source "ISO/IEC/IEEE 15288:2023" ;
+    rdfs:isDefinedBy incose: .
+
+## Specific Life Cycle Stages
+incose:ConceptStage a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleStage ;
+    rdfs:label "Concept Stage"@en ;
+    skos:definition """Initial stage focused on identifying stakeholder needs, exploring opportunities, 
+    and defining feasible solution concepts."""@en ;
+    dct:source "SEBoK Part 3 - Life Cycle Stages" ;
+    rdfs:isDefinedBy incose: .
+
+incose:DevelopmentStage a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleStage ;
+    rdfs:label "Development Stage"@en ;
+    skos:definition """Stage focused on refining the system definition, performing detailed design, 
+    and creating the system."""@en ;
+    dct:source "SEBoK Part 3 - Life Cycle Stages" ;
+    rdfs:isDefinedBy incose: .
+
+incose:ProductionStage a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleStage ;
+    rdfs:label "Production Stage"@en ;
+    skos:definition """Stage focused on manufacturing, constructing, or otherwise producing copies 
+    or instances of the system."""@en ;
+    dct:source "SEBoK Part 3 - Life Cycle Stages" ;
+    rdfs:isDefinedBy incose: .
+
+incose:UtilizationStage a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleStage ;
+    rdfs:label "Utilization Stage"@en ;
+    skos:definition """Stage where the system is operated to deliver its intended value and 
+    accomplish its purpose."""@en ;
+    dct:source "SEBoK Part 3 - Life Cycle Stages" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SupportStage a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleStage ;
+    rdfs:label "Support Stage"@en ;
+    skos:definition """Stage focused on maintaining system performance, managing modifications, 
+    and sustaining operations."""@en ;
+    dct:source "SEBoK Part 3 - Life Cycle Stages" ;
+    rdfs:isDefinedBy incose: .
+
+incose:RetirementStage a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleStage ;
+    rdfs:label "Retirement Stage"@en ;
+    skos:definition """Final stage involving safe removal from service, disposal, and archiving 
+    of system information."""@en ;
+    dct:source "SEBoK Part 3 - Life Cycle Stages" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# DEVELOPMENT APPROACHES
+# =============================================================================
+
+incose:DevelopmentApproach a owl:Class ;
+    rdfs:label "Development Approach"@en ;
+    skos:definition """The strategy and methodology used to develop a system, including the way 
+    processes are organized and executed."""@en ;
+    dct:source "SEBoK Part 3 - Development Approaches" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SequentialDevelopment a owl:Class ;
+    rdfs:subClassOf incose:DevelopmentApproach ;
+    rdfs:label "Sequential Development"@en ;
+    skos:definition """A development approach where activities are performed in a linear sequence, 
+    with each phase completed before the next begins."""@en ;
+    skos:altLabel "Waterfall"@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:IncrementalDevelopment a owl:Class ;
+    rdfs:subClassOf incose:DevelopmentApproach ;
+    rdfs:label "Incremental Development"@en ;
+    skos:definition """A development approach where system capabilities are delivered in planned 
+    increments, each building upon previous functionality."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:EvolutionaryDevelopment a owl:Class ;
+    rdfs:subClassOf incose:DevelopmentApproach ;
+    rdfs:label "Evolutionary Development"@en ;
+    skos:definition """A development approach where the system evolves through successive versions 
+    based on feedback and changing requirements."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:AgileDevelopment a owl:Class ;
+    rdfs:subClassOf incose:DevelopmentApproach ;
+    rdfs:label "Agile Development"@en ;
+    skos:definition """A development approach emphasizing iterative delivery, continuous feedback, 
+    adaptive planning, and close collaboration."""@en ;
+    dct:source "SEBoK Part 3 - Agile Development Approach" ;
+    rdfs:isDefinedBy incose: .
+
+incose:LeanDevelopment a owl:Class ;
+    rdfs:subClassOf incose:DevelopmentApproach ;
+    rdfs:label "Lean Development"@en ;
+    skos:definition """A development approach focused on maximizing value while minimizing waste 
+    throughout the development process."""@en ;
+    dct:source "SEBoK Part 3 - Lean Engineering" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# PROCESSES
+# =============================================================================
+
+incose:Process a owl:Class ;
+    rdfs:label "Process"@en ;
+    skos:definition """A set of interrelated or interacting activities that transforms inputs into outputs."""@en ;
+    dct:source "ISO/IEC/IEEE 15288:2023" ;
+    rdfs:isDefinedBy incose: .
+
+incose:LifeCycleProcess a owl:Class ;
+    rdfs:subClassOf incose:Process ;
+    rdfs:label "Life Cycle Process"@en ;
+    skos:definition """A process that defines technical and management activities performed across 
+    one or more life cycle stages."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+## Technical Management Processes
+incose:TechnicalManagementProcess a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleProcess ;
+    rdfs:label "Technical Management Process"@en ;
+    skos:definition """Processes that manage the application of technical processes and resources 
+    to accomplish project objectives."""@en ;
+    dct:source "SEBoK Part 3 - Technical Management Processes" ;
+    rdfs:isDefinedBy incose: .
+
+incose:ProjectPlanning a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Project Planning"@en ;
+    skos:definition """Process to develop and maintain project plans defining scope, objectives, 
+    approach, resources, and schedules."""@en ;
+    dct:source "SEBoK Part 3 - Technical Management Processes" ;
+    rdfs:isDefinedBy incose: .
+
+incose:ProjectAssessmentAndControl a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Project Assessment and Control"@en ;
+    skos:definition """Process to assess project progress and performance, and implement corrective 
+    actions when necessary."""@en ;
+    dct:source "SEBoK Part 3 - Technical Management Processes" ;
+    rdfs:isDefinedBy incose: .
+
+incose:DecisionManagement a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Decision Management"@en ;
+    skos:definition """Process to make informed decisions throughout the system life cycle using a 
+    structured approach."""@en ;
+    dct:source "SEBoK Part 3 - Decision Management" ;
+    rdfs:isDefinedBy incose: .
+
+incose:RiskManagement a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Risk Management"@en ;
+    skos:definition """Process to identify, analyze, treat, and monitor risks throughout the 
+    system life cycle."""@en ;
+    dct:source "SEBoK Part 3 - Risk Management" ;
+    rdfs:isDefinedBy incose: .
+
+incose:ConfigurationManagement a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Configuration Management"@en ;
+    skos:definition """Process to establish and maintain the integrity of system elements, 
+    their configurations, and related information."""@en ;
+    dct:source "SEBoK Part 3 - Configuration Management" ;
+    rdfs:isDefinedBy incose: .
+
+incose:InformationManagement a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Information Management"@en ;
+    skos:definition """Process to manage information created, acquired, or used during the 
+    system life cycle."""@en ;
+    dct:source "SEBoK Part 3 - Information Management" ;
+    rdfs:isDefinedBy incose: .
+
+incose:RequirementsManagement a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Requirements Management"@en ;
+    skos:definition """Process to manage requirements and their changes throughout the system life cycle."""@en ;
+    dct:source "SEBoK Part 3 - Requirements Management" ;
+    rdfs:isDefinedBy incose: .
+
+incose:QualityManagement a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Quality Management"@en ;
+    skos:definition """Process to ensure that products, services, and processes meet quality objectives 
+    and satisfy stakeholders."""@en ;
+    dct:source "SEBoK Part 3 - Quality Management" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Measurement a owl:Class ;
+    rdfs:subClassOf incose:TechnicalManagementProcess ;
+    rdfs:label "Measurement"@en ;
+    skos:definition """Process to collect, analyze, and report data to support decision-making 
+    and assess achievement of objectives."""@en ;
+    dct:source "SEBoK Part 3 - Measurement" ;
+    rdfs:isDefinedBy incose: .
+
+## System Definition Processes
+incose:SystemDefinitionProcess a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleProcess ;
+    rdfs:label "System Definition Process"@en ;
+    skos:definition """Processes that define the system from concept through detailed design."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:BusinessOrMissionAnalysis a owl:Class ;
+    rdfs:subClassOf incose:SystemDefinitionProcess ;
+    rdfs:label "Business or Mission Analysis"@en ;
+    skos:definition """Process to define and analyze business or mission problems and opportunities, 
+    and identify stakeholders."""@en ;
+    dct:source "SEBoK Part 3 - System Concept Definition" ;
+    rdfs:isDefinedBy incose: .
+
+incose:StakeholderNeedsDefinition a owl:Class ;
+    rdfs:subClassOf incose:SystemDefinitionProcess ;
+    rdfs:label "Stakeholder Needs Definition"@en ;
+    skos:definition """Process to elicit, analyze, and specify stakeholder requirements and 
+    quality characteristics."""@en ;
+    dct:source "SEBoK Part 3 - System Concept Definition" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemRequirementsDefinition a owl:Class ;
+    rdfs:subClassOf incose:SystemDefinitionProcess ;
+    rdfs:label "System Requirements Definition"@en ;
+    skos:definition """Process to transform stakeholder requirements into technical system requirements."""@en ;
+    dct:source "SEBoK Part 3 - System Requirements Definition" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemArchitectureDefinition a owl:Class ;
+    rdfs:subClassOf incose:SystemDefinitionProcess ;
+    rdfs:label "System Architecture Definition"@en ;
+    skos:definition """Process to synthesize a solution that satisfies system requirements and 
+    represents the system design."""@en ;
+    dct:source "SEBoK Part 3 - System Architecture Design Definition" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemDetailedDesign a owl:Class ;
+    rdfs:subClassOf incose:SystemDefinitionProcess ;
+    rdfs:label "System Detailed Design"@en ;
+    skos:definition """Process to define the system elements in sufficient detail to enable implementation."""@en ;
+    dct:source "SEBoK Part 3 - System Detailed Design Definition" ;
+    rdfs:isDefinedBy incose: .
+
+## System Realization Processes
+incose:SystemRealizationProcess a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleProcess ;
+    rdfs:label "System Realization Process"@en ;
+    skos:definition """Processes that transform system designs into physical reality."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemAnalysis a owl:Class ;
+    rdfs:subClassOf incose:SystemRealizationProcess ;
+    rdfs:label "System Analysis"@en ;
+    skos:definition """Process to understand and evaluate system characteristics, behavior, and performance."""@en ;
+    dct:source "SEBoK Part 3 - System Analysis" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemImplementation a owl:Class ;
+    rdfs:subClassOf incose:SystemRealizationProcess ;
+    rdfs:label "System Implementation"@en ;
+    skos:definition """Process to create or manufacture system elements according to design specifications."""@en ;
+    dct:source "SEBoK Part 3 - System Implementation" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemIntegration a owl:Class ;
+    rdfs:subClassOf incose:SystemRealizationProcess ;
+    rdfs:label "System Integration"@en ;
+    skos:definition """Process to combine system elements to form intermediate or complete system configurations."""@en ;
+    dct:source "SEBoK Part 3 - System Integration" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemVerification a owl:Class ;
+    rdfs:subClassOf incose:SystemRealizationProcess ;
+    rdfs:label "System Verification"@en ;
+    skos:definition """Process to confirm that system elements satisfy their specified requirements 
+    and design constraints."""@en ;
+    dct:source "SEBoK Part 3 - System Verification" ;
+    rdfs:isDefinedBy incose: .
+
+## System Deployment and Use Processes
+incose:SystemDeploymentProcess a owl:Class ;
+    rdfs:subClassOf incose:LifeCycleProcess ;
+    rdfs:label "System Deployment Process"@en ;
+    skos:definition """Processes related to deploying and using the system in its operational environment."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemTransition a owl:Class ;
+    rdfs:subClassOf incose:SystemDeploymentProcess ;
+    rdfs:label "System Transition"@en ;
+    skos:definition """Process to establish the capability to deliver services using the system 
+    in the operational environment."""@en ;
+    dct:source "SEBoK Part 3 - System Transition" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemValidation a owl:Class ;
+    rdfs:subClassOf incose:SystemDeploymentProcess ;
+    rdfs:label "System Validation"@en ;
+    skos:definition """Process to confirm that the system fulfills its intended use and provides 
+    value to stakeholders."""@en ;
+    dct:source "SEBoK Part 3 - System Validation" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemOperation a owl:Class ;
+    rdfs:subClassOf incose:SystemDeploymentProcess ;
+    rdfs:label "System Operation"@en ;
+    skos:definition """Process to operate the system to deliver its intended services and value."""@en ;
+    dct:source "SEBoK Part 3 - System Operation" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemMaintenance a owl:Class ;
+    rdfs:subClassOf incose:SystemDeploymentProcess ;
+    rdfs:label "System Maintenance"@en ;
+    skos:definition """Process to sustain the capability of the system to provide services throughout 
+    its life."""@en ;
+    dct:source "SEBoK Part 3 - System Maintenance" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemDisposal a owl:Class ;
+    rdfs:subClassOf incose:SystemDeploymentProcess ;
+    rdfs:label "System Disposal"@en ;
+    skos:definition """Process to end the existence of a system entity and properly dispose of 
+    system elements."""@en ;
+    dct:source "SEBoK Part 3 - System Disposal and Retirement" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# ARTIFACTS
+# =============================================================================
+
+incose:Artifact a owl:Class ;
+    rdfs:label "Artifact"@en ;
+    skos:definition """A tangible or intangible product created or modified during a process, 
+    representing information about the system."""@en ;
+    dct:source "SEBoK" ;
+    rdfs:isDefinedBy incose: .
+
+## Requirements Artifacts
+incose:Requirement a owl:Class ;
+    rdfs:subClassOf incose:Artifact ;
+    rdfs:label "Requirement"@en ;
+    skos:definition """A statement that identifies a necessary attribute, capability, characteristic, 
+    or quality of a system."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:StakeholderRequirement a owl:Class ;
+    rdfs:subClassOf incose:Requirement ;
+    rdfs:label "Stakeholder Requirement"@en ;
+    skos:definition """A requirement from a stakeholder viewpoint describing needed capabilities 
+    or conditions."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemRequirement a owl:Class ;
+    rdfs:subClassOf incose:Requirement ;
+    rdfs:label "System Requirement"@en ;
+    skos:definition """A technical requirement that specifies what the system must do or qualities 
+    it must have."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:FunctionalRequirement a owl:Class ;
+    rdfs:subClassOf incose:SystemRequirement ;
+    rdfs:label "Functional Requirement"@en ;
+    skos:definition """A requirement that specifies a function or behavior the system must perform."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:NonFunctionalRequirement a owl:Class ;
+    rdfs:subClassOf incose:SystemRequirement ;
+    rdfs:label "Non-Functional Requirement"@en ;
+    skos:definition """A requirement that specifies quality attributes, constraints, or other 
+    non-behavioral aspects."""@en ;
+    skos:altLabel "Quality Attribute Requirement"@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+## Architecture Artifacts
+incose:Architecture a owl:Class ;
+    rdfs:subClassOf incose:Artifact ;
+    rdfs:label "Architecture"@en ;
+    skos:definition """The fundamental concepts or properties of a system in its environment embodied 
+    in its elements, relationships, and principles of design and evolution."""@en ;
+    dct:source "ISO/IEC/IEEE 42010:2011" ;
+    rdfs:isDefinedBy incose: .
+
+incose:FunctionalArchitecture a owl:Class ;
+    rdfs:subClassOf incose:Architecture ;
+    rdfs:label "Functional Architecture"@en ;
+    skos:definition """An architecture that describes the system in terms of functions and their 
+    relationships."""@en ;
+    dct:source "SEBoK Part 3 - Functional Architecture" ;
+    rdfs:isDefinedBy incose: .
+
+incose:LogicalArchitecture a owl:Class ;
+    rdfs:subClassOf incose:Architecture ;
+    rdfs:label "Logical Architecture"@en ;
+    skos:definition """An architecture that describes logical elements and their relationships 
+    independent of physical implementation."""@en ;
+    dct:source "SEBoK Part 3 - Logical Architecture" ;
+    rdfs:isDefinedBy incose: .
+
+incose:PhysicalArchitecture a owl:Class ;
+    rdfs:subClassOf incose:Architecture ;
+    rdfs:label "Physical Architecture"@en ;
+    skos:definition """An architecture that describes physical elements and their arrangement in 
+    the system."""@en ;
+    dct:source "SEBoK Part 3 - Physical Architecture" ;
+    rdfs:isDefinedBy incose: .
+
+## Models
+incose:Model a owl:Class ;
+    rdfs:subClassOf incose:Artifact ;
+    rdfs:label "Model"@en ;
+    skos:definition """A representation of one or more concepts that may be realized in physical, 
+    mathematical, or logical form."""@en ;
+    dct:source "SEBoK Part 2 - Representing Systems with Models" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemModel a owl:Class ;
+    rdfs:subClassOf incose:Model ;
+    rdfs:label "System Model"@en ;
+    skos:definition """A model that represents the structure, behavior, or other aspects of a system."""@en ;
+    dct:source "SEBoK Part 2" ;
+    rdfs:isDefinedBy incose: .
+
+## Configuration Items
+incose:ConfigurationItem a owl:Class ;
+    rdfs:subClassOf incose:Artifact ;
+    rdfs:label "Configuration Item"@en ;
+    skos:definition """An entity within a configuration that satisfies an end use function and can 
+    be uniquely identified at a given reference point."""@en ;
+    dct:source "SEBoK Part 3 - Configuration Management" ;
+    rdfs:isDefinedBy incose: .
+
+incose:ConfigurationBaseline a owl:Class ;
+    rdfs:subClassOf incose:Artifact ;
+    rdfs:label "Configuration Baseline"@en ;
+    skos:definition """A formally approved version of a configuration item that serves as a 
+    reference point."""@en ;
+    dct:source "SEBoK Part 3 - Configuration Baselines" ;
+    rdfs:isDefinedBy incose: .
+
+## Plans and Specifications
+incose:Plan a owl:Class ;
+    rdfs:subClassOf incose:Artifact ;
+    rdfs:label "Plan"@en ;
+    skos:definition """A document that defines how processes will be executed, resources allocated, 
+    and objectives achieved."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:TechnicalPlan a owl:Class ;
+    rdfs:subClassOf incose:Plan ;
+    rdfs:label "Technical Plan"@en ;
+    skos:definition """A plan that defines technical activities, approaches, and resources for 
+    system development."""@en ;
+    dct:source "SEBoK Part 3 - Project Planning" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Specification a owl:Class ;
+    rdfs:subClassOf incose:Artifact ;
+    rdfs:label "Specification"@en ;
+    skos:definition """A document that states requirements and may describe how to determine whether 
+    the requirements are satisfied."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+incose:DesignSpecification a owl:Class ;
+    rdfs:subClassOf incose:Specification ;
+    rdfs:label "Design Specification"@en ;
+    skos:definition """A specification that defines design characteristics and implementation details."""@en ;
+    dct:source "SEBoK Part 3" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# STAKEHOLDERS AND ROLES
+# =============================================================================
+
+incose:Stakeholder a owl:Class ;
+    rdfs:label "Stakeholder"@en ;
+    skos:definition """An individual, team, organization, or class thereof having an interest in a system."""@en ;
+    dct:source "ISO/IEC/IEEE 15288:2023" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemsEngineer a owl:Class ;
+    rdfs:subClassOf incose:Stakeholder ;
+    rdfs:label "Systems Engineer"@en ;
+    skos:definition """A professional who applies systems engineering principles, methods, and tools 
+    to solve complex problems."""@en ;
+    dct:source "SEBoK Part 5" ;
+    rdfs:isDefinedBy incose: .
+
+incose:ProjectManager a owl:Class ;
+    rdfs:subClassOf incose:Stakeholder ;
+    rdfs:label "Project Manager"@en ;
+    skos:definition """An individual responsible for planning, executing, and closing projects."""@en ;
+    dct:source "SEBoK Part 6 - Systems Engineering and Project Management" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemOwner a owl:Class ;
+    rdfs:subClassOf incose:Stakeholder ;
+    rdfs:label "System Owner"@en ;
+    skos:definition """A stakeholder with authority and responsibility for a system throughout 
+    its life cycle."""@en ;
+    dct:source "SEBoK" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Operator a owl:Class ;
+    rdfs:subClassOf incose:Stakeholder ;
+    rdfs:label "Operator"@en ;
+    skos:definition """An individual or organization that operates a system to deliver its services."""@en ;
+    dct:source "SEBoK" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Customer a owl:Class ;
+    rdfs:subClassOf incose:Stakeholder ;
+    rdfs:label "Customer"@en ;
+    skos:definition """A stakeholder who receives or benefits from system products or services."""@en ;
+    dct:source "SEBoK" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# ENABLING CONCEPTS (Part 5)
+# =============================================================================
+
+incose:Competency a owl:Class ;
+    rdfs:label "Competency"@en ;
+    skos:definition """The ability to perform activities to a defined standard, combining knowledge, 
+    skills, and behaviors."""@en ;
+    dct:source "SEBoK Part 5 - Roles and Competencies" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Team a owl:Class ;
+    rdfs:label "Team"@en ;
+    skos:definition """A group of individuals working collaboratively to achieve common objectives."""@en ;
+    dct:source "SEBoK Part 5 - Enabling Teams" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Organization a owl:Class ;
+    rdfs:label "Organization"@en ;
+    skos:definition """A structured group of people with defined roles and responsibilities working 
+    toward common goals."""@en ;
+    dct:source "SEBoK Part 5" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# QUALITY ATTRIBUTES (Part 6)
+# =============================================================================
+
+incose:QualityAttribute a owl:Class ;
+    rdfs:label "Quality Attribute"@en ;
+    skos:definition """A property or characteristic of a system that affects stakeholder satisfaction 
+    or system acceptability."""@en ;
+    dct:source "SEBoK Part 6 - Systems Engineering and Quality Attributes" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Reliability a owl:Class ;
+    rdfs:subClassOf incose:QualityAttribute ;
+    rdfs:label "Reliability"@en ;
+    skos:definition """The ability of a system to perform required functions under stated conditions 
+    for a specified period."""@en ;
+    dct:source "SEBoK Part 6 - System Reliability, Availability, and Maintainability" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Availability a owl:Class ;
+    rdfs:subClassOf incose:QualityAttribute ;
+    rdfs:label "Availability"@en ;
+    skos:definition """The degree to which a system is in an operable and committable state at the 
+    start of a mission."""@en ;
+    dct:source "SEBoK Part 6 - System Reliability, Availability, and Maintainability" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Maintainability a owl:Class ;
+    rdfs:subClassOf incose:QualityAttribute ;
+    rdfs:label "Maintainability"@en ;
+    skos:definition """The ease with which a system can be maintained in, or restored to, a state 
+    in which it can perform required functions."""@en ;
+    dct:source "SEBoK Part 6 - System Reliability, Availability, and Maintainability" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Safety a owl:Class ;
+    rdfs:subClassOf incose:QualityAttribute ;
+    rdfs:label "Safety"@en ;
+    skos:definition """Freedom from unacceptable risk of harm to people, property, or the environment."""@en ;
+    dct:source "SEBoK Part 6 - System Safety" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Security a owl:Class ;
+    rdfs:subClassOf incose:QualityAttribute ;
+    rdfs:label "Security"@en ;
+    skos:definition """Protection against unauthorized access, use, disclosure, disruption, 
+    modification, or destruction."""@en ;
+    dct:source "SEBoK Part 6 - System Security" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Resilience a owl:Class ;
+    rdfs:subClassOf incose:QualityAttribute ;
+    rdfs:label "Resilience"@en ;
+    skos:definition """The ability to prepare for and adapt to changing conditions and recover 
+    from disruption."""@en ;
+    dct:source "SEBoK Part 6 - System Resilience" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Affordability a owl:Class ;
+    rdfs:subClassOf incose:QualityAttribute ;
+    rdfs:label "Affordability"@en ;
+    skos:definition """The degree to which the life cycle cost of a system is affordable within budget constraints."""@en ;
+    dct:source "SEBoK Part 6 - System Affordability" ;
+    rdfs:isDefinedBy incose: .
+
+incose:Usability a owl:Class ;
+    rdfs:subClassOf incose:QualityAttribute ;
+    rdfs:label "Usability"@en ;
+    skos:definition """The extent to which a system can be used by specified users to achieve 
+    goals with effectiveness, efficiency, and satisfaction."""@en ;
+    dct:source "SEBoK Part 6" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# SYSTEMS ENGINEERING PRINCIPLES
+# =============================================================================
+
+incose:SEPrinciple a owl:Class ;
+    rdfs:label "Systems Engineering Principle"@en ;
+    skos:definition """A fundamental truth or proposition that serves as the foundation for 
+    systems engineering practice."""@en ;
+    dct:source "SEBoK Part 2 - Systems Engineering Principles" ;
+    rdfs:isDefinedBy incose: .
+
+incose:SystemsThinking a owl:Class ;
+    rdfs:subClassOf incose:SEPrinciple ;
+    rdfs:label "Systems Thinking"@en ;
+    skos:definition """A holistic approach to analysis that focuses on the way components interrelate 
+    and how systems work over time within larger systems."""@en ;
+    dct:source "SEBoK Part 2 - Systems Thinking" ;
+    rdfs:isDefinedBy incose: .
+
+incose:HolisticApproach a owl:Class ;
+    rdfs:subClassOf incose:SEPrinciple ;
+    rdfs:label "Holistic Approach"@en ;
+    skos:definition """Consideration of the system as a whole, including all elements, relationships, 
+    and context."""@en ;
+    dct:source "SEBoK Part 2" ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# OBJECT PROPERTIES (RELATIONSHIPS)
+# =============================================================================
+
+## System Relationships
+incose:hasContext a owl:ObjectProperty ;
+    rdfs:label "has context"@en ;
+    skos:definition "Relates a system to its context"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:SystemContext ;
+    rdfs:isDefinedBy incose: .
+
+incose:composedOf a owl:ObjectProperty ;
+    rdfs:label "composed of"@en ;
+    skos:definition "Relates a system to its constituent elements"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:System ;
+    owl:inverseOf incose:partOf ;
+    rdfs:isDefinedBy incose: .
+
+incose:partOf a owl:ObjectProperty ;
+    rdfs:label "part of"@en ;
+    skos:definition "Indicates that an element is part of a larger system"@en ;
+    rdfs:range incose:System ;
+    owl:inverseOf incose:composedOf ;
+    rdfs:isDefinedBy incose: .
+
+incose:interactsWith a owl:ObjectProperty ;
+    rdfs:label "interacts with"@en ;
+    skos:definition "Indicates interaction or interface between systems or elements"@en ;
+    rdf:type owl:SymmetricProperty ;
+    rdfs:isDefinedBy incose: .
+
+incose:dependsOn a owl:ObjectProperty ;
+    rdfs:label "depends on"@en ;
+    skos:definition "Indicates a dependency relationship between systems or elements"@en ;
+    rdfs:isDefinedBy incose: .
+
+## Life Cycle Relationships
+incose:hasLifeCycle a owl:ObjectProperty ;
+    rdfs:label "has life cycle"@en ;
+    skos:definition "Relates a system to its life cycle"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:LifeCycle ;
+    rdfs:isDefinedBy incose: .
+
+incose:followsLifeCycleModel a owl:ObjectProperty ;
+    rdfs:label "follows life cycle model"@en ;
+    skos:definition "Indicates the life cycle model being followed"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:LifeCycleModel ;
+    rdfs:isDefinedBy incose: .
+
+incose:hasStage a owl:ObjectProperty ;
+    rdfs:label "has stage"@en ;
+    skos:definition "Relates a life cycle to its stages"@en ;
+    rdfs:domain incose:LifeCycle ;
+    rdfs:range incose:LifeCycleStage ;
+    rdfs:isDefinedBy incose: .
+
+incose:precedesStage a owl:ObjectProperty ;
+    rdfs:label "precedes stage"@en ;
+    skos:definition "Indicates temporal ordering of life cycle stages"@en ;
+    rdf:type owl:TransitiveProperty ;
+    rdfs:domain incose:LifeCycleStage ;
+    rdfs:range incose:LifeCycleStage ;
+    rdfs:isDefinedBy incose: .
+
+incose:followsStage a owl:ObjectProperty ;
+    rdfs:label "follows stage"@en ;
+    skos:definition "Indicates that a stage comes after another stage"@en ;
+    rdf:type owl:TransitiveProperty ;
+    rdfs:domain incose:LifeCycleStage ;
+    rdfs:range incose:LifeCycleStage ;
+    owl:inverseOf incose:precedesStage ;
+    rdfs:isDefinedBy incose: .
+
+incose:usesDevelopmentApproach a owl:ObjectProperty ;
+    rdfs:label "uses development approach"@en ;
+    skos:definition "Indicates the development approach being used"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:DevelopmentApproach ;
+    rdfs:isDefinedBy incose: .
+
+## Process Relationships
+incose:performsProcess a owl:ObjectProperty ;
+    rdfs:label "performs process"@en ;
+    skos:definition "Relates a stakeholder or organization to processes they perform"@en ;
+    rdfs:range incose:Process ;
+    rdfs:isDefinedBy incose: .
+
+incose:appliedDuringStage a owl:ObjectProperty ;
+    rdfs:label "applied during stage"@en ;
+    skos:definition "Indicates which life cycle stage(s) a process is applied in"@en ;
+    rdfs:domain incose:Process ;
+    rdfs:range incose:LifeCycleStage ;
+    rdfs:isDefinedBy incose: .
+
+incose:producesArtifact a owl:ObjectProperty ;
+    rdfs:label "produces artifact"@en ;
+    skos:definition "Relates a process to artifacts it produces"@en ;
+    rdfs:domain incose:Process ;
+    rdfs:range incose:Artifact ;
+    rdfs:isDefinedBy incose: .
+
+incose:consumesArtifact a owl:ObjectProperty ;
+    rdfs:label "consumes artifact"@en ;
+    skos:definition "Relates a process to artifacts it uses as input"@en ;
+    rdfs:domain incose:Process ;
+    rdfs:range incose:Artifact ;
+    rdfs:isDefinedBy incose: .
+
+incose:enablesProcess a owl:ObjectProperty ;
+    rdfs:label "enables process"@en ;
+    skos:definition "Indicates that one process enables or supports another"@en ;
+    rdfs:domain incose:Process ;
+    rdfs:range incose:Process ;
+    rdfs:isDefinedBy incose: .
+
+incose:precedesProcess a owl:ObjectProperty ;
+    rdfs:label "precedes process"@en ;
+    skos:definition "Indicates temporal or logical ordering of processes"@en ;
+    rdf:type owl:TransitiveProperty ;
+    rdfs:domain incose:Process ;
+    rdfs:range incose:Process ;
+    rdfs:isDefinedBy incose: .
+
+## Requirement Relationships
+incose:hasRequirement a owl:ObjectProperty ;
+    rdfs:label "has requirement"@en ;
+    skos:definition "Relates a system to its requirements"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:Requirement ;
+    rdfs:isDefinedBy incose: .
+
+incose:satisfiesRequirement a owl:ObjectProperty ;
+    rdfs:label "satisfies requirement"@en ;
+    skos:definition "Indicates that a system or element satisfies a requirement"@en ;
+    rdfs:range incose:Requirement ;
+    owl:inverseOf incose:satisfiedBy ;
+    rdfs:isDefinedBy incose: .
+
+incose:satisfiedBy a owl:ObjectProperty ;
+    rdfs:label "satisfied by"@en ;
+    skos:definition "Relates a requirement to the system or element that satisfies it"@en ;
+    rdfs:domain incose:Requirement ;
+    owl:inverseOf incose:satisfiesRequirement ;
+    rdfs:isDefinedBy incose: .
+
+incose:derivedFrom a owl:ObjectProperty ;
+    rdfs:label "derived from"@en ;
+    skos:definition "Indicates that a requirement is derived from another requirement"@en ;
+    rdfs:domain incose:Requirement ;
+    rdfs:range incose:Requirement ;
+    rdfs:isDefinedBy incose: .
+
+incose:refinesRequirement a owl:ObjectProperty ;
+    rdfs:label "refines requirement"@en ;
+    skos:definition "Indicates that a requirement refines or elaborates another requirement"@en ;
+    rdfs:subPropertyOf incose:derivedFrom ;
+    rdfs:domain incose:Requirement ;
+    rdfs:range incose:Requirement ;
+    rdfs:isDefinedBy incose: .
+
+incose:allocatedTo a owl:ObjectProperty ;
+    rdfs:label "allocated to"@en ;
+    skos:definition "Relates a requirement to a system element to which it is allocated"@en ;
+    rdfs:domain incose:Requirement ;
+    rdfs:isDefinedBy incose: .
+
+incose:tracesTo a owl:ObjectProperty ;
+    rdfs:label "traces to"@en ;
+    skos:definition "Indicates traceability between requirements or artifacts"@en ;
+    rdfs:isDefinedBy incose: .
+
+## Architecture Relationships
+incose:hasArchitecture a owl:ObjectProperty ;
+    rdfs:label "has architecture"@en ;
+    skos:definition "Relates a system to its architecture"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:Architecture ;
+    rdfs:isDefinedBy incose: .
+
+incose:realizesArchitecture a owl:ObjectProperty ;
+    rdfs:label "realizes architecture"@en ;
+    skos:definition "Indicates that a physical system realizes an architecture"@en ;
+    rdfs:range incose:Architecture ;
+    rdfs:isDefinedBy incose: .
+
+incose:implementsFunction a owl:ObjectProperty ;
+    rdfs:label "implements function"@en ;
+    skos:definition "Indicates that a system element implements a function"@en ;
+    rdfs:isDefinedBy incose: .
+
+## Stakeholder Relationships
+incose:hasStakeholder a owl:ObjectProperty ;
+    rdfs:label "has stakeholder"@en ;
+    skos:definition "Relates a system to its stakeholders"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:Stakeholder ;
+    rdfs:isDefinedBy incose: .
+
+incose:stakeholderIn a owl:ObjectProperty ;
+    rdfs:label "stakeholder in"@en ;
+    skos:definition "Indicates systems in which an entity is a stakeholder"@en ;
+    rdfs:domain incose:Stakeholder ;
+    rdfs:range incose:System ;
+    owl:inverseOf incose:hasStakeholder ;
+    rdfs:isDefinedBy incose: .
+
+incose:expressedBy a owl:ObjectProperty ;
+    rdfs:label "expressed by"@en ;
+    skos:definition "Relates a requirement to the stakeholder who expressed it"@en ;
+    rdfs:domain incose:Requirement ;
+    rdfs:range incose:Stakeholder ;
+    rdfs:isDefinedBy incose: .
+
+incose:hasRole a owl:ObjectProperty ;
+    rdfs:label "has role"@en ;
+    skos:definition "Relates a stakeholder to their role"@en ;
+    rdfs:domain incose:Stakeholder ;
+    rdfs:isDefinedBy incose: .
+
+incose:memberOf a owl:ObjectProperty ;
+    rdfs:label "member of"@en ;
+    skos:definition "Indicates membership in a team or organization"@en ;
+    rdfs:range [ owl:unionOf (incose:Team incose:Organization) ] ;
+    rdfs:isDefinedBy incose: .
+
+## Model Relationships
+incose:modelOf a owl:ObjectProperty ;
+    rdfs:label "model of"@en ;
+    skos:definition "Indicates what a model represents"@en ;
+    rdfs:domain incose:Model ;
+    rdfs:isDefinedBy incose: .
+
+incose:representsSystem a owl:ObjectProperty ;
+    rdfs:label "represents system"@en ;
+    skos:definition "Indicates that a model represents a system"@en ;
+    rdfs:subPropertyOf incose:modelOf ;
+    rdfs:domain incose:Model ;
+    rdfs:range incose:System ;
+    rdfs:isDefinedBy incose: .
+
+## Configuration Management Relationships
+incose:hasBaseline a owl:ObjectProperty ;
+    rdfs:label "has baseline"@en ;
+    skos:definition "Relates a configuration item to its baseline"@en ;
+    rdfs:domain incose:ConfigurationItem ;
+    rdfs:range incose:ConfigurationBaseline ;
+    rdfs:isDefinedBy incose: .
+
+incose:versionOf a owl:ObjectProperty ;
+    rdfs:label "version of"@en ;
+    skos:definition "Indicates versioning relationship between configuration items"@en ;
+    rdfs:domain incose:ConfigurationItem ;
+    rdfs:range incose:ConfigurationItem ;
+    rdfs:isDefinedBy incose: .
+
+## Quality Attribute Relationships
+incose:hasQualityAttribute a owl:ObjectProperty ;
+    rdfs:label "has quality attribute"@en ;
+    skos:definition "Relates a system to its quality attributes"@en ;
+    rdfs:domain incose:System ;
+    rdfs:range incose:QualityAttribute ;
+    rdfs:isDefinedBy incose: .
+
+incose:constrainedBy a owl:ObjectProperty ;
+    rdfs:label "constrained by"@en ;
+    skos:definition "Indicates constraints on a system or requirement"@en ;
+    rdfs:isDefinedBy incose: .
+
+## Verification and Validation Relationships
+incose:verifies a owl:ObjectProperty ;
+    rdfs:label "verifies"@en ;
+    skos:definition "Relates a verification activity to what it verifies"@en ;
+    rdfs:domain incose:SystemVerification ;
+    rdfs:isDefinedBy incose: .
+
+incose:validates a owl:ObjectProperty ;
+    rdfs:label "validates"@en ;
+    skos:definition "Relates a validation activity to what it validates"@en ;
+    rdfs:domain incose:SystemValidation ;
+    rdfs:isDefinedBy incose: .
+
+incose:verifiedBy a owl:ObjectProperty ;
+    rdfs:label "verified by"@en ;
+    skos:definition "Indicates how something is verified"@en ;
+    owl:inverseOf incose:verifies ;
+    rdfs:isDefinedBy incose: .
+
+incose:validatedBy a owl:ObjectProperty ;
+    rdfs:label "validated by"@en ;
+    skos:definition "Indicates how something is validated"@en ;
+    owl:inverseOf incose:validates ;
+    rdfs:isDefinedBy incose: .
+
+## Risk Relationships
+incose:hasRisk a owl:ObjectProperty ;
+    rdfs:label "has risk"@en ;
+    skos:definition "Relates a system or process to identified risks"@en ;
+    rdfs:isDefinedBy incose: .
+
+incose:mitigatesRisk a owl:ObjectProperty ;
+    rdfs:label "mitigates risk"@en ;
+    skos:definition "Indicates that something mitigates a risk"@en ;
+    rdfs:isDefinedBy incose: .
+
+## Decision Relationships
+incose:basedOnDecision a owl:ObjectProperty ;
+    rdfs:label "based on decision"@en ;
+    skos:definition "Indicates that something is based on a decision"@en ;
+    rdfs:isDefinedBy incose: .
+
+incose:informsDecision a owl:ObjectProperty ;
+    rdfs:label "informs decision"@en ;
+    skos:definition "Indicates that something provides information for decision-making"@en ;
+    owl:inverseOf incose:basedOnDecision ;
+    rdfs:isDefinedBy incose: .
+
+## Specialization Relationships
+incose:specializationOf a owl:ObjectProperty ;
+    rdfs:label "specialization of"@en ;
+    skos:definition "Indicates that something is a specialization or specific instance of a more general concept"@en ;
+    rdf:type owl:TransitiveProperty ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# DATA PROPERTIES
+# =============================================================================
+
+## Identifiers
+incose:identifier a owl:DatatypeProperty ;
+    rdfs:label "identifier"@en ;
+    skos:definition "Unique identifier for an entity"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+incose:name a owl:DatatypeProperty ;
+    rdfs:label "name"@en ;
+    skos:definition "Human-readable name of an entity"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+incose:version a owl:DatatypeProperty ;
+    rdfs:label "version"@en ;
+    skos:definition "Version identifier"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+## Descriptive Properties
+incose:description a owl:DatatypeProperty ;
+    rdfs:label "description"@en ;
+    skos:definition "Textual description of an entity"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+incose:purpose a owl:DatatypeProperty ;
+    rdfs:label "purpose"@en ;
+    skos:definition "The intended purpose or objective"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+incose:rationale a owl:DatatypeProperty ;
+    rdfs:label "rationale"@en ;
+    skos:definition "Explanation of why something is done or exists"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+## Status Properties
+incose:status a owl:DatatypeProperty ;
+    rdfs:label "status"@en ;
+    skos:definition "Current state or status"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+incose:maturityLevel a owl:DatatypeProperty ;
+    rdfs:label "maturity level"@en ;
+    skos:definition "Level of maturity or completeness"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+incose:priority a owl:DatatypeProperty ;
+    rdfs:label "priority"@en ;
+    skos:definition "Relative importance or priority"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+## Temporal Properties
+incose:startDate a owl:DatatypeProperty ;
+    rdfs:label "start date"@en ;
+    skos:definition "Date when something begins"@en ;
+    rdfs:range xsd:dateTime ;
+    rdfs:isDefinedBy incose: .
+
+incose:endDate a owl:DatatypeProperty ;
+    rdfs:label "end date"@en ;
+    skos:definition "Date when something ends or is completed"@en ;
+    rdfs:range xsd:dateTime ;
+    rdfs:isDefinedBy incose: .
+
+incose:duration a owl:DatatypeProperty ;
+    rdfs:label "duration"@en ;
+    skos:definition "Time duration"@en ;
+    rdfs:range xsd:duration ;
+    rdfs:isDefinedBy incose: .
+
+## Quantitative Properties
+incose:cost a owl:DatatypeProperty ;
+    rdfs:label "cost"@en ;
+    skos:definition "Estimated or actual cost"@en ;
+    rdfs:range xsd:decimal ;
+    rdfs:isDefinedBy incose: .
+
+incose:effort a owl:DatatypeProperty ;
+    rdfs:label "effort"@en ;
+    skos:definition "Estimated or actual effort required"@en ;
+    rdfs:range xsd:decimal ;
+    rdfs:isDefinedBy incose: .
+
+incose:probability a owl:DatatypeProperty ;
+    rdfs:label "probability"@en ;
+    skos:definition "Probability value between 0 and 1"@en ;
+    rdfs:range xsd:decimal ;
+    rdfs:isDefinedBy incose: .
+
+incose:severity a owl:DatatypeProperty ;
+    rdfs:label "severity"@en ;
+    skos:definition "Severity level or score"@en ;
+    rdfs:range xsd:decimal ;
+    rdfs:isDefinedBy incose: .
+
+## Requirement Properties
+incose:requirementText a owl:DatatypeProperty ;
+    rdfs:label "requirement text"@en ;
+    skos:definition "The statement of the requirement"@en ;
+    rdfs:domain incose:Requirement ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+incose:verificationMethod a owl:DatatypeProperty ;
+    rdfs:label "verification method"@en ;
+    skos:definition "Method used to verify a requirement"@en ;
+    rdfs:domain incose:Requirement ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+## Compliance Properties
+incose:complianceStatus a owl:DatatypeProperty ;
+    rdfs:label "compliance status"@en ;
+    skos:definition "Status of compliance with requirements or standards"@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# ANNOTATION PROPERTIES FOR METADATA
+# =============================================================================
+
+incose:source a owl:AnnotationProperty ;
+    rdfs:label "source"@en ;
+    skos:definition "Reference to authoritative source"@en ;
+    rdfs:isDefinedBy incose: .
+
+incose:example a owl:AnnotationProperty ;
+    rdfs:label "example"@en ;
+    skos:definition "Example usage or instance"@en ;
+    rdfs:isDefinedBy incose: .
+
+incose:note a owl:AnnotationProperty ;
+    rdfs:label "note"@en ;
+    skos:definition "Additional explanatory note"@en ;
+    rdfs:isDefinedBy incose: .
+
+# =============================================================================
+# END OF ONTOLOGY
+# =============================================================================

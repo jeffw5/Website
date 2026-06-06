@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RDSG Prototype · TMRR / EMD Lifecycle Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1B2A4A;--steel:#2E5B8A;
+  --green:#15803d;--amber:#b45309;--red:#b91c1c;--blue:#1d4ed8;--teal:#0e7490;
+  --gbg:#f0fdf4;--abg:#fffbeb;--rbg:#fef2f2;--bbg:#eff6ff;--tbg:#ecfeff;
+  --bg:#f3f2ee;--card:#ffffff;--bdr:#e2e0d5;--bdr2:#edece7;
+  --t1:#1a1916;--t2:#57564f;--t3:#8a8880;--t4:#b5b3aa;
+  --tmrr:#1a5f7a;--tmrr-l:#e8f4f9;--tmrr-b:#9ccee0;
+  --emd:#7a3a0a; --emd-l:#fdf3e8;  --emd-b:#e8b07a;
+  --msb:#0f5132; --msb-l:#ecf7f0;
+  --cdr:#7a1a1a; --cdr-l:#fdf0f0;
+  --os:#2a5a1a;  --os-l:#edf7e4;
+  --mono:'Courier New',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);font-size:14px;line-height:1.5}
+#app{max-width:1100px;margin:0 auto;padding:20px 18px 60px}
+
+/* ── HEADER ── */
+.hdr{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;padding-bottom:16px;border-bottom:1.5px solid var(--navy)}
+.hdr-l .eyebrow{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:3px}
+.hdr-l .title{font-size:16px;font-weight:600;color:var(--navy)}
+.hdr-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ref-link{font-size:11px;color:var(--blue);text-decoration:none;border:.5px solid var(--blue);padding:3px 9px;border-radius:3px;transition:all .15s}
+.ref-link:hover{background:var(--bbg)}
+
+/* ── LIVE PILL ── */
+.live-pill{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2);background:var(--card);border:.5px solid var(--bdr);border-radius:20px;padding:4px 10px}
+
+/* ── INTERACTIVE V-MODEL ── */
+.vm-wrap{background:var(--card);border:.5px solid var(--bdr);border-radius:10px;padding:18px 16px 0;margin-bottom:16px}
+.vm-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.vm-header-l{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+.vm-header-r{font-size:11px;color:var(--t3)}
+.vm-container{position:relative;height:200px;margin-bottom:0;overflow:hidden}
+.vm-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.vm-node{position:absolute;transform:translate(-50%,-50%);border-radius:6px;border:1px solid;padding:6px 8px;text-align:center;cursor:pointer;transition:all .18s;z-index:2;min-width:80px;max-width:100px}
+.vm-node:hover{transform:translate(-50%,-50%) translateY(-3px);box-shadow:0 3px 10px rgba(0,0,0,.12)}
+.vm-node.active{box-shadow:0 0 0 2px var(--blue),0 3px 10px rgba(0,0,0,.12);transform:translate(-50%,-50%) translateY(-3px)}
+.vm-node-label{font-size:9px;font-weight:600;line-height:1.3;display:block}
+.vm-node-sub{font-size:8px;opacity:.7;display:block;margin-top:1px}
+.vm-msb-line{position:absolute;top:0;bottom:0;width:1px;border-left:2px dashed var(--msb);z-index:1}
+.vm-msb-label{position:absolute;bottom:6px;transform:translateX(-50%);font-size:8px;font-family:var(--mono);color:var(--msb);font-weight:600;white-space:nowrap;background:var(--card);padding:1px 4px;border-radius:2px}
+.vm-cdr-line{position:absolute;top:0;bottom:0;width:1px;border-left:2px dashed var(--cdr);z-index:1}
+.vm-cdr-label{position:absolute;bottom:6px;transform:translateX(-50%);font-size:8px;font-family:var(--mono);color:var(--cdr);font-weight:600;white-space:nowrap;background:var(--card);padding:1px 4px;border-radius:2px}
+
+/* ── V-MODEL DETAIL PANEL ── */
+.vm-detail{border-top:.5px solid var(--bdr2);padding:14px 16px;display:none}
+.vm-detail.on{display:block}
+.vm-detail-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.vm-detail-name{font-size:13px;font-weight:600}
+.vm-detail-phase{font-size:10px;font-family:var(--mono);color:var(--t3)}
+.vm-art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.vm-art-card{background:var(--bg);border:.5px solid var(--bdr);border-radius:6px;padding:8px 10px}
+.vm-art-id{font-family:var(--mono);font-size:9px;color:var(--t4);display:block;margin-bottom:2px}
+.vm-art-name{font-size:11px;font-weight:500;color:var(--t1);display:block;margin-bottom:3px}
+.vm-art-desc{font-size:10px;color:var(--t3);line-height:1.4}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:1px solid var(--bdr);margin-bottom:16px;gap:0;overflow-x:auto}
+.tab{background:none;border:none;padding:8px 16px;font-size:12px;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s;font-family:var(--sans);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--t1)}
+.tab.on{color:var(--t1);font-weight:500;border-bottom-color:var(--blue)}
+.tab-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* ── PANELS ── */
+.panel{display:none;flex-direction:column;gap:12px}
+.panel.on{display:flex}
+
+/* ── PHASE BANNER ── */
+.phase-banner{border-radius:8px;padding:10px 14px;border-left:4px solid;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.pb-tmrr{background:var(--tmrr-l);border-color:var(--tmrr)}
+.pb-emd{background:var(--emd-l);border-color:var(--emd)}
+.pb-cdr{background:var(--cdr-l);border-color:var(--cdr)}
+.pb-os{background:var(--os-l);border-color:var(--os)}
+.phase-banner-l{display:flex;align-items:center;gap:10px}
+.phase-banner-tag{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;padding:2px 7px;border-radius:2px;font-family:var(--mono)}
+.phase-banner-name{font-size:13px;font-weight:500}
+.phase-banner-desc{font-size:11px;opacity:.8;font-style:italic}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:.5px solid var(--bdr);border-radius:10px;padding:14px 18px}
+.ctitle{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+
+/* ── METRIC BOXES ── */
+.met{background:#f8f7f3;border-radius:6px;padding:10px 14px}
+.met-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);margin-bottom:4px}
+.met-val{font-family:var(--mono);font-size:20px;font-weight:500}
+.met-sub{font-size:10px;color:var(--t3);margin-top:3px}
+
+/* ── BADGES ── */
+.bdg{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:2px;font-family:var(--mono);color:#fff;white-space:nowrap}
+.b-nominal,.b-validated,.b-closed,.b-complete,.b-met{background:var(--green)}
+.b-caution,.b-pending,.b-halfopen,.b-partial{background:var(--amber)}
+.b-breach,.b-flagged,.b-open,.b-gap{background:var(--red)}
+.b-active,.b-running,.b-emd{background:var(--emd)}
+.b-tmrr{background:var(--tmrr)}
+.b-info{background:var(--blue)}
+
+/* ── STATUS DOT ── */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dg{background:var(--green)}
+.da{background:var(--amber)}
+.dr{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.dg,.da,.dr{animation:pulse 2s infinite}
+
+/* ── PROGRESS BAR ── */
+.pb-wrap{height:4px;background:#edece8;border-radius:3px;overflow:hidden}
+.pb-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.pb-row{display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:2px}
+
+/* ── TABLES ── */
+.dtbl{width:100%;border-collapse:collapse;font-size:11px}
+.dtbl th{font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);text-align:left;padding:4px 10px 6px 0;border-bottom:1px solid var(--bdr)}
+.dtbl td{padding:6px 10px 6px 0;border-bottom:.5px solid var(--bdr2);color:var(--t2);vertical-align:top}
+.dtbl td.art-id{color:var(--t4);font-family:var(--mono);font-size:9px}
+.art-name{font-weight:500;color:var(--t1)}
+.art-note{font-size:10px;color:var(--t3);margin-top:1px}
+
+/* ── TELEMETRY ── */
+.trow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--bdr2)}
+.tlbl{font-size:11px;color:var(--t2);flex:1}
+.tval{font-family:var(--mono);font-size:13px;font-weight:500}
+.tunit{font-size:10px;color:var(--t3);min-width:20px}
+.tbase{font-size:9px;color:var(--t4);min-width:70px}
+
+/* ── MILESTONE MARKER ── */
+.ms-marker{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1.5px dashed;margin-top:4px;border-radius:0 0 8px 8px}
+.ms-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.ms-name{font-weight:600;font-size:12px}
+.ms-desc{font-size:10px;opacity:.75;font-style:italic}
+
+/* ── CHECKLIST ── */
+.crow{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:.5px solid var(--bdr2);font-size:11px}
+.ccheck{font-size:13px;min-width:16px;margin-top:0}
+.cid{font-family:var(--mono);font-size:9px;color:var(--t4);min-width:58px}
+
+/* ── DRIFT BANNER ── */
+.dbanner{border-radius:8px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border:1px solid}
+.dn{background:var(--gbg);border-color:var(--green)}
+.da2{background:var(--abg);border-color:var(--amber)}
+.dr2{background:var(--rbg);border-color:var(--red)}
+
+/* ── ALT CARDS ── */
+.altc{background:#f8f7f3;border:1.5px solid var(--bdr);border-radius:6px;padding:8px 10px;cursor:pointer;transition:all .15s}
+.altc:hover,.altc.on{background:var(--bbg);border-color:var(--blue);border-width:2px}
+
+/* ── CHART WRAPPERS ── */
+.cw{position:relative;width:100%}
+
+/* ── DIVIDER ── */
+.div-label{font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:#fff;padding:3px 10px;border-radius:3px;display:inline-block;margin-bottom:10px}
+
+/* ── NOTE ── */
+.note{background:#f8f7f3;border-left:3px solid var(--bdr);border-radius:0 6px 6px 0;padding:10px 14px;font-size:11px;color:var(--t2);line-height:1.6}
+
+@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr}.tabs{flex-wrap:nowrap}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══ HEADER ═══ -->
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="eyebrow">Value Enablement Group · RDSG v2.0 · April 2026</div>
+    <div class="title">RDSG Prototype &nbsp;·&nbsp; TMRR → MS B &nbsp;/&nbsp; EMD → CDR → MS C &nbsp;·&nbsp; Scope Drift Detection</div>
+  </div>
+  <div class="hdr-r">
+    <a href="vmodel_artifact_map.html" target="_blank" class="ref-link">SE V-Model Artifact Reference ↗</a>
+    <div class="live-pill">
+      <span class="dot dg" id="hdr-dot"></span>
+      <span style="font-size:10px;color:var(--t3)">System drift</span>
+      <span id="hdr-bdg" class="bdg b-nominal">NOMINAL</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ INTERACTIVE V-MODEL ═══ -->
+<div class="vm-wrap">
+  <div class="vm-header">
+    <div class="vm-header-l">Systems Engineering V-Model — click any stage to see artifacts</div>
+    <div class="vm-header-r">ISO/IEC 15288 · INCOSE SE Handbook &nbsp;·&nbsp; <a href="vmodel_artifact_map.html" target="_blank" style="color:var(--blue);font-size:11px;text-decoration:none">full reference ↗</a></div>
+  </div>
+
+  <div class="vm-container" id="vm-container">
+    <!-- SVG connecting lines -->
+    <svg class="vm-svg" id="vm-svg" viewBox="0 0 1000 200" preserveAspectRatio="none">
+      <!-- V-path lines -->
+      <polyline id="vm-line" fill="none" stroke="#d5d3ca" stroke-width="1.5"
+        points="55,24 165,68 280,112 390,152 500,172 610,152 720,112 835,68 945,24"/>
+    </svg>
+
+    <!-- MS B dividing line -->
+    <div class="vm-msb-line" id="vm-msb" style="left:43%">
+      <div class="vm-msb-label" style="bottom:-18px">Milestone B</div>
+    </div>
+    <!-- CDR dividing line -->
+    <div class="vm-cdr-line" id="vm-cdr" style="left:71.5%">
+      <div class="vm-cdr-label" style="bottom:-18px">CDR</div>
+    </div>
+
+    <!-- Node 0: Stakeholder needs — Concept -->
+    <div class="vm-node" id="vn0" data-idx="0" onclick="vmClick(0)"
+      style="left:5.5%;top:12%;background:#f0edf9;border-color:#c4b8e8;color:#5c4a8a">
+      <span class="vm-node-label">Stakeholder needs</span>
+      <span class="vm-node-sub">Concept · Pre-MS A</span>
+    </div>
+    <!-- Node 1: Sys requirements — TMRR -->
+    <div class="vm-node" id="vn1" data-idx="1" onclick="vmClick(1)"
+      style="left:16.5%;top:34%;background:var(--tmrr-l);border-color:var(--tmrr-b);color:var(--tmrr)">
+      <span class="vm-node-label">System requirements</span>
+      <span class="vm-node-sub">TMRR</span>
+    </div>
+    <!-- Node 2: Architecture — TMRR → MS B -->
+    <div class="vm-node" id="vn2" data-idx="2" onclick="vmClick(2)"
+      style="left:28%;top:56%;background:var(--tmrr-l);border-color:var(--tmrr-b);color:var(--tmrr)">
+      <span class="vm-node-label">Architecture definition</span>
+      <span class="vm-node-sub">TMRR → MS B</span>
+    </div>
+    <!-- Node 3: Design definition — EMD post-MS B -->
+    <div class="vm-node" id="vn3" data-idx="3" onclick="vmClick(3)"
+      style="left:39%;top:76%;background:var(--emd-l);border-color:var(--emd-b);color:var(--emd)">
+      <span class="vm-node-label">Design definition</span>
+      <span class="vm-node-sub">EMD · post-MS B</span>
+    </div>
+    <!-- Node 4: Implementation — bottom -->
+    <div class="vm-node" id="vn4" data-idx="4" onclick="vmClick(4)"
+      style="left:50%;top:86%;background:#f3f2ed;border-color:#d5d3ca;color:var(--t2)">
+      <span class="vm-node-label">Implementation</span>
+      <span class="vm-node-sub">code · fabrication</span>
+    </div>
+    <!-- Node 5: Component verification — EMD -->
+    <div class="vm-node" id="vn5" data-idx="5" onclick="vmClick(5)"
+      style="left:61%;top:76%;background:var(--emd-l);border-color:var(--emd-b);color:var(--emd)">
+      <span class="vm-node-label">Component verification</span>
+      <span class="vm-node-sub">EMD</span>
+    </div>
+    <!-- Node 6: Integration verification — EMD → CDR -->
+    <div class="vm-node" id="vn6" data-idx="6" onclick="vmClick(6)"
+      style="left:72%;top:56%;background:var(--emd-l);border-color:var(--emd-b);color:var(--emd)">
+      <span class="vm-node-label">Integration &amp; verification</span>
+      <span class="vm-node-sub">EMD → CDR</span>
+    </div>
+    <!-- Node 7: System verification — Pre-MS C -->
+    <div class="vm-node" id="vn7" data-idx="7" onclick="vmClick(7)"
+      style="left:83.5%;top:34%;background:#edf2fb;border-color:#8ab0d8;color:#2a4a7a">
+      <span class="vm-node-label">System verification</span>
+      <span class="vm-node-sub">Pre-MS C</span>
+    </div>
+    <!-- Node 8: Operational validation — O&S -->
+    <div class="vm-node" id="vn8" data-idx="8" onclick="vmClick(8)"
+      style="left:94.5%;top:12%;background:var(--os-l);border-color:#8cc87a;color:var(--os)">
+      <span class="vm-node-label">Operational validation</span>
+      <span class="vm-node-sub">O&amp;S</span>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div class="vm-detail" id="vm-detail">
+    <div class="vm-detail-hdr">
+      <span class="vm-detail-name" id="vm-detail-name"></span>
+      <span class="vm-detail-phase" id="vm-detail-phase"></span>
+      <span id="vm-detail-bdg" class="bdg b-tmrr"></span>
+    </div>
+    <div class="vm-art-grid" id="vm-art-grid"></div>
+  </div>
+</div>
+
+<!-- ═══ TABS ═══ -->
+<div class="tabs">
+  <button class="tab on" data-tab="overview">
+    <span class="tab-dot" style="background:var(--navy)"></span>Overview
+  </button>
+  <button class="tab" data-tab="tmrr">
+    <span class="tab-dot" style="background:var(--tmrr)"></span>TMRR · MS A → MS B
+  </button>
+  <button class="tab" data-tab="emd1">
+    <span class="tab-dot" style="background:var(--emd)"></span>EMD Pre-CDR · MS B → CDR
+  </button>
+  <button class="tab" data-tab="emd2">
+    <span class="tab-dot" id="emd2-dot" style="background:var(--green)"></span>EMD Post-CDR · CDR → MS C
+  </button>
+</div>
+
+<!-- ════════════════════════════════════
+     OVERVIEW
+═════════════════════════════════════ -->
+<div id="panel-overview" class="panel on">
+
+  <div class="g2">
+    <!-- MS B Readiness -->
+    <div class="card">
+      <div class="ctitle" style="color:var(--tmrr)">
+        TMRR Readiness — Milestone B Criteria
+        <span id="ov-msb-pct" class="bdg b-tmrr">75%</span>
+      </div>
+      <div id="msb-list"></div>
+      <div class="ms-marker" style="border-color:var(--msb);background:var(--msb-l);margin-top:8px">
+        <div class="ms-dot" style="background:var(--msb)"></div>
+        <div>
+          <div class="ms-name" style="color:var(--msb)">Milestone B — Development Start</div>
+          <div class="ms-desc">SyRS, FCD, ACD verified · ITRA approved · TRL ≥ 6 confirmed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CDR Readiness -->
+    <div class="card">
+      <div class="ctitle" style="color:var(--emd)">
+        EMD Readiness — CDR Criteria
+        <span id="ov-cdr-pct" class="bdg b-emd">33%</span>
+      </div>
+      <div id="cdr-list"></div>
+      <div class="ms-marker" style="border-color:var(--cdr);background:var(--cdr-l);margin-top:8px">
+        <div class="ms-dot" style="background:var(--cdr)"></div>
+        <div>
+          <div class="ms-name" style="color:var(--cdr)">Critical Design Review — Physical Commitment Gate</div>
+          <div class="ms-desc">Detailed design stable · HiL demonstrated · procurement authorized</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live metrics row -->
+  <div class="g4">
+    <div class="met">
+      <div class="met-lbl">System Drift (SDD L1–L4)</div>
+      <div class="met-val" id="ov-drift" style="font-size:16px">NOMINAL</div>
+      <div class="met-sub">all layers active</div>
+    </div>
+    <div class="met">
+      <div class="met-lbl">Mean Time Between Hallucinations</div>
+      <div class="met-val" id="ov-mtbh" style="color:var(--green)">8.40h</div>
+      <div class="met-sub" id="ov-cb">CB: closed</div>
+    </div>
+    <div class="met">
+      <div class="met-lbl">Brier Score (AI Calibration)</div>
+      <div class="met-val" id="ov-brier" style="color:var(--green)">0.112</div>
+      <div class="met-sub">lower = better</div>
+    </div>
+    <div class="met">
+      <div class="met-lbl">SHACL Violation Rate</div>
+      <div class="met-val" id="ov-shacl" style="color:var(--green)">1.80%</div>
+      <div class="met-sub">RDSG governance active</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Lifecycle framing:</strong> Per ISO/IEC 15288 and INCOSE SE Handbook SE-V model, the TMRR phase (left downstroke) produces abstract and foundational info-data items only — MCD, CCD, FCD, ACD — with no detailed design descriptions. Design definition, virtual integration, and Hardware-in-the-Loop work begin after Milestone B in EMD. The prototype tabs above reflect this split. See the <a href="vmodel_artifact_map.html" target="_blank" style="color:var(--blue)">SE V-Model Artifact Reference ↗</a> for full artifact-to-process mapping.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     TMRR
+═════════════════════════════════════ -->
+<div id="panel-tmrr" class="panel">
+
+  <div class="phase-banner pb-tmrr">
+    <div class="phase-banner-l">
+      <span class="phase-banner-tag" style="background:var(--tmrr)">TMRR</span>
+      <span class="phase-banner-name" style="color:var(--tmrr)">Technology Maturation &amp; Risk Reduction · MS A → MS B</span>
+    </div>
+    <span class="phase-banner-desc" style="color:var(--tmrr)">Race to produce verified MCD, CCD, FCD, and ACD. No detailed design. No hardware. No simulation beyond concept-level.</span>
+  </div>
+
+  <!-- Repository -->
+  <div class="card">
+    <div class="ctitle">SysML v2 Repository — Abstract Info-Data Baseline (RDSG governed)
+      <span class="bdg b-running" style="background:var(--tmrr)">RUNNING</span>
+    </div>
+    <table class="dtbl">
+      <thead><tr><th>ID</th><th>Category</th><th>Artifact</th><th>Status</th><th style="min-width:100px">Currency</th></tr></thead>
+      <tbody id="tmrr-art-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="g2">
+    <!-- RDSG SHACL -->
+    <div class="card">
+      <div class="ctitle">RDSG · SHACL Violation Rate
+        <span class="bdg b-running" style="background:var(--tmrr)">LIVE</span>
+      </div>
+      <div class="cw" style="height:120px"><canvas id="shaclChart" role="img" aria-label="SHACL violation rate over time"></canvas></div>
+      <div style="font-size:11px;color:var(--t2);margin-top:6px">
+        Live: <span id="tmrr-shacl" style="font-family:var(--mono);color:var(--green)">1.80%</span>
+        &nbsp;—&nbsp;<span id="tmrr-shacl-status">within bounds</span>
+      </div>
+      <div style="margin-top:10px" id="shacl-cats"></div>
+    </div>
+
+    <!-- MOVOI + STPA -->
+    <div class="card">
+      <div class="ctitle">MOVOI · Design Alternative Set (knowledge gates open)</div>
+      <div id="tmrr-movoi"></div>
+      <div style="font-size:10px;color:var(--t3);margin-top:8px;padding-top:8px;border-top:.5px solid var(--bdr2)">
+        Threshold 0.65 — set maintained until epistemic justification confirmed at each gate
+      </div>
+      <div style="margin-top:14px">
+        <div class="ctitle">STPA · Unsafe Control Action Coverage</div>
+        <div class="g2" style="gap:8px">
+          <div class="met"><div class="met-lbl">UCA Coverage</div><div class="met-val" style="font-size:16px;color:var(--amber)">71%</div><div class="met-sub">gap: UCA-04, UCA-06</div></div>
+          <div class="met"><div class="met-lbl">MS B Threshold</div><div class="met-val" style="font-size:16px;color:var(--red)">80%</div><div class="met-sub">not yet met</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MS B Checklist -->
+  <div class="card">
+    <div class="ctitle" style="color:var(--tmrr)">Milestone B Readiness Checklist</div>
+    <div id="msb-checklist"></div>
+    <div class="ms-marker" style="border-color:var(--msb);background:var(--msb-l)">
+      <div class="ms-dot" style="background:var(--msb)"></div>
+      <div>
+        <div class="ms-name" style="color:var(--msb)">Milestone B</div>
+        <div class="ms-desc">All criteria above must be met. After MS B: EMD begins, design definition authorized, detailed description info-data items may be created.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     EMD PRE-CDR
+═════════════════════════════════════ -->
+<div id="panel-emd1" class="panel">
+
+  <div class="phase-banner pb-emd">
+    <div class="phase-banner-l">
+      <span class="phase-banner-tag" style="background:var(--emd)">EMD · PRE-CDR</span>
+      <span class="phase-banner-name" style="color:var(--emd)">Engineering &amp; Manufacturing Development · MS B → CDR</span>
+    </div>
+    <span class="phase-banner-desc" style="color:var(--emd)">Design definition begins. ACD is the input. Virtual integrated system (co-simulation) appropriate here — no physical hardware until CDR confidence is established.</span>
+  </div>
+
+  <!-- Design description artifacts -->
+  <div class="card">
+    <div class="ctitle">Design Definition Artifacts — Physical Concept Description (PCD) layer
+      <span class="bdg b-emd">POST MS-B</span>
+    </div>
+    <table class="dtbl">
+      <thead><tr><th>ID</th><th>Category</th><th>Artifact</th><th>Required for</th><th>Status</th><th style="min-width:80px">Currency</th></tr></thead>
+      <tbody id="emd-art-tbody"></tbody>
+    </table>
+    <div class="note" style="margin-top:10px">
+      <strong>Note:</strong> Engineering release drawings, parts lists, and bills of materials do not appear here — those are CDR deliverables. Their premature creation constitutes the design lock-in that Set-Based Design is designed to prevent.
+    </div>
+  </div>
+
+  <div class="g2">
+    <!-- Alt comparison -->
+    <div class="card">
+      <div class="ctitle">Design Alternative Comparison — Objective Scores</div>
+      <div class="g2" style="gap:6px;margin-bottom:10px" id="emd-alt-cards"></div>
+      <div class="cw" style="height:170px"><canvas id="altChart" role="img" aria-label="Bar chart comparing design alternatives across Cost, Schedule, Performance and Risk"></canvas></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)"><span style="width:9px;height:9px;border-radius:2px;background:#15803d;display:inline-block"></span>Cost</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)"><span style="width:9px;height:9px;border-radius:2px;background:#1d4ed8;display:inline-block"></span>Schedule</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)"><span style="width:9px;height:9px;border-radius:2px;background:#0e7490;display:inline-block"></span>Performance</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)"><span style="width:9px;height:9px;border-radius:2px;background:#b45309;display:inline-block"></span>Risk</span>
+      </div>
+    </div>
+
+    <!-- Virtual integrated system -->
+    <div class="card">
+      <div class="ctitle">Virtual Integrated System · Co-Simulation (MiL)
+        <span class="bdg" style="background:var(--emd)">POST MS-B</span>
+      </div>
+      <div id="cosim-rows"></div>
+      <div style="margin-top:12px">
+        <div class="ctitle">MOVOI · Commitment Analysis</div>
+        <div id="emd-movoi"></div>
+        <div style="font-size:10px;color:var(--t3);margin-top:6px">
+          At CDR, winning alternative is selected and detailed design released for procurement
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CDR Checklist -->
+  <div class="card">
+    <div class="ctitle" style="color:var(--cdr)">CDR Readiness Checklist</div>
+    <div id="cdr-checklist"></div>
+    <div class="ms-marker" style="border-color:var(--cdr);background:var(--cdr-l)">
+      <div class="ms-dot" style="background:var(--cdr)"></div>
+      <div>
+        <div class="ms-name" style="color:var(--cdr)">Critical Design Review</div>
+        <div class="ms-desc">After CDR: drawings released, hardware procured, HiL integration begins, physical system realization authorized.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     EMD POST-CDR
+═════════════════════════════════════ -->
+<div id="panel-emd2" class="panel">
+
+  <div class="phase-banner pb-cdr">
+    <div class="phase-banner-l">
+      <span class="phase-banner-tag" style="background:var(--cdr)">EMD · POST-CDR</span>
+      <span class="phase-banner-name" style="color:var(--cdr)">Integration, Verification &amp; Validation · CDR → MS C</span>
+    </div>
+    <span class="phase-banner-desc" style="color:var(--cdr)">Physical hardware realized. HiL operational. SDD L1–L4 at full fidelity. MTBH and Brier Score monitor AI behavioral drift against physical system behavior.</span>
+  </div>
+
+  <!-- Drift banner -->
+  <div id="drift-banner" class="dbanner dn">
+    <div>
+      <div style="font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:3px">Scope Drift Status — L1–L4 Integrated</div>
+      <div id="drift-txt" style="font-family:var(--mono);font-size:20px;font-weight:500;color:var(--green)">NOMINAL</div>
+    </div>
+    <div style="display:flex;gap:16px;font-size:10px;color:var(--t3);text-align:right;flex-wrap:wrap">
+      <div>MTBH<br><span id="p3-mtbh" style="font-family:var(--mono);font-size:13px;color:var(--green)">8.40h</span></div>
+      <div>Brier<br><span id="p3-brier" style="font-family:var(--mono);font-size:13px;color:var(--green)">0.112</span></div>
+      <div>Sem dist<br><span id="p3-l2" style="font-family:var(--mono);font-size:13px;color:var(--green)">0.042</span></div>
+      <div>CB<br><span id="p3-cb" style="font-family:var(--mono);font-size:13px;color:var(--green)">CLOSED</span></div>
+    </div>
+  </div>
+
+  <!-- L1 Telemetry -->
+  <div class="card">
+    <div class="ctitle">L1 — Operational Telemetry · Physical System
+      <span class="bdg b-running" style="background:var(--cdr)">HiL ACTIVE</span>
+    </div>
+    <div id="telem-rows"></div>
+  </div>
+
+  <div class="g2">
+    <!-- L2 -->
+    <div class="card">
+      <div class="ctitle">L2 — Info-Data Currency · Semantic Distance from Baseline</div>
+      <div class="cw" style="height:120px"><canvas id="l2Chart" role="img" aria-label="Semantic distance from authoritative baseline over time"></canvas></div>
+      <div style="font-size:11px;color:var(--t2);margin-top:6px">
+        Divergence: <span id="l2-val" style="font-family:var(--mono);color:var(--green)">0.042</span>
+        <span id="l2-status"> — within acceptable range</span>
+      </div>
+    </div>
+
+    <!-- L3 Circuit Breaker -->
+    <div class="card" id="cb-card" style="border-color:var(--green)">
+      <div class="ctitle">L3 — Circuit Breaker · MTBH + Brier Score
+        <span id="cb-bdg" class="bdg b-closed">CB CLOSED</span>
+      </div>
+      <div class="g2" style="gap:8px;margin-bottom:8px">
+        <div class="met"><div class="met-lbl">MTBH (rolling 4h)</div><div class="met-val" id="cb-mtbh" style="color:var(--green)">8.40h</div></div>
+        <div class="met"><div class="met-lbl">Brier Score</div><div class="met-val" id="cb-brier" style="color:var(--green)">0.112</div></div>
+      </div>
+      <div class="cw" style="height:90px"><canvas id="mtbhChart" role="img" aria-label="MTBH trend with 4.0h breach threshold"></canvas></div>
+      <div style="font-size:10px;color:var(--t2);margin-top:6px" id="cb-desc">AI outputs propagating to authoritative baseline · monitoring MTBH</div>
+    </div>
+  </div>
+
+  <!-- L3 Brier trend -->
+  <div class="card">
+    <div class="ctitle">L3 — Brier Score Trend · AI Probabilistic Calibration</div>
+    <div class="cw" style="height:90px"><canvas id="brierChart" role="img" aria-label="Brier score trend with caution and breach thresholds"></canvas></div>
+    <div style="font-size:10px;color:var(--t2);margin-top:6px">Rising Brier = AI encountering scenarios beyond validated envelope · first observable scope drift signal · precedes formal change request by days to weeks</div>
+  </div>
+
+  <!-- L4 MOVOI re-eval -->
+  <div class="card">
+    <div class="ctitle">L4 — Knowledge Gap Surface · MOVOI Re-evaluation
+      <span id="l4-bdg" class="bdg b-nominal">NOMINAL</span>
+    </div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:10px" id="l4-desc">Knowledge state stable — no re-evaluation required</div>
+    <div class="g4" id="l4-cards"></div>
+  </div>
+
+  <!-- Verification evidence -->
+  <div class="card">
+    <div class="ctitle" style="color:var(--cdr)">CDR → MS C Verification Evidence</div>
+    <div id="verif-rows"></div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ══════════════════════════════════════════════════════
+// V-MODEL DATA
+// ══════════════════════════════════════════════════════
+const VM_NODES = [
+  {
+    name:"Stakeholder needs & requirements",
+    phase:"Concept · Pre-MS A",
+    phaseClass:"b-info",
+    color:"#5c4a8a",
+    artifacts:[
+      {id:"CON-001",nm:"Concept of Operations (ConOps)",desc:"Mission environment, operational scenarios, user roles"},
+      {id:"CON-002",nm:"Mission Concept Description (MCD)",desc:"Formal statement of the mission the system must enable"},
+      {id:"CON-003",nm:"Capability Concept Description (CCD)",desc:"Required capabilities — what the system must do, not how"},
+      {id:"CON-004",nm:"Initial Capabilities Document (ICD)",desc:"Joint Staff document formalizing the capability gap"},
+      {id:"CON-005",nm:"Technology Assessment Report",desc:"Technology Readiness Level survey across candidate approaches"},
+      {id:"CON-006",nm:"Analysis of Alternatives (AoA)",desc:"Cost/schedule/performance/risk comparison of solution options"},
+    ]
+  },
+  {
+    name:"System requirements definition",
+    phase:"TMRR · MS A → MS B",
+    phaseClass:"b-tmrr",
+    color:"var(--tmrr)",
+    artifacts:[
+      {id:"TMR-001",nm:"Stakeholder Requirements Specification (StRS)",desc:"What stakeholders need in their language — bridges MCD to SyRS"},
+      {id:"TMR-002",nm:"System Requirements Specification (SyRS)",desc:"Verifiable technical requirements, each traceable to a stakeholder need"},
+      {id:"TMR-007",nm:"Technology Readiness Assessment (TRA)",desc:"Independent TRL assessment — TRL ≥ 6 required before MS B"},
+    ]
+  },
+  {
+    name:"Architecture definition",
+    phase:"TMRR → Milestone B",
+    phaseClass:"b-tmrr",
+    color:"var(--tmrr)",
+    artifacts:[
+      {id:"TMR-003",nm:"Functional Concept Description (FCD)",desc:"What functions the system performs and in what sequence — no physical implementation"},
+      {id:"TMR-004",nm:"Architecture Concept Description (ACD)",desc:"Architectural elements, boundaries, and interfaces — the most concrete pre-MS B artifact"},
+      {id:"TMR-005",nm:"Interface Requirements Specification (IRS)",desc:"Architectural-level interface requirements (not yet an ICD — that is EMD work)"},
+      {id:"TMR-008",nm:"STPA Loss Scenario Report",desc:"Unsafe Control Actions defining the L1 SDD boundary set"},
+      {id:"TMR-009",nm:"MOVOI Decision Analysis Report",desc:"Formal knowledge-gate analysis for Set-Based Design commitment"},
+      {id:"TMR-012",nm:"SysML v2 Repository Baseline",desc:"Machine-readable semantic encoding of all TMRR artifacts — the RDSG digital thread"},
+    ]
+  },
+  {
+    name:"Design definition",
+    phase:"EMD · post-Milestone B",
+    phaseClass:"b-emd",
+    color:"var(--emd)",
+    artifacts:[
+      {id:"EMD-001",nm:"Physical Concept Description (PCD)",desc:"Top-level design mapping ACD elements to implementation concepts — ACD is the input"},
+      {id:"EMD-002",nm:"Hardware Requirements Specification (HRS)",desc:"Requirements allocated to hardware configuration items"},
+      {id:"EMD-003",nm:"Software Requirements Specification (SRS)",desc:"Requirements allocated to software configuration items"},
+      {id:"EMD-004",nm:"Interface Control Document (ICD)",desc:"How interfaces are actually implemented — bilateral agreement between elements"},
+      {id:"EMD-005",nm:"Algorithm Specification Document",desc:"Mathematical definition of AI/control algorithms; MTBH and Brier thresholds set here"},
+      {id:"EMD-006",nm:"Database Design Description",desc:"Schema, data dictionaries, ontology specs for RDSG semantic stores"},
+    ]
+  },
+  {
+    name:"System implementation",
+    phase:"EMD · code, fabrication, assembly",
+    phaseClass:"b-emd",
+    color:"var(--t2)",
+    artifacts:[
+      {id:"EMD-009",nm:"Virtual Integrated System (co-simulation)",desc:"FMI 3.0 coupling of Modelica physics + Simulink control — Model-in-the-Loop, pre-CDR"},
+      {id:"EMD-007",nm:"Hardware Design Description (HDD)",desc:"Circuit schematics, PCB layouts, mechanical drawings — CDR deliverable"},
+      {id:"EMD-008",nm:"Software Design Description",desc:"Architectural decomposition, module designs — CDR deliverable"},
+      {id:"EMD-012",nm:"Drawings, Parts Lists, Bills of Materials",desc:"Engineering release-level documents authorizing procurement — NOT before CDR"},
+    ]
+  },
+  {
+    name:"Component / unit verification",
+    phase:"EMD post-CDR",
+    phaseClass:"b-emd",
+    color:"var(--emd)",
+    artifacts:[
+      {id:"VV-001",nm:"HiL Integration Plan",desc:"Physical test configuration, real-time target setup, UUT interface — SDD L1 anchor"},
+      {id:"VV-002",nm:"Component Verification Reports",desc:"Test reports demonstrating each HW/SW item meets its specified requirements"},
+    ]
+  },
+  {
+    name:"Integration & verification",
+    phase:"EMD → CDR",
+    phaseClass:"b-emd",
+    color:"var(--emd)",
+    artifacts:[
+      {id:"EMD-010",nm:"Test & Evaluation Master Plan (TEMP)",desc:"Overall developmental and operational test strategy — links SyRS requirements to test methods"},
+      {id:"EMD-011",nm:"PDR Package",desc:"Technical review evidence set for Preliminary Design Review gate"},
+      {id:"VV-003",nm:"System Integration Test Plan & Reports",desc:"Confirming subsystems interact correctly across ICD-defined interfaces"},
+    ]
+  },
+  {
+    name:"System verification & validation",
+    phase:"Pre-Milestone C",
+    phaseClass:"b-info",
+    color:"#2a4a7a",
+    artifacts:[
+      {id:"VV-004",nm:"System Qualification Test (SQT) Plan & Reports",desc:"Formal evidence demonstrating the system satisfies SyRS under operational conditions"},
+      {id:"VV-005",nm:"System Validation Report",desc:"Demonstrates the system satisfies the StRS and MCD — operational effectiveness"},
+      {id:"VV-006",nm:"Certification Evidence Package",desc:"STPA UCA closure, cybersecurity results, MTBH/Brier operational characterization"},
+    ]
+  },
+  {
+    name:"Operational validation",
+    phase:"Operations & Support",
+    phaseClass:"b-nominal",
+    color:"var(--os)",
+    artifacts:[
+      {id:"OS-001",nm:"Operations & Maintenance Manual",desc:"Operator/maintainer procedures traceable to validated ConOps"},
+      {id:"OS-002",nm:"Operational Envelope Monitoring Reports",desc:"SDD L1 reports comparing actual operational distributions to validated envelope"},
+      {id:"OS-003",nm:"AI Behavioral Drift Reports (MTBH/Brier)",desc:"Periodic reports on AI behavioral drift — rising Brier triggers CB review"},
+    ]
+  },
+];
+
+function vmClick(idx){
+  document.querySelectorAll('.vm-node').forEach(n=>n.classList.remove('active'));
+  const node = document.getElementById('vn'+idx);
+  if(node) node.classList.add('active');
+  const d = VM_NODES[idx];
+  const det = document.getElementById('vm-detail');
+  det.classList.add('on');
+  document.getElementById('vm-detail-name').textContent = d.name;
+  document.getElementById('vm-detail-phase').textContent = d.phase;
+  const bdg = document.getElementById('vm-detail-bdg');
+  bdg.className = 'bdg '+d.phaseClass;
+  bdg.textContent = d.phase;
+  document.getElementById('vm-art-grid').innerHTML = d.artifacts.map(a=>`
+    <div class="vm-art-card">
+      <span class="vm-art-id">${a.id}</span>
+      <span class="vm-art-name">${a.nm}</span>
+      <span class="vm-art-desc">${a.desc}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// STATIC DATA
+// ══════════════════════════════════════════════════════
+const MSB_CRITERIA = [
+  {id:"TRL-01",  t:"TRL ≥ 6 for all critical subsystems",                          ok:true },
+  {id:"SYSML-01",t:"SysML v2 repository (KerML core) established",                ok:true },
+  {id:"RDSG-01", t:"RDSG SHACL/SWRL governance active",                           ok:true },
+  {id:"SyRS-01", t:"System Requirements Specification complete and verified",      ok:true },
+  {id:"FCD-01",  t:"Functional Concept Description complete and verified",         ok:true },
+  {id:"ACD-01",  t:"Architecture Concept Description complete and verified",       ok:true },
+  {id:"STPA-01", t:"STPA UCA coverage > 80% (currently 71% — gap)",              ok:false},
+  {id:"MOVOI-01",t:"MOVOI analysis complete — design set epistemically justified", ok:true },
+  {id:"ITRA-01", t:"Independent Technical Risk Assessment approved",               ok:false},
+  {id:"SEP-01",  t:"Systems Engineering Plan (incl. DOD 8140, IP strategy)",      ok:false},
+  {id:"SHACL-01",t:"SHACL violation rate < 5% (sustained)",                       ok:true },
+];
+const CDR_CRITERIA = [
+  {id:"PCD-01",  t:"Physical Concept Description complete",                        ok:true },
+  {id:"HRS-01",  t:"Hardware Requirements Specification verified",                 ok:true },
+  {id:"SRS-01",  t:"Software Requirements Specification verified",                 ok:false},
+  {id:"ICD-01",  t:"All Interface Control Documents approved",                    ok:false},
+  {id:"ALG-01",  t:"Algorithm Specification complete (MTBH thresholds set)",      ok:true },
+  {id:"VIS-01",  t:"Virtual Integrated System (MiL co-simulation) validated",     ok:false},
+  {id:"HiL-01",  t:"Hardware-in-the-Loop integration demonstrated",               ok:false},
+  {id:"TEMP-01", t:"Test & Evaluation Master Plan approved",                       ok:false},
+  {id:"SDD-01",  t:"Scope Drift Detection L1–L4 operational",                     ok:true },
+];
+
+const TMRR_ARTS = [
+  {id:"TMR-002",tp:"Sys Req Spec",    nm:"System Requirements Specification (SyRS)",       st:"validated",cv:94,req:"MS B"},
+  {id:"TMR-003",tp:"Func Concept",   nm:"Functional Concept Description (FCD)",            st:"validated",cv:88,req:"MS B"},
+  {id:"TMR-004",tp:"Arch Concept",   nm:"Architecture Concept Description (ACD)",          st:"pending",  cv:72,req:"MS B"},
+  {id:"TMR-005",tp:"Iface Req Spec", nm:"Interface Requirements Specification (IRS)",      st:"pending",  cv:61,req:"MS B"},
+  {id:"TMR-008",tp:"Safety",         nm:"STPA Loss Scenario Report",                       st:"pending",  cv:71,req:"MS B"},
+  {id:"TMR-012",tp:"Repository",     nm:"SysML v2 Baseline (KerML core)",                 st:"validated",cv:100,req:"MS B"},
+];
+
+const EMD_ARTS = [
+  {id:"EMD-001",tp:"Physical Concept",nm:"Physical Concept Description (PCD)",             st:"validated",cv:82,req:"PDR"},
+  {id:"EMD-002",tp:"HW Req Spec",    nm:"Hardware Requirements Specification (HRS)",       st:"validated",cv:79,req:"PDR"},
+  {id:"EMD-003",tp:"SW Req Spec",    nm:"Software Requirements Specification (SRS)",       st:"pending",  cv:54,req:"PDR"},
+  {id:"EMD-004",tp:"Interface",      nm:"Interface Control Document — AI / Control Sys",   st:"validated",cv:91,req:"PDR"},
+  {id:"EMD-004b",tp:"Interface",     nm:"Interface Control Document — Sensor Fusion",      st:"flagged",  cv:38,req:"PDR"},
+  {id:"EMD-005",tp:"Algorithm Spec", nm:"Algorithm Specification (MTBH thresholds set)",   st:"validated",cv:96,req:"PDR"},
+  {id:"EMD-006",tp:"DB Design",      nm:"Database Design Description",                     st:"pending",  cv:48,req:"PDR"},
+  {id:"EMD-007",tp:"HW Design Desc", nm:"Hardware Design Description (HDD)",               st:"pending",  cv:21,req:"CDR"},
+  {id:"EMD-008",tp:"SW Design Desc", nm:"Software Design Description",                     st:"pending",  cv:18,req:"CDR"},
+  {id:"EMD-012",tp:"Drawings",       nm:"Engineering Drawings / BOM",                      st:"pending",  cv:0, req:"CDR"},
+];
+
+const VERIF_ARTS = [
+  {id:"VV-001",nm:"HiL Integration Plan",              st:"active",  desc:"Physical test config, real-time target, UUT interface"},
+  {id:"VV-002",nm:"Component Verification Reports",    st:"pending", desc:"Per HRS/SRS acceptance criteria"},
+  {id:"VV-003",nm:"System Integration Test Reports",   st:"pending", desc:"ICD compliance at physical interface boundaries"},
+  {id:"VV-004",nm:"System Qualification Test Reports", st:"pending", desc:"MS C primary verification evidence"},
+  {id:"VV-005",nm:"System Validation Report",          st:"pending", desc:"Operational effectiveness against StRS and MCD"},
+  {id:"VV-006",nm:"Certification Evidence Package",   st:"pending", desc:"STPA closure, cybersec, MTBH/Brier characterization"},
+];
+
+const SHACL_CATS = [
+  {nm:"Requirements completeness",  v:94},
+  {nm:"Architecture consistency",   v:88},
+  {nm:"Interface contract validity",v:71},
+  {nm:"Temporal constraint coverage",v:97},
+  {nm:"Cross-reference integrity",  v:83},
+];
+
+const ALTS = [
+  {id:"Alpha",label:"Alpha — Balanced",      cost:78,sched:82,perf:86,risk:84,movoi:0.71},
+  {id:"Beta", label:"Beta — Performance",    cost:61,sched:67,perf:95,risk:72,movoi:0.58},
+  {id:"Gamma",label:"Gamma — Cost-Optimized",cost:92,sched:88,perf:71,risk:79,movoi:0.64},
+  {id:"Delta",label:"Delta — Risk-Minimized",cost:74,sched:79,perf:82,risk:94,movoi:0.68},
+];
+
+const COSIM = [
+  {nm:"Modelica physics model (Dymola)",coupling:"FMI 3.0",  fi:"High"},
+  {nm:"Simulink control logic",          coupling:"FMI 3.0",  fi:"High"},
+  {nm:"SysML v2 REST sync layer",        coupling:"REST API", fi:"Authoritative"},
+  {nm:"AI inference module (ONNX)",      coupling:"gRPC",     fi:"Medium"},
+];
+
+const L1D = [
+  {key:"thrustEff",   lbl:"Thrust efficiency",      unit:"%",  nom:94.2,lo:92,  hi:90,  inv:false,fmt:v=>v.toFixed(1)},
+  {key:"controlLat",  lbl:"Control loop latency",   unit:"ms", nom:12.1,lo:16,  hi:20,  inv:true, fmt:v=>v.toFixed(1)},
+  {key:"sensorFusion",lbl:"Sensor fusion accuracy", unit:"%",  nom:98.7,lo:94,  hi:90,  inv:false,fmt:v=>v.toFixed(2)},
+  {key:"aiConf",      lbl:"AI decision confidence", unit:"",   nom:0.87,lo:0.70,hi:0.60,inv:false,fmt:v=>v.toFixed(3)},
+  {key:"engTemp",     lbl:"Engine temperature",     unit:"K",  nom:342, lo:380, hi:410, inv:true, fmt:v=>v.toFixed(1)},
+];
+
+// ══════════════════════════════════════════════════════
+// SIMULATION STATE
+// ══════════════════════════════════════════════════════
+const N=20;
+const ir=(b,n)=>Array.from({length:N},()=>+(b+(Math.random()-.5)*n*2).toFixed(4));
+const S={
+  t:N,mtbh:8.4,brier:0.112,cbState:"closed",drift:"nominal",
+  shacl:0.018,l2:0.042,
+  l1:{thrustEff:{v:94.2,st:"nominal"},controlLat:{v:12.1,st:"nominal"},
+      sensorFusion:{v:98.7,st:"nominal"},aiConf:{v:0.87,st:"nominal"},engTemp:{v:342,st:"nominal"}},
+  l4r:false,
+  mtbhH:ir(8.4,.6),brierH:ir(0.112,.006),shaclH:ir(0.018,.003),l2H:ir(0.042,.008),
+  labs:Array.from({length:N},(_,i)=>i),
+  selAlt:"Alpha",
+};
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+const sc=s=>s==="nominal"||s==="closed"?"var(--green)":s==="caution"||s==="half-open"?"var(--amber)":"var(--red)";
+const bc=s=>({nominal:"b-nominal",validated:"b-validated",complete:"b-complete",closed:"b-closed",
+  caution:"b-caution",pending:"b-pending","half-open":"b-halfopen",
+  breach:"b-breach",flagged:"b-flagged",open:"b-open",
+  active:"b-active",running:"b-running",met:"b-met",gap:"b-gap",partial:"b-partial"}[s]||"b-active");
+const bt=s=>({nominal:"NOMINAL",caution:"CAUTION",breach:"BREACH",
+  closed:"CB CLOSED",open:"CB OPEN","half-open":"CB HALF",
+  complete:"COMPLETE",active:"ACTIVE",validated:"VALIDATED",
+  pending:"PENDING",flagged:"FLAGGED",running:"RUNNING",met:"MET",gap:"GAP",partial:"PARTIAL"}[s]||s.toUpperCase());
+const bdg=(s,txt)=>`<span class="bdg ${bc(s)}">${txt||bt(s)}</span>`;
+const push=(a,v)=>{a.push(v);if(a.length>N)a.shift()};
+const stfor=(v,lo,hi,inv)=>inv?(v>=hi?"breach":v>=lo?"caution":"nominal"):(v<=hi?"breach":v<=lo?"caution":"nominal");
+const upP=(p,nom,d,lo,hi,inv)=>{
+  const v=+Math.max(nom*.70,Math.min(nom*1.30,p.v+(Math.random()-.48)*d)).toFixed(3);
+  return{v,st:stfor(v,lo,hi,inv)};
+};
+const el=id=>document.getElementById(id);
+const setc=(id,txt,col)=>{const e=el(id);if(!e)return;e.textContent=txt;if(col)e.style.color=col};
+
+// ══════════════════════════════════════════════════════
+// STATIC RENDERS
+// ══════════════════════════════════════════════════════
+function pbRow(label,v,color){
+  return `<div style="margin-bottom:8px">
+    <div class="pb-row"><span>${label}</span><span style="font-family:var(--mono)">${v}%</span></div>
+    <div class="pb-wrap"><div class="pb-fill" style="width:${v}%;background:${color}"></div></div>
+  </div>`;
+}
+
+function renderChecklist(items,targetId){
+  el(targetId).innerHTML=items.map(x=>`
+    <div class="crow">
+      <span class="ccheck" style="color:${x.ok?"var(--green)":"var(--red)"}">${x.ok?"✓":"✗"}</span>
+      <span class="cid">${x.id}</span>
+      <span style="color:${x.ok?"var(--t1)":"var(--t2)"}">${x.t}</span>
+    </div>`).join('');
+}
+
+function renderOverviewChecklists(){
+  renderChecklist(MSB_CRITERIA,"msb-list");
+  renderChecklist(CDR_CRITERIA,"cdr-list");
+  renderChecklist(MSB_CRITERIA,"msb-checklist");
+  renderChecklist(CDR_CRITERIA,"cdr-checklist");
+  const msb=MSB_CRITERIA.filter(x=>x.ok).length;
+  const cdr=CDR_CRITERIA.filter(x=>x.ok).length;
+  const msbPct=Math.round(msb/MSB_CRITERIA.length*100);
+  const cdrPct=Math.round(cdr/CDR_CRITERIA.length*100);
+  setc("ov-msb-pct",msbPct+"%");
+  setc("ov-cdr-pct",cdrPct+"%");
+}
+
+function artRow(a){
+  const col=a.cv>85?"var(--green)":a.cv>60?"var(--amber)":"var(--red)";
+  return `<tr>
+    <td class="art-id">${a.id}</td>
+    <td style="color:var(--t3);font-size:10px">${a.tp}</td>
+    <td><div class="art-name">${a.nm}</div></td>
+    ${a.req?`<td>${bdg(a.req==="CDR"?"partial":"met",a.req)}</td>`:""}
+    <td>${bdg(a.st)}</td>
+    <td><div style="display:flex;align-items:center;gap:6px">
+      <div class="pb-wrap" style="flex:1;min-width:50px"><div class="pb-fill" style="width:${a.cv}%;background:${col}"></div></div>
+      <span style="font-family:var(--mono);font-size:10px;min-width:26px">${a.cv}%</span>
+    </div></td>
+  </tr>`;
+}
+
+function renderArtifacts(){
+  el("tmrr-art-tbody").innerHTML=TMRR_ARTS.map(artRow).join('');
+  el("emd-art-tbody").innerHTML=EMD_ARTS.map(artRow).join('');
+}
+
+function renderShaclCats(){
+  el("shacl-cats").innerHTML=SHACL_CATS.map(c=>{
+    const col=c.v>90?"var(--green)":c.v>70?"var(--amber)":"var(--red)";
+    return pbRow(c.nm,c.v,col);
+  }).join('');
+}
+
+function renderMovoi(targetId,showRising){
+  el(targetId).innerHTML=ALTS.map(a=>{
+    const score=showRising&&S.l4r?Math.min(.99,a.movoi+.07):a.movoi;
+    const col=score>.70?"var(--green)":score>.62?"var(--amber)":"var(--red)";
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:11px;min-width:44px;color:var(--t2)">${a.id}</span>
+      <div class="pb-wrap" style="flex:1"><div class="pb-fill" style="width:${score*100}%;background:${col}"></div></div>
+      <span style="font-family:var(--mono);font-size:12px;color:${col}">${score.toFixed(2)}</span>
+      ${showRising&&S.l4r?'<span style="font-size:9px;color:var(--amber)">▲</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function renderAltCards(){
+  el("emd-alt-cards").innerHTML=ALTS.map(a=>`
+    <div class="altc${a.id===S.selAlt?" on":""}" onclick="selAlt('${a.id}')">
+      <div style="font-size:10px;font-weight:500;margin-bottom:3px">${a.label}</div>
+      <div style="font-size:10px;color:var(--t3)">MOVOI: <span style="font-family:var(--mono);color:${a.movoi>.70?"var(--green)":a.movoi>.62?"var(--amber)":"var(--red)"}">${a.movoi.toFixed(2)}</span></div>
+    </div>`).join('');
+}
+function selAlt(id){S.selAlt=id;renderAltCards();}
+
+function renderCosim(){
+  el("cosim-rows").innerHTML=COSIM.map(c=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid var(--bdr2)">
+      ${bdg("running")}
+      <div><div style="font-size:11px">${c.nm}</div><div style="font-size:10px;color:var(--t3)">${c.coupling} · ${c.fi} fidelity</div></div>
+    </div>`).join('');
+}
+
+function renderTelem(){
+  el("telem-rows").innerHTML=L1D.map(p=>{
+    const pm=S.l1[p.key];const col=sc(pm.st);
+    return `<div class="trow" id="tr-${p.key}">
+      <span class="dot" id="td-${p.key}" style="background:${col}"></span>
+      <span class="tlbl">${p.lbl}</span>
+      <span class="tval" id="tv-${p.key}" style="color:${col}">${p.fmt(pm.v)}</span>
+      <span class="tunit">${p.unit}</span>
+      <span class="tbase">nom ${p.fmt(p.nom)}</span>
+      <span id="tb-${p.key}" class="bdg ${bc(pm.st)}">${bt(pm.st)}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderVerif(){
+  el("verif-rows").innerHTML=VERIF_ARTS.map(v=>`
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:.5px solid var(--bdr2)">
+      ${bdg(v.st)}
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:500">${v.nm}</div>
+        <div style="font-size:10px;color:var(--t3)">${v.desc}</div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9px;color:var(--t4)">${v.id}</span>
+    </div>`).join('');
+}
+
+function renderL4(){
+  el("l4-cards").innerHTML=ALTS.map(a=>{
+    const score=S.l4r?Math.min(.99,a.movoi+.06):a.movoi;
+    const col=score>.70?"var(--green)":score>.62?"var(--amber)":"var(--red)";
+    return `<div style="background:#f8f7f3;border-radius:6px;padding:8px 10px">
+      <div style="font-size:10px;font-weight:500;color:${S.l4r?"var(--amber)":"var(--t1)"}">${a.id}</div>
+      <div style="font-size:9px;color:var(--t3);margin-bottom:2px">MOVOI</div>
+      <span style="font-family:var(--mono);font-size:15px;color:${col}">${score.toFixed(2)}</span>
+      ${S.l4r?'<div style="font-size:9px;color:var(--amber);margin-top:1px">▲ re-eval</div>':''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════════════
+const charts={};
+function mkChart(id,data,color,ymin,ymax,thresholds){
+  if(charts[id]){charts[id].destroy();delete charts[id];}
+  const ctx=el(id);if(!ctx)return;
+  charts[id]=new Chart(ctx,{
+    type:"line",
+    data:{labels:[...S.labs],datasets:[{data:[...data],borderColor:color,backgroundColor:color+"18",
+      borderWidth:1.5,fill:true,tension:0.35,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>+c.raw.toFixed(4)}}},
+      scales:{x:{ticks:{font:{size:8},maxTicksLimit:8},grid:{color:"rgba(0,0,0,0.04)"}},
+              y:{min:ymin,max:ymax,ticks:{font:{size:8},maxTicksLimit:5},grid:{color:"rgba(0,0,0,0.04)"}}},
+    }
+  });
+  // Manual reference lines drawn on update
+  if(thresholds) charts[id]._thresholds=thresholds;
+}
+
+function addThresholdPlugin(){
+  Chart.register({id:'threshlines',afterDraw(chart){
+    if(!chart._thresholds)return;
+    const{ctx,chartArea,scales}=chart;
+    ctx.save();
+    chart._thresholds.forEach(th=>{
+      const y=scales.y.getPixelForValue(th.v);
+      ctx.beginPath();ctx.moveTo(chartArea.left,y);ctx.lineTo(chartArea.right,y);
+      ctx.setLineDash([4,3]);ctx.strokeStyle=th.c;ctx.lineWidth=1;ctx.stroke();
+    });
+    ctx.restore();ctx.setLineDash([]);
+  }});
+}
+addThresholdPlugin();
+
+const chartInited={};
+function ensureCharts(tab){
+  if(chartInited[tab])return;chartInited[tab]=true;
+  if(tab==="tmrr") mkChart("shaclChart",S.shaclH,"#0e7490",0,.09,[{v:.05,c:"#b45309"}]);
+  if(tab==="emd1"){
+    if(charts.altChart)charts.altChart.destroy();
+    const ctx=el("altChart");if(!ctx)return;
+    charts.altChart=new Chart(ctx,{type:"bar",
+      data:{labels:ALTS.map(a=>a.id),datasets:[
+        {label:"Cost",       data:ALTS.map(a=>a.cost), backgroundColor:"#15803d99"},
+        {label:"Schedule",   data:ALTS.map(a=>a.sched),backgroundColor:"#1d4ed899"},
+        {label:"Performance",data:ALTS.map(a=>a.perf), backgroundColor:"#0e749099"},
+        {label:"Risk",       data:ALTS.map(a=>a.risk), backgroundColor:"#b4530999"},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{ticks:{font:{size:10}},grid:{color:"rgba(0,0,0,0.04)"}},
+                y:{min:0,max:100,ticks:{font:{size:9}},grid:{color:"rgba(0,0,0,0.04)"}}}},
+    });
+  }
+  if(tab==="emd2"){
+    mkChart("l2Chart",   S.l2H,   "#1d4ed8",0,.35,[{v:.20,c:"#b45309"},{v:.28,c:"#b91c1c"}]);
+    mkChart("mtbhChart", S.mtbhH, "#15803d",0,12,  [{v:4.0,c:"#b91c1c"}]);
+    mkChart("brierChart",S.brierH,"#b45309",0,.35,  [{v:.16,c:"#b45309"},{v:.25,c:"#b91c1c"}]);
+  }
+}
+
+function updCharts(){
+  const labs=[...S.labs];
+  const up=(id,d)=>{if(!charts[id])return;charts[id].data.labels=labs;charts[id].data.datasets[0].data=[...d];charts[id].update("none")};
+  up("shaclChart",S.shaclH);up("l2Chart",S.l2H);up("mtbhChart",S.mtbhH);up("brierChart",S.brierH);
+}
+
+// ══════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const tab=btn.dataset.tab;
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("on"));
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("on"));
+    el("panel-"+tab).classList.add("on");
+    btn.classList.add("on");
+    ensureCharts(tab);
+    if(tab==="tmrr") renderMovoi("tmrr-movoi",false);
+    if(tab==="emd1"){renderAltCards();renderMovoi("emd-movoi",false);renderCosim();}
+    if(tab==="emd2"){renderTelem();renderVerif();renderL4();}
+  });
+});
+
+// ══════════════════════════════════════════════════════
+// SIMULATION TICK
+// ══════════════════════════════════════════════════════
+function tick(){
+  const t=++S.t;
+  let{mtbh,brier,cbState}=S;
+  if(cbState==="closed"){
+    mtbh=Math.max(2.0,mtbh-(Math.random()*.10-.02));
+    if(mtbh<4.0)cbState="open";
+  }else if(cbState==="open"){
+    mtbh=Math.min(10.0,mtbh+(Math.random()*.18+.04));
+    if(mtbh>6.8)cbState="half-open";
+  }else{
+    mtbh=Math.min(10.0,mtbh+(Math.random()*.08+.01));
+    if(mtbh>8.0)cbState="closed";
+  }
+  mtbh=+mtbh.toFixed(2);
+  brier=cbState==="closed"
+    ?+Math.min(.30,brier+(Math.random()*.003-.0004)).toFixed(4)
+    :+Math.max(.08,brier-(Math.random()*.004+.001)).toFixed(4);
+  const shacl=+Math.max(0,S.shacl+(Math.random()-.52)*.004).toFixed(4);
+  const l2=+Math.max(.01,Math.min(.35,S.l2+(Math.random()-.5)*.012)).toFixed(3);
+  const l1={
+    thrustEff:   upP(S.l1.thrustEff,   94.2,1.2, 92,  90,  false),
+    controlLat:  upP(S.l1.controlLat,  12.1,0.8, 16,  20,  true),
+    sensorFusion:upP(S.l1.sensorFusion,98.7,0.4, 94,  90,  false),
+    aiConf:      upP(S.l1.aiConf,      0.87,0.02,0.70,0.60,false),
+    engTemp:     upP(S.l1.engTemp,     342, 5.0, 380, 410, true),
+  };
+  const hb=Object.values(l1).some(p=>p.st==="breach");
+  const hc=Object.values(l1).some(p=>p.st==="caution");
+  const drift=hb||mtbh<4.0?"breach":hc||brier>.22||l2>.20?"caution":"nominal";
+  Object.assign(S,{t,mtbh,brier,cbState,drift,shacl,l2,l1,l4r:drift!=="nominal"});
+  push(S.mtbhH,mtbh);push(S.brierH,brier);push(S.shaclH,shacl);push(S.l2H,l2);
+  S.labs.push(t);if(S.labs.length>N)S.labs.shift();
+  updateDOM();
+}
+
+function updateDOM(){
+  const{mtbh,brier,cbState,drift,shacl,l2,l1,l4r}=S;
+  const dc=sc(drift);
+  const mc=v=>v<4?"var(--red)":v<6?"var(--amber)":"var(--green)";
+  const brc=v=>v>.22?"var(--red)":v>.16?"var(--amber)":"var(--green)";
+
+  // Header
+  const hb=el("hdr-bdg");if(hb){hb.className=`bdg ${bc(drift)}`;hb.textContent=bt(drift);}
+  const hd=el("hdr-dot");if(hd){hd.className="dot";hd.style.background=dc;hd.style.animation="pulse 2s infinite";}
+
+  // Overview
+  setc("ov-drift",drift.toUpperCase(),dc);
+  setc("ov-mtbh",mtbh+"h",mc(mtbh));
+  setc("ov-cb","CB: "+cbState);
+  setc("ov-brier",brier.toFixed(3),brc(brier));
+  setc("ov-shacl",(shacl*100).toFixed(2)+"%",shacl>.05?"var(--red)":shacl>.03?"var(--amber)":"var(--green)");
+
+  // TMRR tab
+  setc("tmrr-shacl",(shacl*100).toFixed(2)+"%",shacl>.05?"var(--red)":"var(--green)");
+  setc("tmrr-shacl-status",shacl<.03?"within bounds":shacl<.05?"elevated · monitor":"threshold exceeded · review");
+  if(el("tmrr-movoi")) renderMovoi("tmrr-movoi",false);
+
+  // Phase 3 banner
+  const db=el("drift-banner");if(db)db.className=`dbanner ${drift==="nominal"?"dn":drift==="caution"?"da2":"dr2"}`;
+  const dt=el("drift-txt");if(dt){dt.textContent=drift.toUpperCase();dt.style.color=dc;}
+  setc("p3-mtbh",mtbh+"h",mc(mtbh));
+  setc("p3-brier",brier.toFixed(3),brc(brier));
+  setc("p3-l2",l2.toFixed(3),l2>.20?"var(--amber)":"var(--green)");
+  const p3cb=el("p3-cb");if(p3cb){p3cb.textContent=cbState.toUpperCase();p3cb.style.color=sc(cbState);}
+
+  // CB card
+  const cbc=el("cb-card");if(cbc)cbc.style.borderColor=sc(cbState);
+  const cbb=el("cb-bdg");if(cbb){cbb.className=`bdg ${bc(cbState)}`;cbb.textContent=bt(cbState);}
+  setc("cb-mtbh",mtbh+"h",mc(mtbh));
+  setc("cb-brier",brier.toFixed(3),brc(brier));
+  setc("cb-desc",cbState==="closed"
+    ?"AI outputs propagating to authoritative baseline · monitoring MTBH"
+    :cbState==="open"
+    ?"⚠ AI outputs quarantined · recovery in progress · RDSG baseline protected"
+    :"Half-open · supervised re-entry · threshold 8.0h");
+
+  // L2
+  const l2v=el("l2-val");if(l2v){l2v.textContent=l2.toFixed(3);l2v.style.color=l2>.20?"var(--amber)":"var(--green)";}
+  setc("l2-status",l2>.20?" — elevated · RDSG update recommended":" — within acceptable range");
+
+  // L1 telem (only update if rendered)
+  if(el("tv-thrustEff")) L1D.forEach(p=>{
+    const pm=l1[p.key];const col=sc(pm.st);
+    const dot=el("td-"+p.key);if(dot){dot.style.background=col;}
+    const tv=el("tv-"+p.key);if(tv){tv.textContent=p.fmt(pm.v);tv.style.color=col;}
+    const tb=el("tb-"+p.key);if(tb){tb.className=`bdg ${bc(pm.st)}`;tb.textContent=bt(pm.st);}
+  });
+
+  // L4
+  const l4b=el("l4-bdg");if(l4b){l4b.className=`bdg ${bc(l4r?"caution":"nominal")}`;l4b.textContent=bt(l4r?"caution":"nominal");}
+  setc("l4-desc",l4r
+    ?"⚠ Sustained signals — MOVOI re-evaluation triggered on previously closed decisions"
+    :"Knowledge state stable — all design decisions within epistemic justification bounds");
+  if(el("l4-cards")) renderL4();
+  if(el("emd-movoi")) renderMovoi("emd-movoi",false);
+
+  // Tab dot for EMD2
+  const ed2=el("emd2-dot");if(ed2)ed2.style.background=dc;
+
+  updCharts();
+}
+
+// ══════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════
+renderOverviewChecklists();
+renderArtifacts();
+renderShaclCats();
+renderMovoi("tmrr-movoi",false);
+renderL4();
+setInterval(tick,2200);
+</script>
+</body>
+</html>

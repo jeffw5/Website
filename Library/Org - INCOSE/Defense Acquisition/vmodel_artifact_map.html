@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SE V-Model Artifact Map · ISO 15288 / INCOSE SE Handbook</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0f0f0e;
+  --ink2:#3a3935;
+  --ink3:#6b6a64;
+  --ink4:#9b9a92;
+  --bg:#fafaf7;
+  --bg2:#f3f2ed;
+  --bg3:#e8e6df;
+  --rule:#d5d3ca;
+  --rule2:#e8e6df;
+
+  /* Phase colors — muted, purposeful */
+  --c-concept:#5c4a8a;   --c-concept-l:#f0edf9;  --c-concept-b:#c4b8e8;
+  --c-tmrr:#1a5f7a;      --c-tmrr-l:#e8f4f9;     --c-tmrr-b:#9ccee0;
+  --c-msb:#0f5132;       --c-msb-l:#ecf7f0;       --c-msb-b:#86c9a0;
+  --c-emd:#7a3a0a;       --c-emd-l:#fdf3e8;       --c-emd-b:#e8b07a;
+  --c-cdr:#7a1a1a;       --c-cdr-l:#fdf0f0;       --c-cdr-b:#e89a9a;
+  --c-prod:#2a4a7a;      --c-prod-l:#edf2fb;      --c-prod-b:#8ab0d8;
+  --c-os:#3a5a2a;        --c-os-l:#edf5e8;        --c-os-b:#8cc87a;
+
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+  --r:6px;--rl:10px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6}
+
+/* ── LAYOUT ── */
+#wrap{max-width:1200px;margin:0 auto;padding:40px 24px 80px}
+
+/* ── HEADER ── */
+.masthead{border-bottom:1.5px solid var(--ink);padding-bottom:24px;margin-bottom:36px}
+.masthead-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.masthead h1{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.masthead .sub{font-size:13px;color:var(--ink3);margin-top:6px;font-weight:300}
+.masthead-meta{font-family:var(--mono);font-size:10px;color:var(--ink4);line-height:1.8;text-align:right}
+
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink2);padding:4px 10px;border-radius:20px;border:.5px solid var(--rule)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── V-MODEL DIAGRAM ── */
+.vmodel-wrap{background:var(--bg);border:1px solid var(--rule);border-radius:var(--rl);padding:28px 20px;margin-bottom:36px;overflow-x:auto}
+.vmodel-title{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:20px}
+
+.vmodel{display:grid;grid-template-columns:repeat(9,1fr);gap:0;position:relative;min-width:780px}
+.vm-cell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 4px}
+.vm-box{width:100%;border-radius:6px;padding:8px 6px;text-align:center;font-size:10px;font-weight:500;line-height:1.3;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:.5px solid;cursor:default;transition:transform .15s}
+.vm-box:hover{transform:translateY(-2px)}
+.vm-phase{font-size:9px;font-weight:400;color:var(--ink4);margin-top:2px;font-family:var(--mono)}
+.vm-arrow-down{width:2px;height:28px;background:var(--rule);margin:0 auto;position:relative}
+.vm-arrow-down::after{content:'';position:absolute;bottom:-5px;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--rule)}
+.vm-arrow-up{width:2px;height:28px;background:var(--rule);margin:0 auto;position:relative}
+.vm-arrow-up::before{content:'';position:absolute;top:-5px;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid var(--rule)}
+.vm-bottom{display:flex;justify-content:center;align-items:center;height:54px}
+.vm-impl{padding:10px 14px;border-radius:6px;font-size:10px;font-weight:500;text-align:center;border:.5px solid;background:#f3f2ed}
+
+/* ── SECTION HEADERS ── */
+.sec-hdr{display:flex;align-items:baseline;gap:12px;margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--rule)}
+.sec-hdr h2{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.sec-tag{font-family:var(--mono);font-size:10px;color:var(--ink4)}
+
+/* ── PHASE BLOCKS ── */
+.phase-block{margin-bottom:28px;border-radius:var(--rl);overflow:hidden;border:.5px solid var(--rule)}
+.phase-hdr{padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.phase-hdr-l{display:flex;align-items:center;gap:12px}
+.phase-num{font-family:var(--mono);font-size:10px;color:#fff;padding:2px 8px;border-radius:3px;font-weight:500}
+.phase-name{font-size:14px;font-weight:600}
+.phase-milestone{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:3px;font-weight:500}
+.phase-desc{font-size:12px;color:var(--ink3);padding:0 18px 12px;font-style:italic}
+
+/* ── ARTIFACT TABLE ── */
+.art-table{width:100%;border-collapse:collapse}
+.art-table thead th{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);padding:8px 14px;text-align:left;border-bottom:1px solid var(--rule);background:var(--bg2)}
+.art-table tbody tr{border-bottom:.5px solid var(--rule2);transition:background .1s}
+.art-table tbody tr:hover{background:var(--bg2)}
+.art-table td{padding:9px 14px;font-size:12px;vertical-align:top}
+.art-id{font-family:var(--mono);font-size:10px;color:var(--ink4);white-space:nowrap}
+.art-name{font-weight:500;color:var(--ink);line-height:1.4}
+.art-desc{color:var(--ink3);font-size:11px;margin-top:2px;line-height:1.4}
+.art-process{font-family:var(--mono);font-size:10px;color:var(--ink3);white-space:nowrap}
+.art-rdsg{font-size:10px;color:var(--ink4)}
+.art-required{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;padding:1px 6px;border-radius:3px;color:#fff}
+
+/* ── MILESTONE MARKER ── */
+.ms-marker{display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1.5px dashed;margin:0}
+.ms-marker-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;border:2px solid}
+.ms-marker-label{font-weight:600;font-size:13px}
+.ms-marker-desc{font-size:11px;color:var(--ink3);font-style:italic}
+
+/* ── NOTE BOX ── */
+.note{background:var(--bg2);border-left:3px solid var(--rule);border-radius:0 6px 6px 0;padding:12px 16px;margin:20px 0;font-size:12px;color:var(--ink2);line-height:1.6}
+.note strong{color:var(--ink);font-weight:500}
+
+/* ── GLOSSARY ── */
+.glossary{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-top:12px}
+.gterm{background:var(--bg2);border-radius:var(--r);padding:10px 14px;border:.5px solid var(--rule)}
+.gterm dt{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--ink2);margin-bottom:3px}
+.gterm dd{font-size:11px;color:var(--ink3);line-height:1.5}
+
+/* ── RDSG/SDD OVERLAY ── */
+.rdsg-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:11px;font-weight:500;border-radius:var(--r);margin-bottom:8px}
+
+@media print{
+  .vmodel-wrap{page-break-inside:avoid}
+  .phase-block{page-break-inside:avoid}
+}
+@media(max-width:700px){
+  .masthead-top{flex-direction:column}
+  .masthead-meta{text-align:left}
+  .art-table thead .hide-sm{display:none}
+  .art-table td.hide-sm{display:none}
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+
+<!-- MASTHEAD -->
+<div class="masthead">
+  <div class="masthead-top">
+    <div>
+      <h1>SE V-Model Artifact Map</h1>
+      <div class="sub">ISO/IEC 15288 · INCOSE Systems Engineering Handbook · DoD Adaptive Acquisition Framework · Value Enablement Group</div>
+    </div>
+    <div class="masthead-meta">
+      April 2026<br>
+      For discussion — Jeffrey Wallk<br>
+      RDSG v2.0 · Scope Drift Detection context
+    </div>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:var(--c-concept)"></div>Concept (Pre-MS A)</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--c-tmrr)"></div>TMRR (MS A → MS B)</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--c-emd)"></div>EMD (MS B → MS C)</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--c-prod)"></div>Production & Deployment</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--c-os)"></div>Operations & Support</div>
+  <div class="leg-item" style="background:var(--bg2)"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> = governed by RDSG</div>
+  <div class="leg-item" style="background:var(--bg2)"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD</span> = monitored by Scope Drift Detection</div>
+</div>
+
+<!-- V-MODEL DIAGRAM -->
+<div class="vmodel-wrap">
+  <div class="vmodel-title">The Systems Engineering V-Model — lifecycle position reference</div>
+  <div class="vmodel" style="align-items:end">
+
+    <!-- Col 1: Stakeholder needs -->
+    <div class="vm-cell">
+      <div class="vm-box" style="background:var(--c-concept-l);border-color:var(--c-concept-b);color:var(--c-concept)">
+        Stakeholder needs &amp; requirements
+        <span class="vm-phase">Concept · Pre-MS A</span>
+      </div>
+      <div class="vm-arrow-down"></div>
+    </div>
+
+    <!-- Col 2: System requirements -->
+    <div class="vm-cell">
+      <div class="vm-box" style="background:var(--c-tmrr-l);border-color:var(--c-tmrr-b);color:var(--c-tmrr)">
+        System requirements definition
+        <span class="vm-phase">TMRR</span>
+      </div>
+      <div class="vm-arrow-down"></div>
+    </div>
+
+    <!-- Col 3: Architecture definition -->
+    <div class="vm-cell">
+      <div class="vm-box" style="background:var(--c-tmrr-l);border-color:var(--c-tmrr-b);color:var(--c-tmrr)">
+        Architecture definition
+        <span class="vm-phase">TMRR → MS B</span>
+      </div>
+      <div class="vm-arrow-down"></div>
+    </div>
+
+    <!-- Col 4: Design definition -->
+    <div class="vm-cell">
+      <div class="vm-box" style="background:var(--c-emd-l);border-color:var(--c-emd-b);color:var(--c-emd)">
+        Design definition
+        <span class="vm-phase">EMD (post-MS B)</span>
+      </div>
+      <div class="vm-arrow-down"></div>
+    </div>
+
+    <!-- Col 5: Implementation (bottom) -->
+    <div class="vm-cell">
+      <div class="vm-bottom">
+        <div class="vm-impl" style="background:var(--bg3);border-color:var(--rule);color:var(--ink2)">
+          System implementation<br>
+          <span style="font-size:9px;color:var(--ink4)">code · fabrication · assembly</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 6: Component verification -->
+    <div class="vm-cell">
+      <div class="vm-arrow-up"></div>
+      <div class="vm-box" style="background:var(--c-emd-l);border-color:var(--c-emd-b);color:var(--c-emd)">
+        Component / unit verification
+        <span class="vm-phase">EMD</span>
+      </div>
+    </div>
+
+    <!-- Col 7: Integration verification -->
+    <div class="vm-cell">
+      <div class="vm-arrow-up"></div>
+      <div class="vm-box" style="background:var(--c-emd-l);border-color:var(--c-emd-b);color:var(--c-emd)">
+        Integration &amp; verification
+        <span class="vm-phase">EMD → CDR</span>
+      </div>
+    </div>
+
+    <!-- Col 8: System verification -->
+    <div class="vm-cell">
+      <div class="vm-arrow-up"></div>
+      <div class="vm-box" style="background:var(--c-prod-l);border-color:var(--c-prod-b);color:var(--c-prod)">
+        System verification &amp; validation
+        <span class="vm-phase">Pre-MS C</span>
+      </div>
+    </div>
+
+    <!-- Col 9: Operational validation -->
+    <div class="vm-cell">
+      <div class="vm-arrow-up"></div>
+      <div class="vm-box" style="background:var(--c-os-l);border-color:var(--c-os-b);color:var(--c-os)">
+        Operational validation
+        <span class="vm-phase">O&amp;S</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- V-line connector hint -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;font-size:10px;color:var(--ink4)">
+    <span style="font-family:var(--mono)">Left downstroke = system definition processes</span>
+    <span>·</span>
+    <span style="font-family:var(--mono)">Right upstroke = verification &amp; validation processes</span>
+    <span>·</span>
+    <span style="font-family:var(--mono);color:var(--c-tmrr)">MS B divides TMRR from EMD</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- PHASE 0: CONCEPT -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="sec-hdr"><h2>System lifecycle artifact map</h2><span class="sec-tag">ISO 15288 process · INCOSE SE Handbook · DoD AAF alignment</span></div>
+
+<div class="phase-block" style="border-color:var(--c-concept-b)">
+  <div class="phase-hdr" style="background:var(--c-concept-l)">
+    <div class="phase-hdr-l">
+      <span class="phase-num" style="background:var(--c-concept)">PHASE 0</span>
+      <span class="phase-name" style="color:var(--c-concept)">Concept Stage</span>
+    </div>
+    <span class="phase-milestone" style="background:var(--c-concept);color:#fff">Pre-Milestone A</span>
+  </div>
+  <div class="phase-desc">Mission analysis · stakeholder needs elicitation · concept of operations · feasibility · technology landscape assessment. Purpose: establish that a real capability gap exists and that it is worth investing in technology maturation to address it.</div>
+
+  <div class="rdsg-bar" style="background:var(--c-concept-l);color:var(--c-concept);margin:0 14px 8px">
+    <span style="font-family:var(--mono);font-size:10px">ISO 15288 processes active:</span>
+    <span style="font-size:11px">Business / Mission Analysis · Stakeholder Needs &amp; Requirements Definition (initiation)</span>
+  </div>
+
+  <table class="art-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Artifact / Info-Data Item</th>
+        <th class="hide-sm">ISO 15288 Process</th>
+        <th class="hide-sm">John's Category</th>
+        <th>RDSG / SDD</th>
+        <th>Required for</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="art-id">CON-001</td>
+        <td><div class="art-name">Concept of Operations (ConOps)</div><div class="art-desc">Describes the mission environment, operational scenarios, user roles, and high-level system behavior from the operator's perspective. Not a technical specification — a narrative of intended use.</div></td>
+        <td class="art-process hide-sm">Business / Mission Analysis</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-concept)">MCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> governed</td>
+        <td><span class="art-required" style="background:var(--c-concept)">MS A</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">CON-002</td>
+        <td><div class="art-name">Mission Concept Description (MCD)</div><div class="art-desc">Formal statement of the operational mission the system must enable. Captures mission threads, operational context, and the primary capability gap being addressed. Foundation of everything that follows.</div></td>
+        <td class="art-process hide-sm">Business / Mission Analysis</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-concept)">MCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> governed</td>
+        <td><span class="art-required" style="background:var(--c-concept)">MS A</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">CON-003</td>
+        <td><div class="art-name">Capability Concept Description (CCD)</div><div class="art-desc">Translates the mission need into a set of required capabilities — what the system must be able to do, without specifying how. Maps capabilities to mission threads from the MCD.</div></td>
+        <td class="art-process hide-sm">Stakeholder Needs &amp; Requirements Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-concept)">CCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> governed</td>
+        <td><span class="art-required" style="background:var(--c-concept)">MS A</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">CON-004</td>
+        <td><div class="art-name">Initial Capabilities Document (ICD)</div><div class="art-desc">Joint Staff / service document formalizing the capability gap and need. Precedes and informs the MCD. Establishes the requirement for a materiel solution.</div></td>
+        <td class="art-process hide-sm">Business / Mission Analysis</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-concept)">MCD</span></td>
+        <td class="art-rdsg">reference</td>
+        <td><span class="art-required" style="background:var(--c-concept)">MS A</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">CON-005</td>
+        <td><div class="art-name">Technology Assessment Report</div><div class="art-desc">Survey of technology readiness levels across candidate solution approaches. Identifies which technologies need maturation and at what cost and risk before commitment is defensible.</div></td>
+        <td class="art-process hide-sm">Business / Mission Analysis</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg">input</td>
+        <td><span class="art-required" style="background:var(--c-concept)">MS A</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">CON-006</td>
+        <td><div class="art-name">Analysis of Alternatives (AoA)</div><div class="art-desc">Systematic comparison of alternative approaches to satisfying the capability need. Evaluates cost, schedule, performance, and risk tradeoffs across materiel and non-materiel options.</div></td>
+        <td class="art-process hide-sm">System Analysis</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg">input</td>
+        <td><span class="art-required" style="background:var(--c-concept)">MS A</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- MS A Marker -->
+  <div class="ms-marker" style="border-color:var(--c-concept);background:var(--c-concept-l)">
+    <div class="ms-marker-dot" style="background:var(--c-concept);border-color:var(--c-concept)"></div>
+    <div>
+      <div class="ms-marker-label" style="color:var(--c-concept)">Milestone A — Program Initiation</div>
+      <div class="ms-marker-desc">Decision to enter Technology Maturation &amp; Risk Reduction. MCD and CCD must be approved. AoA complete.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- PHASE 1: TMRR -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="phase-block" style="border-color:var(--c-tmrr-b)">
+  <div class="phase-hdr" style="background:var(--c-tmrr-l)">
+    <div class="phase-hdr-l">
+      <span class="phase-num" style="background:var(--c-tmrr)">PHASE 1</span>
+      <span class="phase-name" style="color:var(--c-tmrr)">Technology Maturation &amp; Risk Reduction (TMRR)</span>
+    </div>
+    <span class="phase-milestone" style="background:var(--c-tmrr);color:#fff">MS A → Milestone B</span>
+  </div>
+  <div class="phase-desc">The race John describes: get the most abstract and foundational system definition artifacts written, technically reviewed, and governance-verified before Milestone B. No detailed design. No hardware. No code. The V-model left downstroke stops at Architecture Definition. This is where RDSG and SDD L1–L2 provide continuous info-data governance without requiring any design to exist.</div>
+
+  <div class="rdsg-bar" style="background:var(--c-tmrr-l);color:var(--c-tmrr);margin:0 14px 8px">
+    <span style="font-family:var(--mono);font-size:10px">ISO 15288 processes active:</span>
+    <span style="font-size:11px">Stakeholder Needs &amp; Requirements Definition · System Requirements Definition · Architecture Definition · System Analysis</span>
+  </div>
+
+  <table class="art-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Artifact / Info-Data Item</th>
+        <th class="hide-sm">ISO 15288 Process</th>
+        <th class="hide-sm">John's Category</th>
+        <th>RDSG / SDD</th>
+        <th>Required for</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="art-id">TMR-001</td>
+        <td><div class="art-name">Stakeholder Requirements Specification (StRS)</div><div class="art-desc">Formally captures what stakeholders — operators, maintainers, acquirers — need the system to accomplish. Written in stakeholder language, not engineering language. The bridge between the MCD/CCD and the System Requirements Specification.</div></td>
+        <td class="art-process hide-sm">Stakeholder Needs &amp; Requirements Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">CCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> primary</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-002</td>
+        <td><div class="art-name">System Requirements Specification (SyRS)</div><div class="art-desc">The definitive technical statement of what the system must do, expressed as verifiable requirements. Each requirement must be traceable to a stakeholder need and must have a defined acceptance criterion. The RDSG's SHACL layer enforces structural and semantic integrity on this document continuously.</div></td>
+        <td class="art-process hide-sm">System Requirements Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">CCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> primary</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-003</td>
+        <td><div class="art-name">Functional Concept Description (FCD)</div><div class="art-desc">Defines the functional behavior of the system — what functions it performs, in what sequence, with what inputs and outputs — without specifying which physical elements perform each function. The functional architecture layer. Answers "what does it do" not "what is it made of."</div></td>
+        <td class="art-process hide-sm">Architecture Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">FCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> primary</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-004</td>
+        <td><div class="art-name">Architecture Concept Description (ACD)</div><div class="art-desc">Defines the system's architectural structure — the physical and logical elements, their boundaries, relationships, and interfaces — at the conceptual level. Allocates functions from the FCD to architectural elements. The most concrete artifact appropriate before MS B. Becomes the primary input to post-MS B design definition.</div></td>
+        <td class="art-process hide-sm">Architecture Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">ACD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> primary</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-005</td>
+        <td><div class="art-name">Interface Requirements Specification (IRS)</div><div class="art-desc">Defines the external and internal interface requirements at the architectural boundary level — data rates, protocols, timing constraints, electrical characteristics. Not yet an Interface Control Document (which specifies how interfaces are implemented — that is EMD work).</div></td>
+        <td class="art-process hide-sm">Architecture Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">ACD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> governed</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-006</td>
+        <td><div class="art-name">System Engineering Plan (SEP)</div><div class="art-desc">Defines how the program will execute systems engineering across the lifecycle — processes, methods, tools, decision gates, workforce structure, data rights strategy, STPA integration plan. The governance document for all technical work. Required before MS B.</div></td>
+        <td class="art-process hide-sm">Technical Management</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> referenced</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-007</td>
+        <td><div class="art-name">Technology Readiness Assessment (TRA)</div><div class="art-desc">Independent assessment of Technology Readiness Levels for all critical technologies. Must demonstrate TRL ≥ 6 for key technologies before MS B. GAO consistently cites immature technologies at commitment as a primary MDAP failure driver.</div></td>
+        <td class="art-process hide-sm">System Analysis</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg">input</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-008</td>
+        <td><div class="art-name">STPA Loss Scenario Report</div><div class="art-desc">Output of System-Theoretic Process Analysis applied to the functional architecture. Identifies unsafe control actions — the conditions under which system functions produce hazardous outcomes. Defines the UCA boundary set that L1 Scope Drift Detection monitors against during EMD operations.</div></td>
+        <td class="art-process hide-sm">System Analysis (Safety)</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">FCD / ACD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> + <span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1</span></td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-009</td>
+        <td><div class="art-name">MOVOI Decision Analysis Report</div><div class="art-desc">Multiobjective Value of Information analysis quantifying which design alternatives retain epistemic justification for continued consideration, and which should be eliminated from the set. The formal knowledge-gate mechanism of Set-Based Design. Updated as technology data matures through TMRR.</div></td>
+        <td class="art-process hide-sm">System Analysis</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L4</span> trigger</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-010</td>
+        <td><div class="art-name">Risk Management Plan &amp; Risk Register</div><div class="art-desc">Identifies, assesses, and tracks technical risks across cost, schedule, performance, and integration dimensions. Feeds the Independent Technical Risk Assessment at MS B.</div></td>
+        <td class="art-process hide-sm">Risk Management</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg">input</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-011</td>
+        <td><div class="art-name">Independent Technical Risk Assessment (ITRA)</div><div class="art-desc">Required by DoDI 5000.88 before MS B. Independent review team evaluates the maturity and soundness of the technical baseline, identifies residual risks, and provides the Milestone Decision Authority with an independent view of program readiness. Separate from the program office's self-assessment.</div></td>
+        <td class="art-process hide-sm">Technical Review</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg">evidence</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">TMR-012</td>
+        <td><div class="art-name">SysML v2 Repository Baseline (KerML core)</div><div class="art-desc">The machine-readable, queryable representation of the TMR-001 through TMR-008 info-data items maintained in the RDSG digital thread. Not a separate document — the semantic encoding of all the above artifacts. The SHACL shape constraints validate structural integrity continuously.</div></td>
+        <td class="art-process hide-sm">Architecture Definition</td>
+        <td class="hide-sm">ACD foundation</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> IS this</td>
+        <td><span class="art-required" style="background:var(--c-tmrr)">MS B</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- MS B Marker -->
+  <div class="ms-marker" style="border-color:var(--c-msb);background:var(--c-msb-l)">
+    <div class="ms-marker-dot" style="background:var(--c-msb);border-color:var(--c-msb)"></div>
+    <div>
+      <div class="ms-marker-label" style="color:var(--c-msb)">Milestone B — Development Start</div>
+      <div class="ms-marker-desc">The knowledge commitment gate. SyRS, FCD, and ACD must be complete, verified, and stable. All MS B ITRA criteria satisfied. After this point: design definition begins, EMD contract awarded, detailed descriptions authorized.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- PHASE 2: EMD PRE-CDR -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="phase-block" style="border-color:var(--c-emd-b)">
+  <div class="phase-hdr" style="background:var(--c-emd-l)">
+    <div class="phase-hdr-l">
+      <span class="phase-num" style="background:var(--c-emd)">PHASE 2</span>
+      <span class="phase-name" style="color:var(--c-emd)">Engineering &amp; Manufacturing Development (EMD) — Pre-CDR</span>
+    </div>
+    <span class="phase-milestone" style="background:var(--c-emd);color:#fff">MS B → CDR</span>
+  </div>
+  <div class="phase-desc">Design definition begins. The Architecture Concept Description is the primary input. Physical, hardware, software, database, and algorithm descriptions are produced and progressively detailed. Virtual implementations (Model-in-the-Loop, co-simulation) are appropriate here — physical hardware commitment waits for CDR confidence. This is where the V-model prototype roadmap Phases 2 and 3 properly belong.</div>
+
+  <div class="rdsg-bar" style="background:var(--c-emd-l);color:var(--c-emd);margin:0 14px 8px">
+    <span style="font-family:var(--mono);font-size:10px">ISO 15288 processes active:</span>
+    <span style="font-size:11px">Design Definition · Implementation · Integration · Verification (component/unit level) · System Analysis (ongoing)</span>
+  </div>
+
+  <table class="art-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Artifact / Info-Data Item</th>
+        <th class="hide-sm">ISO 15288 Process</th>
+        <th class="hide-sm">John's Category</th>
+        <th>RDSG / SDD</th>
+        <th>Required for</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="art-id">EMD-001</td>
+        <td><div class="art-name">Physical / Product Concept Description (PCD)</div><div class="art-desc">Top-level design description mapping the ACD's architectural elements to physical implementation concepts. The first design artifact — bridges architecture to detailed design without yet specifying manufacturing or fabrication details. Takes the ACD as direct input.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-tmrr)">RDSG</span> + <span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L2</span></td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-002</td>
+        <td><div class="art-name">Hardware Requirements Specification (HRS)</div><div class="art-desc">Allocates system requirements to hardware elements. Specifies electrical, mechanical, thermal, and environmental requirements for each hardware configuration item. Traceable to the SyRS.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L2</span></td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-003</td>
+        <td><div class="art-name">Software Requirements Specification (SRS)</div><div class="art-desc">Allocates system requirements to software configuration items. Defines software functions, performance constraints, interface requirements, and quality attributes. Traceable to the SyRS and FCD.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L2</span></td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-004</td>
+        <td><div class="art-name">Interface Control Document (ICD)</div><div class="art-desc">Specifies how interfaces defined in the IRS are actually implemented — signal definitions, data formats, timing, electrical characteristics, connector pinouts. The definitive bilateral agreement between interfacing elements. Required before integration can proceed.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1+L2</span></td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-005</td>
+        <td><div class="art-name">Algorithm Specification Document</div><div class="art-desc">Specifies AI, control, signal processing, and decision algorithms at the mathematical level — inputs, outputs, computational method, performance bounds, training data provenance (for AI), and uncertainty representation. MTBH and Brier Score thresholds are defined here.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L3</span> baseline</td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-006</td>
+        <td><div class="art-name">Database Design Description (DDD)</div><div class="art-desc">Specifies the logical and physical structure of all databases — schema, data dictionaries, retention policies, access controls. Includes ontology specifications for semantic data stores supporting the RDSG.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L2</span></td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-007</td>
+        <td><div class="art-name">Hardware Design Description (HDD)</div><div class="art-desc">Detailed design documentation for hardware configuration items — circuit schematics, PCB layouts, mechanical drawings, thermal analyses. The level of detail that makes procurement and fabrication possible.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1</span></td>
+        <td><span class="art-required" style="background:var(--c-cdr)">CDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-008</td>
+        <td><div class="art-name">Software Design Description (SDD-doc)</div><div class="art-desc">Detailed design documentation for software configuration items — architectural decomposition, module designs, class diagrams, data flow. Note: distinct from the Scope Drift Detection (SDD) framework; context differentiates.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L2+L3</span></td>
+        <td><span class="art-required" style="background:var(--c-cdr)">CDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-009</td>
+        <td><div class="art-name">Virtual Integrated System (co-simulation model)</div><div class="art-desc">Functional Mockup Unit assembly coupling physics models (Modelica) and control logic (Simulink) via FMI 3.0. The Model-in-the-Loop implementation that exercises the PCD and HRS/SRS without physical hardware. Appropriate pre-CDR; used to generate PDR-level evidence.</div></td>
+        <td class="art-process hide-sm">Implementation · Integration</td>
+        <td class="hide-sm">realized product</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1+L2</span></td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-010</td>
+        <td><div class="art-name">Test &amp; Evaluation Master Plan (TEMP)</div><div class="art-desc">Defines the overall developmental and operational test strategy — test events, test articles, success criteria, instrumentation. Links each requirement in the SyRS to a specific test method and acceptance criterion.</div></td>
+        <td class="art-process hide-sm">Verification</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg">evidence</td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-011</td>
+        <td><div class="art-name">Preliminary Design Review (PDR) Package</div><div class="art-desc">Technical review artifact set demonstrating that the system design is sufficiently mature to proceed to detailed design. Includes design descriptions at PCD level, interface status, preliminary TEMP, risk status, and mass / power / performance budgets.</div></td>
+        <td class="art-process hide-sm">Technical Review</td>
+        <td class="hide-sm">—</td>
+        <td class="art-rdsg">evidence gate</td>
+        <td><span class="art-required" style="background:var(--c-emd)">PDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">EMD-012</td>
+        <td><div class="art-name">Drawings, Parts Lists, Bills of Materials</div><div class="art-desc">Engineering release-level documentation specifying exact materials, dimensions, tolerances, and assembly instructions. The artifacts that make physical procurement and fabrication possible. These do NOT exist before CDR — their premature creation is the root cause of premature lock-in that John's feedback addresses.</div></td>
+        <td class="art-process hide-sm">Design Definition</td>
+        <td class="hide-sm"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">PCD</span></td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1</span></td>
+        <td><span class="art-required" style="background:var(--c-cdr)">CDR</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- CDR Marker -->
+  <div class="ms-marker" style="border-color:var(--c-cdr);background:var(--c-cdr-l)">
+    <div class="ms-marker-dot" style="background:var(--c-cdr);border-color:var(--c-cdr)"></div>
+    <div>
+      <div class="ms-marker-label" style="color:var(--c-cdr)">Critical Design Review (CDR)</div>
+      <div class="ms-marker-desc">Confirms detailed design is stable enough to begin physical procurement and assembly. All design descriptions complete. HiL integration readiness demonstrated. After CDR: real hardware is procured and physical system realization begins.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- PHASE 3: EMD POST-CDR / VERIFICATION -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="phase-block" style="border-color:var(--c-prod-b)">
+  <div class="phase-hdr" style="background:var(--c-prod-l)">
+    <div class="phase-hdr-l">
+      <span class="phase-num" style="background:var(--c-prod)">PHASE 3</span>
+      <span class="phase-name" style="color:var(--c-prod)">EMD Post-CDR — Integration, Verification &amp; Validation</span>
+    </div>
+    <span class="phase-milestone" style="background:var(--c-prod);color:#fff">CDR → Milestone C</span>
+  </div>
+  <div class="phase-desc">The right upstroke of the V-model. Physical system is built and verified against design descriptions, then validated against stakeholder requirements and mission needs. Hardware-in-the-Loop integration operates here. Scope Drift Detection L1 telemetry is at full operational fidelity. MTBH and Brier Score monitoring is against physical system behavior, not simulation.</div>
+
+  <div class="rdsg-bar" style="background:var(--c-prod-l);color:var(--c-prod);margin:0 14px 8px">
+    <span style="font-family:var(--mono);font-size:10px">ISO 15288 processes active:</span>
+    <span style="font-size:11px">Integration · Verification · Validation · Transition</span>
+  </div>
+
+  <table class="art-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Artifact / Info-Data Item</th>
+        <th class="hide-sm">ISO 15288 Process</th>
+        <th class="hide-sm">V-Model Position</th>
+        <th>SDD Layer</th>
+        <th>Required for</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="art-id">VV-001</td>
+        <td><div class="art-name">Hardware-in-the-Loop (HiL) Integration Plan</div><div class="art-desc">Defines the physical test configuration, real-time target setup, Unit Under Test interface, instrumentation, and data capture strategy for HiL testing. Connects the Algorithm Specification to physical hardware behavioral characterization.</div></td>
+        <td class="art-process hide-sm">Integration</td>
+        <td class="hide-sm">Right upstroke base</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1</span> anchor</td>
+        <td><span class="art-required" style="background:var(--c-prod)">Post-CDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">VV-002</td>
+        <td><div class="art-name">Component / Unit Verification Reports</div><div class="art-desc">Test reports demonstrating each hardware and software configuration item meets its specified requirements. Traceable to HRS / SRS acceptance criteria. Feeds the integration baseline.</div></td>
+        <td class="art-process hide-sm">Verification</td>
+        <td class="hide-sm">Right upstroke — low</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1+L2</span></td>
+        <td><span class="art-required" style="background:var(--c-prod)">Post-CDR</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">VV-003</td>
+        <td><div class="art-name">System Integration Test Plan &amp; Reports</div><div class="art-desc">Defines and documents integration test events confirming that assembled subsystems interact correctly across interfaces. ICD compliance verified at actual interface boundaries, not simulation.</div></td>
+        <td class="art-process hide-sm">Integration · Verification</td>
+        <td class="hide-sm">Right upstroke — mid</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1+L3</span></td>
+        <td><span class="art-required" style="background:var(--c-prod)">Pre-MS C</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">VV-004</td>
+        <td><div class="art-name">System Qualification Test (SQT) Plan &amp; Reports</div><div class="art-desc">Formal test execution demonstrating the integrated system satisfies the SyRS requirements under specified operational and environmental conditions. The primary verification evidence for Milestone C.</div></td>
+        <td class="art-process hide-sm">Verification</td>
+        <td class="hide-sm">Right upstroke — high</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1+L2+L3</span></td>
+        <td><span class="art-required" style="background:var(--c-prod)">MS C</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">VV-005</td>
+        <td><div class="art-name">System Validation Report</div><div class="art-desc">Demonstrates the verified system satisfies stakeholder needs expressed in the StRS and MCD — not just technical requirements but actual operational effectiveness in representative mission scenarios. The top of the right upstroke.</div></td>
+        <td class="art-process hide-sm">Validation</td>
+        <td class="hide-sm">Right upstroke — top</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD all layers</span></td>
+        <td><span class="art-required" style="background:var(--c-prod)">MS C</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">VV-006</td>
+        <td><div class="art-name">Certification Evidence Package</div><div class="art-desc">Compiled evidence set supporting safety, cybersecurity, and airworthiness / seaworthiness certification as applicable. Includes STPA UCA coverage closure, cybersecurity assessment results, and MTBH / Brier Score operational characterization.</div></td>
+        <td class="art-process hide-sm">Verification · System Analysis</td>
+        <td class="hide-sm">Right upstroke — top</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1–L4</span></td>
+        <td><span class="art-required" style="background:var(--c-prod)">MS C</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="ms-marker" style="border-color:var(--c-prod);background:var(--c-prod-l)">
+    <div class="ms-marker-dot" style="background:var(--c-prod);border-color:var(--c-prod)"></div>
+    <div>
+      <div class="ms-marker-label" style="color:var(--c-prod)">Milestone C — Production Decision</div>
+      <div class="ms-marker-desc">Authorizes low-rate initial production. System verification and validation complete. Production drawings and specifications released.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!-- PHASE 4: O&S -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="phase-block" style="border-color:var(--c-os-b)">
+  <div class="phase-hdr" style="background:var(--c-os-l)">
+    <div class="phase-hdr-l">
+      <span class="phase-num" style="background:var(--c-os)">PHASE 4</span>
+      <span class="phase-name" style="color:var(--c-os)">Production, Operations &amp; Support</span>
+    </div>
+    <span class="phase-milestone" style="background:var(--c-os);color:#fff">Post-MS C</span>
+  </div>
+  <div class="phase-desc">System fielded and operational. Scope Drift Detection shifts from development monitoring to operational monitoring — watching for emergent behaviors in deployed AI components, tracking whether operational conditions match the envelope the system was designed and validated for.</div>
+  <table class="art-table">
+    <thead>
+      <tr><th>ID</th><th>Artifact / Info-Data Item</th><th class="hide-sm">ISO 15288 Process</th><th class="hide-sm">V-Model Position</th><th>SDD Layer</th><th>Context</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="art-id">OS-001</td>
+        <td><div class="art-name">Operations &amp; Maintenance Manual</div><div class="art-desc">Operator and maintainer procedures traceable to the validated operational concept and system design.</div></td>
+        <td class="art-process hide-sm">Operation · Maintenance</td>
+        <td class="hide-sm">Beyond right upstroke</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1</span> reference</td>
+        <td><span class="art-required" style="background:var(--c-os)">IOC</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">OS-002</td>
+        <td><div class="art-name">Operational Envelope Monitoring Reports</div><div class="art-desc">Continuous SDD L1 telemetry reports comparing actual operational parameter distributions against the validated envelope. Flags when mission profiles drift beyond design assumptions — the operational analog of pre-Milestone B requirements drift detection.</div></td>
+        <td class="art-process hide-sm">Operation · System Analysis</td>
+        <td class="hide-sm">Continuous</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L1–L4</span></td>
+        <td><span class="art-required" style="background:var(--c-os)">O&amp;S</span></td>
+      </tr>
+      <tr>
+        <td class="art-id">OS-003</td>
+        <td><div class="art-name">AI Behavioral Drift Reports (MTBH / Brier)</div><div class="art-desc">Periodic reports on MTBH rolling window and Brier Score trend for deployed AI components. Rising Brier or declining MTBH in operational use signals the system is encountering scenarios beyond its training distribution — triggers Circuit Breaker review and potential model retraining.</div></td>
+        <td class="art-process hide-sm">Maintenance · System Analysis</td>
+        <td class="hide-sm">Continuous</td>
+        <td class="art-rdsg"><span style="font-family:var(--mono);font-size:10px;color:var(--c-emd)">SDD L3</span> primary</td>
+        <td><span class="art-required" style="background:var(--c-os)">O&amp;S</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- GLOSSARY -->
+<div class="sec-hdr"><h2>Terminology reference</h2><span class="sec-tag">Plain-English definitions for shared vocabulary</span></div>
+<dl class="glossary">
+  <div class="gterm"><dt>MCD — Mission Concept Description</dt><dd>Formal statement of the operational mission the system must enable. Captures mission threads and the primary capability gap.</dd></div>
+  <div class="gterm"><dt>CCD — Capability Concept Description</dt><dd>Translates the mission need into required capabilities — what the system must be able to do, without specifying how.</dd></div>
+  <div class="gterm"><dt>FCD — Functional Concept Description</dt><dd>Defines system functional behavior — what functions it performs, in what sequence — without specifying which physical elements perform them.</dd></div>
+  <div class="gterm"><dt>ACD — Architecture Concept Description</dt><dd>Defines system architectural structure — elements, boundaries, relationships, interfaces — at the conceptual level. The most concrete pre-MS B artifact.</dd></div>
+  <div class="gterm"><dt>PCD — Physical / Product Concept Description</dt><dd>Post-MS B design description mapping architectural elements to physical implementation concepts. First design artifact; takes ACD as input.</dd></div>
+  <div class="gterm"><dt>SyRS — System Requirements Specification</dt><dd>Definitive technical statement of what the system must do, with verifiable requirements traceable to stakeholder needs.</dd></div>
+  <div class="gterm"><dt>IRS — Interface Requirements Specification</dt><dd>Architectural-level interface requirements. Precedes the ICD (which specifies implementation) — an IRS defines what interfaces must do; an ICD specifies how they do it.</dd></div>
+  <div class="gterm"><dt>ICD — Interface Control Document</dt><dd>Bilateral agreement specifying how an interface between two elements is actually implemented. An EMD artifact, not a TMRR artifact.</dd></div>
+  <div class="gterm"><dt>STPA — System-Theoretic Process Analysis</dt><dd>Safety analysis method identifying unsafe control actions — ways system functions can produce hazardous outcomes even when individual components function correctly.</dd></div>
+  <div class="gterm"><dt>UCA — Unsafe Control Action</dt><dd>An STPA-identified condition under which a system control action is hazardous — applied too early, too late, for too long, or not at all in a given context.</dd></div>
+  <div class="gterm"><dt>MOVOI — Multiobjective Value of Information</dt><dd>Analysis quantifying when a program has accumulated sufficient knowledge to justify committing to a design alternative — the formal knowledge gate of Set-Based Design.</dd></div>
+  <div class="gterm"><dt>RDSG — Requirements-Driven Semantic Gateway</dt><dd>Machine-readable, machine-enforceable governance infrastructure for the info-data baseline. Uses SHACL constraint validation and SWRL temporal rules to maintain authoritative source-of-truth continuously.</dd></div>
+  <div class="gterm"><dt>SDD — Scope Drift Detection</dt><dd>Four-layer operational monitoring architecture (L1 telemetry, L2 info-data currency, L3 AI behavioral entropy, L4 knowledge gap surface) that detects divergence between formal baseline and observed system behavior.</dd></div>
+  <div class="gterm"><dt>MTBH — Mean Time Between Hallucinations</dt><dd>Reliability-theoretic metric for AI component trustworthiness. Declining MTBH is a leading indicator that the system is operating outside its validated operational envelope.</dd></div>
+  <div class="gterm"><dt>Brier Score</dt><dd>Probabilistic calibration metric for AI uncertainty representation. Rising Brier indicates the AI is becoming overconfident in domains where its reliability is declining.</dd></div>
+  <div class="gterm"><dt>TMRR — Technology Maturation &amp; Risk Reduction</dt><dd>The acquisition phase between Milestone A and Milestone B. Purpose: prove technologies are mature and risks are understood enough to justify committing to full development.</dd></div>
+  <div class="gterm"><dt>EMD — Engineering &amp; Manufacturing Development</dt><dd>The phase beginning at Milestone B where detailed design, fabrication, integration, and verification occur. Produces the system that will be evaluated for production at Milestone C.</dd></div>
+  <div class="gterm"><dt>ITRA — Independent Technical Risk Assessment</dt><dd>Required by DoDI 5000.88 before MS B. Independent review team evaluates technical baseline maturity and provides the Milestone Decision Authority with an assessment separate from the program office's self-report.</dd></div>
+  <div class="gterm"><dt>SE-V / V-Model</dt><dd>The standard representation of the systems engineering process: left downstroke = system definition (increasingly detailed), bottom = implementation, right upstroke = verification and validation (increasingly abstract).</dd></div>
+  <div class="gterm"><dt>TRL — Technology Readiness Level</dt><dd>Nine-level scale measuring how mature a technology is, from basic principles observed (TRL 1) to actual system proven in operational environment (TRL 9). MS B typically requires TRL ≥ 6 for critical technologies.</dd></div>
+  <div class="gterm"><dt>FMI — Functional Mockup Interface</dt><dd>Standard protocol for coupling physics simulation models (e.g., Modelica) with control logic models (e.g., Simulink) in co-simulation. Enables Virtual Integrated System testing without physical hardware.</dd></div>
+  <div class="gterm"><dt>HiL — Hardware-in-the-Loop</dt><dd>Test configuration where real hardware components are integrated with simulation models representing the rest of the system. Appropriate post-CDR when physical hardware is available and detailed design is stable.</dd></div>
+</dl>
+
+<div style="margin-top:36px;padding-top:20px;border-top:1px solid var(--rule);font-size:11px;color:var(--ink4);font-family:var(--mono)">
+  Value Enablement Group · Jeffrey Wallk · ISO/IEC 15288:2023 · INCOSE SE Handbook v5 · DoDI 5000.02 / 5000.85 / 5000.88 · April 2026 · For discussion
+</div>
+
+</div>
+</body>
+</html>

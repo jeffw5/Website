@@ -1,0 +1,99 @@
+{
+  "main": {
+    "id": "74e2dbbcf853e395",
+    "type": "split",
+    "children": [
+      {
+        "id": "9ecd80981c3d9823",
+        "type": "leaf",
+        "state": {
+          "type": "empty",
+          "state": {}
+        }
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "fd16dffd5fd97a76",
+    "type": "split",
+    "children": [
+      {
+        "id": "fceaea082aa9b439",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "df33f895415833fa",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {}
+            }
+          },
+          {
+            "id": "904566bcc19a63f2",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "digital twin",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": true,
+                "sortOrder": "alphabetical"
+              }
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "d3323acf85cc18fc",
+    "type": "split",
+    "children": [
+      {
+        "id": "a81a8c764301b0d7",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e9f7c17520f90d88",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "active": "9ecd80981c3d9823",
+  "lastOpenFiles": [
+    "DTC/20210202 EKG Business Baseline.pdf",
+    "DTC/An Approach for Automatically Generating R2RML-based Direct Mapping from Relational Databases copy.pdf",
+    "DTC/Achieving the digital thread through PLM and ALM integration using OSLC.pdf",
+    "DTC/AAIP-Programme-Overview-20180906.pdf",
+    "DTC/A Feature-Based Framework for Structuring Industrial Digital Twins.pdf",
+    "DTC/2.3_-_RDF_Turtle_Serialization.pdf",
+    "System Models/no_magic_quick_reference_guide_bpmn.pdf",
+    "System Models/no-magic-quick-reference-guide-uaf-gov.pdf",
+    "System Models/no-magic-quick-reference-guide-uaf.pdf",
+    "System Models/no-magic-quick-reference-guide-magicgrid.pdf"
+  ]
+}

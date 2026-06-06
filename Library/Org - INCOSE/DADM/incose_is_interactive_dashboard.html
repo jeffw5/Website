@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INCOSE IS Value &amp; Decision Framework</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..700&family=Instrument+Sans:ital,wght@0,400..700;1,400..500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ── Reset & Base ────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:        #1a1714;
+  --ink-light:  #4a4540;
+  --ink-faint:  #8a8278;
+  --rule:       #e2ddd8;
+  --rule-light: #f0ece7;
+  --paper:      #faf7f4;
+  --paper-warm: #f4efe9;
+  --paper-warm2:#ede7de;
+
+  --c1: #3b2fcf; --c1-pale: #eceafc; --c1-mid: #6a5fd4;
+  --c2: #1565b8; --c2-pale: #e5f0fb; --c2-mid: #4a8fd4;
+  --c3: #0d7a5c; --c3-pale: #e2f5ee; --c3-mid: #3daa8a;
+  --c4: #9a5e0a; --c4-pale: #faeedd; --c4-mid: #c98520;
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'Instrument Sans', 'Helvetica Neue', sans-serif;
+  --font-mono:    'DM Mono', 'Courier New', monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 3px rgba(26,23,20,.07), 0 1px 2px rgba(26,23,20,.04);
+  --shadow-md: 0 4px 12px rgba(26,23,20,.09), 0 2px 4px rgba(26,23,20,.05);
+}
+
+html { font-size: 15px; }
+body {
+  font-family: var(--font-body);
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+.shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+.topbar {
+  grid-column: 1 / -1;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  color: var(--paper);
+  white-space: nowrap;
+}
+.topbar-title em { font-style: italic; font-weight: 300; color: #bfb8b0; }
+.topbar-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  font-size: .65rem;
+  font-family: var(--font-mono);
+  padding: 2px 9px;
+  border-radius: 20px;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.pill1 { background: var(--c1-pale); color: var(--c1); }
+.pill2 { background: var(--c2-pale); color: var(--c2); }
+.pill3 { background: var(--c3-pale); color: var(--c3); }
+.pill4 { background: var(--c4-pale); color: var(--c4); }
+
+.sidebar {
+  background: var(--paper-warm);
+  border-right: 1px solid var(--rule);
+  padding: 24px 0;
+  position: sticky;
+  top: 49px;
+  height: calc(100vh - 49px);
+  overflow-y: auto;
+}
+.sidebar-section {
+  padding: 0 16px;
+  margin-bottom: 6px;
+}
+.sidebar-label {
+  font-size: .6rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-faint);
+  padding: 12px 8px 5px;
+  display: block;
+}
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: .78rem;
+  color: var(--ink-light);
+  text-align: left;
+  transition: background .12s, color .12s;
+}
+.nav-btn:hover { background: var(--paper-warm2); color: var(--ink); }
+.nav-btn.active { background: var(--ink); color: var(--paper); }
+.nav-btn .nb-icon { font-size: .85rem; flex-shrink: 0; opacity: .7; }
+.nav-btn.active .nb-icon { opacity: 1; }
+.nav-divider { height: 1px; background: var(--rule); margin: 8px 16px; }
+
+.main {
+  padding: 32px 36px;
+  max-width: 960px;
+}
+
+/* ── Section header ─────────────────────────────────────────────── */
+.section-head {
+  margin-bottom: 22px;
+}
+.section-eyebrow {
+  font-size: .6rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--ink-faint);
+  margin-bottom: 4px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.section-desc {
+  font-size: .82rem;
+  color: var(--ink-light);
+  margin-top: 6px;
+  line-height: 1.55;
+  max-width: 620px;
+}
+
+/* ── Cards & Grids ──────────────────────────────────────────────── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.span2 { grid-column: 1 / -1; }
+
+.card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  cursor: pointer;
+  background: var(--paper-warm);
+  transition: background .12s;
+  user-select: none;
+}
+.card-head:hover { background: var(--paper-warm2); }
+.card-icon { font-size: .95rem; color: var(--ink-light); flex-shrink: 0; }
+.card-title { font-size: .82rem; font-weight: 600; color: var(--ink); flex: 1; line-height: 1.3; }
+.obj-row { display: flex; gap: 3px; flex-shrink: 0; }
+.od { width: 7px; height: 7px; border-radius: 50%; }
+.od1 { background: var(--c1); } .od2 { background: var(--c2); }
+.od3 { background: var(--c3); } .od4 { background: var(--c4); }
+.chev { font-size: .65rem; color: var(--ink-faint); flex-shrink: 0; transition: transform .18s; }
+.chev.open { transform: rotate(90deg); }
+.card-body {
+  display: none;
+  padding: 12px 13px;
+  border-top: 1px solid var(--rule-light);
+}
+.card-body.open { display: block; }
+
+.sub-label {
+  font-size: .6rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ink-faint);
+  margin-bottom: 5px;
+  margin-top: 10px;
+}
+.sub-label:first-child { margin-top: 0; }
+
+.item {
+  font-size: .77rem;
+  color: var(--ink);
+  padding: 3.5px 0;
+  border-bottom: 1px solid var(--rule-light);
+  line-height: 1.45;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.item:last-child { border-bottom: none; }
+.item-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--rule); margin-top: 8px; flex-shrink: 0; }
+
+.crit {
+  font-size: .73rem;
+  color: var(--ink-light);
+  padding: 2.5px 0 2.5px 12px;
+  line-height: 1.4;
+  position: relative;
+}
+.crit::before { content: '→'; position: absolute; left: 0; font-size: .65rem; color: var(--ink-faint); }
+
+/* ── Phase subsection headers ───────────────────────────────────── */
+.phase-sub {
+  font-size: .62rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-faint);
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 10px;
+}
+.phase-sub:not(:first-child) { margin-top: 20px; }
+
+/* ── Knowledge Architecture Card ────────────────────────────────── */
+.ka-card {
+  background: #fff;
+  border: 1.5px solid var(--c1-mid);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.ka-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  cursor: pointer;
+  background: var(--c1-pale);
+  transition: background .12s;
+  user-select: none;
+}
+.ka-head:hover { background: #dddafc; }
+.ka-title { font-size: .84rem; font-weight: 600; color: var(--c1); flex: 1; }
+.ka-badge {
+  font-size: .6rem;
+  font-family: var(--font-mono);
+  background: var(--c1);
+  color: var(--c1-pale);
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: .02em;
+  flex-shrink: 0;
+}
+.ka-body { display: none; padding: 14px; border-top: 1px solid #c8c5f0; }
+.ka-body.open { display: block; }
+.ka-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.ka-item {
+  background: var(--paper-warm);
+  border: 1px solid var(--rule-light);
+  border-radius: var(--radius-md);
+  padding: 9px 10px;
+}
+.ka-item-title { font-size: .75rem; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.ka-item-body { font-size: .7rem; color: var(--ink-light); line-height: 1.45; }
+.gov-note {
+  margin-top: 10px;
+  padding: 9px 11px;
+  background: var(--c1-pale);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--c1);
+}
+.gov-note-label { font-size: .6rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--c1); display: block; margin-bottom: 4px; }
+.gov-note-body { font-size: .73rem; color: var(--ink-light); line-height: 1.5; }
+
+/* ── Overview stats ─────────────────────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+.stat-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 5px;
+}
+.stat-label { font-size: .67rem; font-family: var(--font-mono); color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; line-height: 1.3; }
+
+/* ── Phase summary cards (overview) ─────────────────────────────── */
+.phase-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.phase-card-head {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--rule-light);
+}
+.phase-card-title { font-size: .9rem; font-weight: 700; margin-bottom: 2px; }
+.phase-card-sub { font-size: .7rem; font-family: var(--font-mono); opacity: .7; }
+.phase-card-body { padding: 10px 14px; }
+.phase-card-item {
+  font-size: .75rem;
+  color: var(--ink-light);
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--rule-light);
+  transition: color .1s;
+}
+.phase-card-item:last-child { border-bottom: none; }
+.phase-card-item:hover { color: var(--ink); }
+.phase-card-item .pci-icon { font-size: .75rem; opacity: .5; flex-shrink: 0; }
+.phase-card-foot {
+  padding: 8px 14px;
+  border-top: 1px solid var(--rule-light);
+  background: var(--paper-warm);
+}
+.explore-link {
+  font-size: .72rem;
+  font-family: var(--font-mono);
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: opacity .12s;
+}
+.explore-link:hover { opacity: .7; }
+.el-pre { color: var(--c3); }
+.el-during { color: var(--c2); }
+.el-post { color: var(--c1); }
+
+/* ── Lifecycle SVG wrapper ──────────────────────────────────────── */
+.lifecycle-wrap {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+.lifecycle-wrap svg { display: block; min-width: 580px; }
+
+/* ── Chapter Viability ──────────────────────────────────────────── */
+.cv-slider-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 13px 15px;
+  box-shadow: var(--shadow-sm);
+}
+.cv-dim-title { font-size: .81rem; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+.cv-dim-desc { font-size: .7rem; color: var(--ink-light); line-height: 1.4; margin-bottom: 9px; }
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule);
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c1);
+  cursor: pointer;
+  transition: transform .1s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.range-labels { display: flex; justify-content: space-between; font-size: .6rem; font-family: var(--font-mono); color: var(--ink-faint); margin-top: 3px; }
+
+.score-display {
+  background: var(--ink);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align: center;
+  color: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.score-num {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.score-denom { font-size: .7rem; font-family: var(--font-mono); opacity: .5; margin-bottom: 12px; }
+.score-band {
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.cv-result-card {
+  grid-column: 1 / -1;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+}
+.cv-result-label { font-size: .6rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .07em; color: var(--ink-faint); margin-bottom: 6px; }
+.cv-result-text { font-size: .8rem; color: var(--ink-light); line-height: 1.55; }
+
+.checklist {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.checklist-head {
+  padding: 10px 14px;
+  background: var(--paper-warm);
+  border-bottom: 1px solid var(--rule);
+  font-size: .65rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ink-faint);
+}
+.check-item {
+  font-size: .77rem;
+  color: var(--ink-light);
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--rule-light);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  line-height: 1.4;
+}
+.check-item:last-child { border-bottom: none; }
+.check-circle {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--rule);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 1px;
+  cursor: pointer;
+  transition: all .12s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.check-circle.checked { background: var(--c3); border-color: var(--c3); }
+.check-circle.checked::after { content: '✓'; font-size: .55rem; color: #fff; }
+
+/* ── Lessons Learned ────────────────────────────────────────────── */
+.loop-diagram {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  gap: 0;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.loop-node {
+  text-align: center;
+  padding: 10px 8px;
+}
+.loop-node-title { font-size: .8rem; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+.loop-node-sub { font-size: .67rem; color: var(--ink-light); line-height: 1.35; }
+.loop-arrow { font-size: 1.2rem; color: var(--rule); text-align: center; padding: 0 6px; }
+
+.ll-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.ll-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  cursor: pointer;
+  background: var(--paper-warm);
+  transition: background .12s;
+  user-select: none;
+}
+.ll-head:hover { background: var(--paper-warm2); }
+.ll-body { display: none; padding: 12px 13px; border-top: 1px solid var(--rule-light); }
+.ll-body.open { display: block; }
+.ff-chip {
+  margin-top: 9px;
+  padding: 7px 10px;
+  background: var(--c1-pale);
+  border-radius: var(--radius-sm);
+  font-size: .7rem;
+  color: var(--c1);
+  line-height: 1.45;
+}
+.ff-chip strong { font-weight: 600; }
+
+.doc-std {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.doc-std-head {
+  padding: 9px 14px;
+  background: var(--paper-warm);
+  border-bottom: 1px solid var(--rule);
+  font-size: .62rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ink-faint);
+}
+.doc-std-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule-light); }
+.doc-std-item { background: #fff; padding: 9px 12px; }
+.doc-std-key { font-size: .73rem; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+.doc-std-val { font-size: .69rem; color: var(--ink-light); line-height: 1.4; }
+
+/* ── Decision Evaluator ─────────────────────────────────────────── */
+.de-input {
+  width: 100%;
+  font-size: .82rem;
+  font-family: var(--font-body);
+  padding: 10px 13px;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--ink);
+  margin-bottom: 14px;
+  outline: none;
+  transition: border-color .15s;
+}
+.de-input:focus { border-color: var(--c1-mid); }
+.de-input::placeholder { color: var(--ink-faint); }
+
+.de-slider-card {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+}
+.de-obj-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.de-obj-name { font-size: .8rem; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+.de-obj-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.de-weight { font-size: .62rem; font-family: var(--font-mono); color: var(--ink-faint); }
+.de-val-label { font-size: .72rem; color: var(--ink-light); }
+.de-range-row { margin-top: 4px; }
+.de-range-marks { display: flex; justify-content: space-between; font-size: .58rem; font-family: var(--font-mono); color: var(--ink-faint); margin-top: 2px; }
+
+.de-result-panel {
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.de-result-head {
+  padding: 10px 14px;
+  background: var(--paper-warm);
+  border-bottom: 1px solid var(--rule);
+  font-size: .62rem;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--ink-faint);
+}
+.de-bars { padding: 12px 14px; }
+.de-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.de-bar-label { font-size: .72rem; color: var(--ink-light); min-width: 80px; flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
+.de-bar-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.de-bar-wt { font-size: .6rem; font-family: var(--font-mono); color: var(--ink-faint); min-width: 18px; flex-shrink: 0; }
+.de-bar-track { flex: 1; height: 6px; background: var(--rule-light); border-radius: 3px; overflow: hidden; }
+.de-bar-fill { height: 100%; border-radius: 3px; transition: width .25s ease; }
+.de-bar-num { font-size: .75rem; font-weight: 600; color: var(--ink); min-width: 24px; text-align: right; flex-shrink: 0; }
+
+.de-verdict {
+  margin: 0 14px 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+}
+.de-verdict-label { font-size: .6rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 5px; opacity: .6; }
+.de-verdict-title { font-size: .85rem; font-weight: 700; margin-bottom: 4px; }
+.de-verdict-desc { font-size: .73rem; line-height: 1.5; opacity: .8; }
+
+.de-radar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid var(--rule-light);
+}
+.de-radar-caption { font-size: .65rem; font-family: var(--font-mono); color: var(--ink-faint); margin-top: 8px; }
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+
+/* ── Utility ────────────────────────────────────────────────────── */
+.mt12 { margin-top: 12px; }
+.mt16 { margin-top: 16px; }
+.mb14 { margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="topbar-title">INCOSE <em>International Symposium</em> — Value &amp; Decision Framework</div>
+  <div class="topbar-pills">
+    <span class="pill pill1">① Trusted authority</span>
+    <span class="pill pill2">② Professional dev</span>
+    <span class="pill pill3">③ Community growth</span>
+    <span class="pill pill4">④ Op. excellence</span>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" aria-label="Dashboard navigation">
+  <div class="sidebar-section">
+    <span class="sidebar-label">Framework</span>
+    <button class="nav-btn active" onclick="goTo('overview')">
+      <span class="nb-icon">◉</span> Overview
+    </button>
+  </div>
+  <div class="nav-divider"></div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Lifecycle phases</span>
+    <button class="nav-btn" onclick="goTo('pre')">
+      <span class="nb-icon">◎</span> Pre-event
+    </button>
+    <button class="nav-btn" onclick="goTo('during')">
+      <span class="nb-icon">◎</span> During event
+    </button>
+    <button class="nav-btn" onclick="goTo('post')">
+      <span class="nb-icon">◎</span> Post-event
+    </button>
+  </div>
+  <div class="nav-divider"></div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Cross-cutting</span>
+    <button class="nav-btn" onclick="goTo('chapter')">
+      <span class="nb-icon">◎</span> Chapter viability
+    </button>
+    <button class="nav-btn" onclick="goTo('lessons')">
+      <span class="nb-icon">◎</span> Lessons learned
+    </button>
+  </div>
+  <div class="nav-divider"></div>
+  <div class="sidebar-section">
+    <span class="sidebar-label">Decision support</span>
+    <button class="nav-btn" onclick="goTo('evaluator')">
+      <span class="nb-icon">◎</span> Decision evaluator
+    </button>
+  </div>
+  <div class="nav-divider"></div>
+  <div class="sidebar-section" style="padding-top:8px">
+    <div style="font-size:.62rem;font-family:var(--font-mono);color:var(--ink-faint);line-height:1.5;padding:4px 8px">
+      Priority hierarchy<br>① &gt; ② &gt; ③ &gt; ④<br><span style="opacity:.6">Authority is foundational</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main" id="main-content" role="main" aria-live="polite">
+  <!-- populated by JS -->
+</main>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════════════════════ */
+const OBJ_COLORS = ['#3b2fcf','#1565b8','#0d7a5c','#9a5e0a'];
+const OBJ_NAMES  = ['Trusted authority','Professional dev.','Community growth','Op. excellence'];
+const OBJ_WEIGHTS = [4,3,2,1];
+
+const DATA = {
+  pre: [
+    { id:'cs', icon:'📄', title:'Content strategy & selection', objs:[1,2],
+      items:['CFP design — tracks, themes, accepted formats (papers, panels, workshops, tutorials, posters)','Review model — peer review, editorial, or hybrid; reviewer pool composition and bias management','Selection criteria framework — quality, novelty, IS-theme fit, WG alignment, presenter diversity','Program architecture — track balance, keynote integration, sequencing logic across days','Waitlist, alternate, and late-submission policy','Rejection feedback — constructive guidance to declined submitters'],
+      crit:['Does selection reinforce INCOSE technical credibility and SE authority?','Is the review process rigorous, transparent, and bias-aware?','Does the program reflect diversity of sector, geography, and career stage?','Is accepted content pre-mapped to INCOSE WGs before scheduling?','Are submission and review timelines realistic for high-quality contributor participation?']},
+    { id:'hl', icon:'🏛️', title:'Hosting, venue & logistics', objs:[3,4],
+      items:['Venue scoring — capacity, location, cost, accessibility, sustainability footprint','Hybrid/virtual infrastructure — platform selection, AV quality, streaming and recording architecture','Accessibility planning — language support, mobility, dietary, timezone accommodations','Exhibition, sponsorship, and partnership integration and independence guardrails','Budget, contingency, and operational risk framework — informed by prior IS lessons and chapter viability score'],
+      crit:['Does venue selection minimize systemic barriers for underrepresented participants?','Does the hybrid model provide equitable experience regardless of attendance mode?','Is financial risk bounded to protect INCOSE operational sustainability?','Does sponsorship structure preserve content independence and INCOSE neutrality?','Are logistics decisions informed by post-event data from prior IS cycles?']},
+    { id:'co', icon:'📢', title:'Communications & outreach', objs:[1,3],
+      items:['Audience segmentation — members, non-members, students, academia, industry, government, adjacent communities','Channel strategy — email, social, chapter networks, partner organizations, SE publications','CFP promotion cadence and message framing per audience segment','Registration and early-bird communications timeline','Anticipation content — speaker spotlights, theme previews, WG relevance messaging'],
+      crit:['Does messaging reinforce INCOSE authority, not just event logistics?','Is there a dedicated non-member pathway communicating IS as an entry point to INCOSE?','Do communications reach beyond existing INCOSE networks into adjacent communities?','Is outreach timed to maximize CFP quality, not just submission volume?']},
+    { id:'pp', icon:'👥', title:'Participation & presenter preparation', objs:[2,3],
+      items:['Speaker onboarding — confirmation, AV requirements, content guidelines, submission timeline','Presentation standards and template governance (branding, citation norms, slide structure)','Session chair briefing, facilitation guides, and authority scope','Workshop design governance — outcomes-based framing, interaction models','Networking and participant matching facilitation design','Student and emerging leader program — visibility, mentorship, and structured pathways'],
+      crit:['Are presenters equipped to meet INCOSE quality and branding standards?','Does the session chair program ensure professional facilitation across all tracks?','Are early-career participants given structured pathways for visibility and mentorship?','Is networking designed to bridge cross-domain and cross-geography connections?']},
+  ],
+  during: [
+    { id:'sf', icon:'🎙️', title:'Session facilitation & standards', objs:[1,2],
+      items:['Session chair authority scope and escalation pathways','Time enforcement and Q&A moderation norms across all tracks','Code of conduct application and incident response protocols','Recording consent confirmation at session open — critical prerequisite for post-event repository'],
+      crit:['Is every session consistent with INCOSE quality and professional standards?','Are session chairs empowered to maintain professional discourse?','Is recording capture verified and confirmed before each session begins?']},
+    { id:'lf', icon:'📊', title:'Live feedback & real-time engagement', objs:[3,4],
+      items:['In-session polling, Q&A tooling, and live interaction design','Real-time session rating capture — post-session micro-survey before next session begins','Social media monitoring and amplification cadence throughout each day','Virtual attendee engagement parity — chat moderation, breakout access, live Q&A'],
+      crit:['Is feedback captured while experience is fresh — immediately post-session?','Are virtual attendees given equivalent engagement and feedback pathways?','Is social amplification consistent with INCOSE voice and authority positioning?']},
+    { id:'dw', icon:'🌅', title:'Daily wrap-up production', objs:[1,2,3],
+      items:['Format — written digest, video highlight reel, social graphic set, or combined multiformat output','Editorial responsibility — who curates, reviews, approves, and publishes each daily summary','Content selection criteria — keynote insights, top-rated sessions, emerging cross-track themes, notable Q&A','Cross-day thread narrative — how each wrap-up builds toward a coherent IS-level story arc','Distribution channels — IS app, email digest, social media, INCOSE website, chapter newsletters','Repository placement — structured for clean ingestion into post-event knowledge store'],
+      crit:['Does the wrap-up communicate intellectual substance, not just logistics?','Does it surface emerging cross-track themes for both attendees and non-attendees?','Is it available to non-attendees as an authority signal for INCOSE?','Is it structured (schema, metadata) for clean ingestion into the post-event content repository?']},
+  ],
+  post: [
+    { id:'cw', icon:'🗄️', title:'Content warehousing & repository', objs:[1,4],
+      items:['Ingest — submitted papers (accepted and rejected), final papers, presentation decks, posters, recordings, wrap-ups','Metadata schema — author, affiliation, sector, track, WG tags, access tier, IS year, format, quality signals','Access tiers — member-only / open / embargoed / restricted per presenter consent and IP agreement','IP and licensing terms per author agreement established at submission stage','Versioning and provenance tracking across IS years for longitudinal continuity'],
+      crit:['Is metadata schema pre-agreed and WG-tag taxonomy finalized before CFP opens — not retrofitted?','Are quality signals (review score, session rating, download count, citations) linked to each record?','Do access tiers respect presenter consent and IP agreements established pre-event?']},
+    { id:'sr', icon:'🎥', title:'Session recordings', objs:[1,2,3],
+      items:['Capture standards — resolution, audio quality, slide sync, chapter markers per session','Transcription and closed captioning — auto-generated plus human editorial review','Editing — intro/outro branding, redaction of unapproved content, highlight clip extraction','Platform hosting — INCOSE-owned vs. third-party (YouTube, Vimeo, LMS); embed and access strategy','Bi-directional linking — recording ↔ paper ↔ session summary ↔ WG tag'],
+      crit:['Is recording quality consistent with INCOSE authority brand positioning?','Are transcripts searchable and linked to the session metadata records?','Do access tiers respect presenter consent agreements established pre-event?','Is the content release timeline communicated to presenters before the event begins?']},
+    { id:'ss', icon:'📝', title:'Session & track summaries', objs:[1,2],
+      items:['Summary schema — key insights (3–5 per session), open questions, references, WG relevancy signals, recommended follow-on actions','Generation process — human scribe, AI-assisted, or hybrid editorial workflow','Editorial review and approval before publication','Linking to source recording with timestamp anchors for precision reference','Structured for machine-readability (JSON-LD, ontology-aligned metadata fields)'],
+      crit:['Does each summary include WG relevancy signals — which WGs should see this and why?','Is there editorial review and approval before publication?','Are summaries linked to source recordings via timestamp anchors?','Are summaries structured for semantic retrieval, not just keyword search?']},
+    { id:'iw', icon:'📋', title:'IS wrap-up & strategic takeaways', objs:[1,2,3,4],
+      items:['Executive summary — synthesized IS-level themes across all tracks and days','Year-over-year comparison — how IS themes have evolved across the IS series','Strategic insights report for INCOSE leadership and board','Recommendations to working groups with IS evidence citations — specific, actionable, linked to sessions','Public-facing IS retrospective — official account of the IS intellectual contribution'],
+      crit:["Does the wrap-up articulate INCOSE's evolving position on key SE challenges?",'Are WG recommendations specific, actionable, and evidence-linked to IS sessions?','Is the retrospective a citable, authoritative record of IS intellectual contribution?','Is it delivered in formats appropriate to each audience — board, members, public?']},
+    { id:'fb', icon:'💬', title:'Feedback systems', objs:[4,2],
+      items:['In-session — real-time polling, Q&A quality signals, session chair observations','Immediate post-event — participant, presenter, and organizer surveys within 72 hours','Longitudinal member feedback — ratings on materials consumed at 30, 90, and 180-day windows post-release','WG feedback — utility of IS content for working group progress and active deliverables'],
+      crit:['Is feedback schema consistent year-over-year to enable trend analysis across IS cycles?','Are feedback signals linked to individual content records, not just aggregate IS satisfaction score?','Is there a closed-loop process showing participants what changed based on their input?','Are WG utility ratings weighted separately from general participant satisfaction scores?']},
+    { id:'pc', icon:'📡', title:'Post-event communications', objs:[1,3],
+      items:['Content release calendar — phased availability with member-first access windows','Member notifications — what is available, how to access, and what is relevant to their WG or role','External communications — IS impact narrative; open-access content as authority signal','Social media amplification — session clips, quote graphics, theme threads over 90+ days','Newsletter and digest features curated for chapter and WG audiences by relevancy score'],
+      crit:['Is there meaningful member benefit in access timing relative to public release?','Are WG-specific digests personalized by relevancy score, not generic broadcast?','Is communications cadence sustained over 90+ days to maximize longitudinal reach?']},
+    { id:'sd', icon:'🔗', title:'Search, discovery & cross-reference', objs:[1,2,3,4], special:true,
+      items:['Full-text, semantic, and faceted search across all IS content spanning all years','Relevancy scoring — WG alignment weight + recency decay + editorial quality + engagement signals','Impact indicators — downloads, views, session ratings, external citations, WG reference count, cross-IS link frequency','Cross-IS longitudinal links by topic, author, WG thread, and theme evolution across IS years','WG relevancy mapping — curated content digests per WG charter subscription','SEBoK and INCOSE Handbook alignment — IS content as continuous SE knowledge contribution'],
+      crit:['Is the semantic data model and WG-tag taxonomy designed pre-event, not retrofitted post-event?','Does relevancy scoring reflect WG utility, not just popularity or recency?','Are cross-IS longitudinal links maintained as a persistent SE knowledge record?','Is the knowledge architecture governed with clear ownership and update accountability?'],
+      govNote:'This layer requires: a semantic data model (ontology-aligned metadata), a persistent content identifier scheme across IS years, author identity resolution, a consent and access-control layer, and an API contract between the IS content system and INCOSE member-facing platforms. These cannot be retrofitted after the event — they must be designed into the submission intake and recording systems from the start.',
+      kaItems:[
+        {t:'Search architecture', b:'Full-text, semantic, and faceted search across all IS content. Facets: year, track, author, WG, sector, format, access tier. Semantic layer enables concept-level retrieval beyond keyword matching.'},
+        {t:'Relevancy scoring', b:'Composite score per item: WG alignment weight + recency decay function + editorial quality score + engagement signal. Configurable by context — member, WG lead, researcher, public viewer.'},
+        {t:'Impact indicators', b:'Downloads, views, session ratings, external citations, WG reference count, cross-IS link frequency. Aggregated into a per-item Content Impact Index surfaced in search results and WG digests.'},
+        {t:'Cross-IS longitudinal links', b:'Content items linked across IS years by topic, author, WG thread, and theme evolution. Enables "what has IS contributed to topic X over time" queries — IS as a longitudinal SE research record.'},
+        {t:'WG relevancy mapping', b:'Each content item tagged to one or more WG charters. WG leads receive curated digests filtered by relevancy score. WGs can subscribe to IS content streams aligned to their active work program.'},
+        {t:'SEBoK & handbook alignment', b:'IS content linked to INCOSE SE Handbook and SEBoK knowledge areas. Surfaces IS evidence supporting or challenging canonical SE knowledge — feeds the continuous handbook revision process.'},
+      ]},
+  ]
+};
+
+const LL_DATA = [
+  { id:'ll0', icon:'📄', title:'Content & program',
+    insights:['CFP timeline too compressed for high-quality submission cycles — top contributors decline','Technical vs. practitioner track balance consistently skewed toward theory at expense of applied work','Workshop slots undersubscribed when outcome expectations are unclear at time of submission','Keynote selection lacks systematic criteria and transparency — perceived as ad hoc by membership'],
+    ff:'Pre-event → Content strategy & selection: CFP design, selection criteria framework, program architecture, track balance decisions'},
+  { id:'ll1', icon:'🏛️', title:'Logistics & venue',
+    insights:['Room temperature control and AV reliability are top satisfaction detractors year-over-year in feedback data','Hybrid/virtual audio lag and quality erode virtual attendee experience significantly — creates two-tier perception','Registration desk queuing at peak arrival times creates a negative first impression for new attendees','Catering and break timing consistently misaligned with session schedule — breaks too short to enable networking'],
+    ff:'Pre-event → Hosting, venue & logistics: Venue scoring rubric, hybrid infrastructure specification, accessibility planning details'},
+  { id:'ll2', icon:'📢', title:'Communications',
+    insights:['CFP open period overlaps with competing SE events, compressing quality submission window','Non-member outreach underdeveloped — IS perceived as a members-only community by SE practitioners','Speaker confirmation timeline too late, leaving insufficient preparation time for high-quality presenters','Post-event content availability not communicated — members unaware of what is accessible or when'],
+    ff:'Pre-event → Communications & outreach: Segmentation strategy, channel approach, CFP promotion cadence, post-event release communications'},
+  { id:'ll3', icon:'👥', title:'Participant experience',
+    insights:['Networking is ad hoc — structured cross-domain and cross-sector connections rarely form organically','Early-career participants lack visible pathways into community leadership and WG engagement','Session chairs vary widely in facilitation quality and time discipline across tracks','Virtual attendees consistently report feeling like second-class participants despite formal parity'],
+    ff:'Pre-event → Participation & presenter preparation: Networking facilitation design, chair program structure, emerging leader pathways'},
+  { id:'ll4', icon:'🗄️', title:'Knowledge management',
+    insights:['Content repository population averages 6+ weeks post-IS, greatly reducing immediate access value','Session recordings frequently missing or low-quality due to late consent confirmation at event start','WG leads rarely receive IS content curated for their specific work programs — they must search manually','Cross-IS search unavailable — every IS is treated as an island; longitudinal knowledge is effectively lost'],
+    ff:'Post-event → Content warehousing, recordings, session summaries, and search & discovery architecture — all must be designed pre-event'},
+  { id:'ll5', icon:'🏢', title:'Chapter partnership',
+    insights:['Chapter capacity consistently overestimated at commitment stage — due diligence insufficient','Handoff between INCOSE central and chapter teams lacks a documented ownership and accountability matrix','Local sponsorship commitments materialize later than projected, creating mid-cycle budget risk','Chapter volunteer burnout post-IS significantly affects chapter health and leadership stability for 12+ months'],
+    ff:'Pre-event → Hosting & chapter viability assessment: Partnership model selection, risk framework, ownership matrix, recovery planning'},
+];
+
+const CV_DIMS = [
+  {l:'Organizational capacity', d:'Active member density, volunteer leadership bandwidth, governance stability, prior event experience (IS, workshops, chapter events)'},
+  {l:'Local knowledge & relationships', d:'Venue relationships, sponsor and industry connections, government liaison experience, language and cultural navigation capability'},
+  {l:'Logistics capability', d:'AV and technical vendor relationships, hotel contracting, transportation, accessibility planning, hybrid/virtual infrastructure experience'},
+  {l:'Financial capacity', d:'Chapter reserves, cash flow management, budget track record, local sponsorship pipeline depth and reliability'},
+  {l:'Risk profile (1=high risk, 4=low risk)', d:'Geopolitical and visa factors for international attendees, travel cost from key IS regions, infrastructure reliability, political stability'},
+];
+
+const CHECKLIST = [
+  'Has the chapter hosted a multi-day event with 200+ attendees in the last 5 years?',
+  'Does the chapter have a core volunteer team of 8+ with defined IS support roles?',
+  'Are venue negotiations underway with written quotes from 2+ options?',
+  'Does the chapter have a local sponsorship pipeline contributing 15%+ of event budget?',
+  'Have visa and travel accessibility implications for international attendees been assessed?',
+  'Is a hybrid/virtual infrastructure vendor selected or in active procurement?',
+  'Does the chapter have a designated IS Liaison with direct INCOSE central access?',
+  'Has a post-IS chapter recovery plan been discussed to prevent volunteer burnout?',
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════ */
+let openCards = {};
+let openLL = {};
+let cvVals = [3,3,2,2,3];
+let deVals = [0,0,0,0];
+let checkStates = new Array(CHECKLIST.length).fill(false);
+let radarChart = null;
+
+/* ═══════════════════════════════════════════════════════════════
+   HELPERS — Card rendering
+═══════════════════════════════════════════════════════════════ */
+function dots(objs) {
+  return objs.map(o => `<span class="od od${o}"></span>`).join('');
+}
+
+function renderCard(d) {
+  const sp = d.special ? 'ka-card' : 'card';
+  const hc = d.special ? 'ka-head' : 'card-head';
+  const bc = d.special ? 'ka-body' : 'card-body';
+  const isOpen = openCards[d.id] || false;
+
+  if (d.special) {
+    return `
+    <div class="${sp} span2" id="card-${d.id}">
+      <div class="${hc}" onclick="togCard('${d.id}')">
+        <span style="font-size:.95rem">${d.icon}</span>
+        <span class="ka-title">${d.title}</span>
+        <span class="ka-badge">Integrating layer — all objectives</span>
+        <span class="chev${isOpen?' open':''}" id="chv-${d.id}">›</span>
+      </div>
+      <div class="${bc}${isOpen?' open':''}" id="dcb-${d.id}">
+        <p style="font-size:.77rem;color:var(--ink-light);line-height:1.55;margin-bottom:4px">${d.items.map(i=>`• ${i}`).join('<br>')}</p>
+        <div class="ka-grid">
+          ${d.kaItems.map(k=>`<div class="ka-item"><div class="ka-item-title">${k.t}</div><div class="ka-item-body">${k.b}</div></div>`).join('')}
+        </div>
+        <div class="gov-note">
+          <span class="gov-note-label">Governance note — design pre-event, not post</span>
+          <span class="gov-note-body">${d.govNote}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `
+  <div class="card${d.objs.includes(1)&&d.objs.includes(2)&&d.objs.includes(3)&&d.objs.includes(4)?' span2':''}" id="card-${d.id}">
+    <div class="card-head" onclick="togCard('${d.id}')">
+      <span class="card-icon">${d.icon}</span>
+      <span class="card-title">${d.title}</span>
+      <div class="obj-row">${dots(d.objs)}</div>
+      <span class="chev${isOpen?' open':''}" id="chv-${d.id}">›</span>
+    </div>
+    <div class="card-body${isOpen?' open':''}" id="dcb-${d.id}">
+      <div class="sub-label">Key decisions</div>
+      ${d.items.map(i=>`<div class="item"><span class="item-dot"></span><span>${i}</span></div>`).join('')}
+      <div class="sub-label">Decision criteria</div>
+      ${d.crit.map(c=>`<div class="crit">${c}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function togCard(id) {
+  openCards[id] = !openCards[id];
+  const b = document.getElementById('dcb-'+id);
+  const c = document.getElementById('chv-'+id);
+  if (b) b.classList.toggle('open', openCards[id]);
+  if (c) c.classList.toggle('open', openCards[id]);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIEW — Overview
+═══════════════════════════════════════════════════════════════ */
+function vOverview() {
+  return `
+<div class="section-head">
+  <div class="section-eyebrow">Framework overview</div>
+  <div class="section-title">IS Value &amp; Decision<br>Framework</div>
+  <div class="section-desc">A comprehensive, lifecycle-spanning model for INCOSE International Symposium planning, governance, and continuous improvement. Navigate phases using the sidebar or click through to any decision domain.</div>
+</div>
+
+<div class="lifecycle-wrap">
+  <svg width="100%" viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg" role="img">
+    <title>INCOSE IS lifecycle flow</title>
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M2 1L8 5L2 9" fill="none" stroke="#8a8278" stroke-width="1.5" stroke-linecap="round"/>
+      </marker>
+    </defs>
+    <!-- Prior IS -->
+    <rect x="4" y="22" width="88" height="56" rx="8" fill="none" stroke="#e2ddd8" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="48" y="46" text-anchor="middle" font-family="'DM Mono',monospace" font-size="9" fill="#8a8278">Prior IS</text>
+    <text x="48" y="60" text-anchor="middle" font-family="'DM Mono',monospace" font-size="9" fill="#8a8278">lessons</text>
+    <line x1="93" y1="50" x2="108" y2="50" stroke="#c8c4be" stroke-width="1" marker-end="url(#arr)"/>
+    <!-- Chapter viability badge -->
+    <rect x="120" y="4" width="112" height="14" rx="7" fill="#faeedd" stroke="#e8b86c" stroke-width=".5"/>
+    <text x="176" y="12" text-anchor="middle" font-family="'DM Mono',monospace" font-size="7.5" fill="#9a5e0a">Chapter viability</text>
+    <!-- Pre-event -->
+    <rect x="112" y="20" width="128" height="70" rx="10" fill="#e2f5ee" stroke="#85d1b5" stroke-width=".75"/>
+    <text x="176" y="48" text-anchor="middle" font-family="'Fraunces',serif" font-size="12" font-weight="600" fill="#0d7a5c">Pre-event</text>
+    <text x="176" y="64" text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#2a9e72">4 domains + chapter viability</text>
+    <text x="176" y="76" text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#2a9e72">+ lessons feed-forward in</text>
+    <line x1="241" y1="50" x2="258" y2="50" stroke="#c8c4be" stroke-width="1" marker-end="url(#arr)"/>
+    <!-- During -->
+    <rect x="261" y="20" width="116" height="70" rx="10" fill="#e5f0fb" stroke="#8ab9e5" stroke-width=".75"/>
+    <text x="319" y="48" text-anchor="middle" font-family="'Fraunces',serif" font-size="12" font-weight="600" fill="#1565b8">During event</text>
+    <text x="319" y="64" text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#3882c8">3 decision domains</text>
+    <text x="319" y="76" text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#3882c8">+ daily wrap-ups</text>
+    <line x1="378" y1="50" x2="395" y2="50" stroke="#c8c4be" stroke-width="1" marker-end="url(#arr)"/>
+    <!-- Post-event -->
+    <rect x="398" y="20" width="134" height="70" rx="10" fill="#eceafc" stroke="#a49edc" stroke-width=".75"/>
+    <text x="465" y="45" text-anchor="middle" font-family="'Fraunces',serif" font-size="12" font-weight="600" fill="#3b2fcf">Post-event</text>
+    <text x="465" y="61" text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#5a52c4">7 domains incl. knowledge arch.</text>
+    <text x="465" y="73" text-anchor="middle" font-family="'DM Mono',monospace" font-size="8" fill="#5a52c4">+ lessons feed-forward out</text>
+    <line x1="533" y1="50" x2="550" y2="50" stroke="#c8c4be" stroke-width="1" marker-end="url(#arr)"/>
+    <!-- Lessons store -->
+    <rect x="552" y="22" width="106" height="56" rx="8" fill="none" stroke="#e2ddd8" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="605" y="46" text-anchor="middle" font-family="'DM Mono',monospace" font-size="9" fill="#8a8278">Lessons feed</text>
+    <text x="605" y="60" text-anchor="middle" font-family="'DM Mono',monospace" font-size="9" fill="#8a8278">forward</text>
+    <!-- Loop arrow -->
+    <path d="M605 79 Q605 108 390 108 Q176 108 176 91" fill="none" stroke="#3b2fcf" stroke-width="1" stroke-dasharray="5 3" marker-end="url(#arr)" opacity=".5"/>
+    <text x="390" y="116" text-anchor="middle" font-family="'DM Mono',monospace" font-size="7.5" fill="#3b2fcf" opacity=".6">Continuous improvement loop — prior IS feedback informs all pre-event decisions</text>
+  </svg>
+</div>
+
+<div class="stat-grid mb14">
+  ${[['14','Decision domains'],['4','Strategic objectives'],['5','Chapter viability dimensions'],['6','Lesson categories']].map(([n,l])=>`
+  <div class="stat-card">
+    <div class="stat-num">${n}</div>
+    <div class="stat-label">${l}</div>
+  </div>`).join('')}
+</div>
+
+<div class="grid3">
+  ${[
+    {v:'pre',  t:'Pre-event', n:'4 decision domains', bg:'#e2f5ee', bo:'#85d1b5', tc:'#0d7a5c', sc:'#2a9e72', cl:'el-pre',  items:DATA.pre},
+    {v:'during',t:'During event',n:'3 decision domains',bg:'#e5f0fb',bo:'#8ab9e5',tc:'#1565b8',sc:'#3882c8',cl:'el-during',items:DATA.during},
+    {v:'post', t:'Post-event', n:'7 decision domains', bg:'#eceafc', bo:'#a49edc', tc:'#3b2fcf', sc:'#5a52c4', cl:'el-post', items:DATA.post},
+  ].map(p=>`
+  <div class="phase-card">
+    <div class="phase-card-head" style="background:${p.bg};border-color:${p.bo}">
+      <div class="phase-card-title" style="color:${p.tc}">${p.t}</div>
+      <div class="phase-card-sub" style="color:${p.sc}">${p.n}</div>
+    </div>
+    <div class="phase-card-body">
+      ${p.items.map(d=>`<div class="phase-card-item" onclick="goTo('${p.v}')"><span class="pci-icon">${d.icon}</span>${d.title}</div>`).join('')}
+    </div>
+    <div class="phase-card-foot">
+      <button class="explore-link ${p.cl}" onclick="goTo('${p.v}')">Explore ${p.t.toLowerCase()} →</button>
+    </div>
+  </div>`).join('')}
+</div>
+
+<div class="grid2 mt16">
+  <div class="phase-card" style="cursor:pointer" onclick="goTo('chapter')">
+    <div class="phase-card-head" style="background:#faeedd;border-color:#e8b86c">
+      <div class="phase-card-title" style="color:#9a5e0a">🏢 Chapter viability</div>
+      <div class="phase-card-sub" style="color:#c98520">5 dimensions — composite score → partnership model</div>
+    </div>
+    <div class="phase-card-body">
+      <div class="phase-card-item" style="cursor:pointer"><span class="pci-icon">→</span>Rate chapter capacity across 5 weighted dimensions</div>
+      <div class="phase-card-item" style="cursor:pointer"><span class="pci-icon">→</span>Generate composite viability score (1–4 scale)</div>
+      <div class="phase-card-item" style="cursor:pointer"><span class="pci-icon">→</span>Recommended hosting partnership model + due diligence checklist</div>
+    </div>
+  </div>
+  <div class="phase-card" style="cursor:pointer" onclick="goTo('lessons')">
+    <div class="phase-card-head" style="background:var(--paper-warm);border-color:var(--rule)">
+      <div class="phase-card-title">📚 Lessons learned</div>
+      <div class="phase-card-sub" style="color:var(--ink-faint)">6 categories — feed-forward to pre-event planning</div>
+    </div>
+    <div class="phase-card-body">
+      <div class="phase-card-item" style="cursor:pointer"><span class="pci-icon">→</span>Recurring patterns from prior IS events by domain</div>
+      <div class="phase-card-item" style="cursor:pointer"><span class="pci-icon">→</span>Explicit feed-forward mapping to pre-event decision domains</div>
+      <div class="phase-card-item" style="cursor:pointer"><span class="pci-icon">→</span>Documentation standard for continuous improvement loop</div>
+    </div>
+  </div>
+</div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIEW — Phase
+═══════════════════════════════════════════════════════════════ */
+function vPhase(ph) {
+  const meta = {
+    pre:    {ey:'Lifecycle — Phase 1', t:'Pre-event decisions', d:'Four decision domains spanning content strategy, venue and logistics, communications, and participant preparation. Chapter viability and lessons from prior events should directly inform each domain.'},
+    during: {ey:'Lifecycle — Phase 2', t:'During-event decisions', d:'Three active-management domains covering session facilitation standards, live engagement and feedback capture, and daily wrap-up production for immediate and longitudinal value.'},
+    post:   {ey:'Lifecycle — Phase 3', t:'Post-event decisions', d:'Seven post-event domains across content capture, feedback, member-facing communications, and the integrating knowledge architecture layer. Knowledge architecture must be designed pre-event — it cannot be retrofitted.'},
+  }[ph];
+
+  let cards = '';
+  if (ph === 'post') {
+    cards += `<div class="phase-sub">Content &amp; knowledge capture</div><div class="grid2">`;
+    DATA.post.slice(0,4).forEach(d => { cards += renderCard(d); });
+    cards += `</div><div class="phase-sub mt16">Feedback, visibility &amp; discovery</div><div class="grid2">`;
+    DATA.post.slice(4).forEach(d => { cards += renderCard(d); });
+    cards += `</div>`;
+  } else {
+    cards = `<div class="grid2">${DATA[ph].map(renderCard).join('')}</div>`;
+  }
+
+  let extra = '';
+  if (ph === 'pre') {
+    extra = `
+    <div class="grid2 mt16">
+      <div class="phase-card" style="cursor:pointer" onclick="goTo('chapter')">
+        <div class="phase-card-head" style="background:#faeedd;border-color:#e8b86c">
+          <div class="phase-card-title" style="color:#9a5e0a">🏢 Chapter viability</div>
+          <div class="phase-card-sub" style="color:#c98520">Assess local chapter hosting capacity before commitment</div>
+        </div>
+        <div class="phase-card-foot"><button class="explore-link" style="color:#9a5e0a" onclick="event.stopPropagation();goTo('chapter')">Open viability assessor →</button></div>
+      </div>
+      <div class="phase-card" style="cursor:pointer" onclick="goTo('lessons')">
+        <div class="phase-card-head" style="background:var(--paper-warm);border-color:var(--rule)">
+          <div class="phase-card-title">📚 Lessons from prior IS events</div>
+          <div class="phase-card-sub" style="color:var(--ink-faint)">Apply prior feedback to all planning decisions</div>
+        </div>
+        <div class="phase-card-foot"><button class="explore-link" style="color:var(--c1)" onclick="event.stopPropagation();goTo('lessons')">Review lessons →</button></div>
+      </div>
+    </div>`;
+  }
+
+  return `
+<div class="section-head">
+  <div class="section-eyebrow">${meta.ey}</div>
+  <div class="section-title">${meta.t}</div>
+  <div class="section-desc">${meta.d}</div>
+</div>
+${cards}${extra}`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIEW — Chapter Viability
+═══════════════════════════════════════════════════════════════ */
+function cvBand(s) {
+  if (s < 1.8) return {l:'Not viable for IS hosting', bg:'#FCEBEB', c:'#A32D2D', r:'Chapter does not meet minimum criteria. Recommend alternative venue search or significant capacity-building investment before any hosting commitment.'};
+  if (s < 2.5) return {l:'Viable — substantial INCOSE central support required', bg:'#FAEEDD', c:'#854F0B', r:'Chapter contributes local knowledge and relationships, but INCOSE central must lead planning, contracting, and logistics execution. Assign a dedicated IS Operations lead.'};
+  if (s < 3.5) return {l:'Strong — shared leadership model recommended', bg:'#E6F1FB', c:'#185FA5', r:'Chapter and INCOSE central share responsibility with clear domain ownership. Chapter leads venue, local sponsors, on-ground logistics. INCOSE central leads content, communications, and financial governance.'};
+  return {l:'Exceptional — chapter can lead with light oversight', bg:'#E2F5EE', c:'#085041', r:'Chapter has demonstrated capacity to lead IS hosting with minimal central support. Maintain oversight on content governance and financial controls only; delegate logistics leadership to the chapter.'};
+}
+
+function vChapter() {
+  const s = +(cvVals.reduce((a,b)=>a+b,0)/cvVals.length).toFixed(1);
+  const b = cvBand(s);
+  return `
+<div class="section-head">
+  <div class="section-eyebrow">Cross-cutting assessment</div>
+  <div class="section-title">Chapter viability</div>
+  <div class="section-desc">Rate the prospective host chapter on five dimensions (1–4) to generate a composite viability score and recommended IS hosting partnership model. Adjust sliders to reflect evidence gathered during due diligence — scores should be evidence-based, not aspirational.</div>
+</div>
+
+<div class="grid2 mb14">
+  ${CV_DIMS.map((d,i)=>`
+  <div class="cv-slider-card">
+    <div class="cv-dim-title">${d.l}</div>
+    <div class="cv-dim-desc">${d.d}</div>
+    <input type="range" min="1" max="4" step="1" value="${cvVals[i]}"
+      style="accent-color:var(--c1)" oninput="cvVals[${i}]=+this.value;updCV()">
+    <div class="range-labels"><span>1 — Weak</span><span>2</span><span>3</span><span>4 — Exceptional</span></div>
+  </div>`).join('')}
+
+  <div class="score-display">
+    <div class="score-num" id="cvNum">${s.toFixed(1)}</div>
+    <div class="score-denom">out of 4.0</div>
+    <div class="score-band" id="cvBand" style="background:${b.bg};color:${b.c}">${b.l}</div>
+  </div>
+</div>
+
+<div class="cv-result-card mb14">
+  <div class="cv-result-label">Recommended partnership model</div>
+  <div class="cv-result-text" id="cvResult">${b.r}</div>
+</div>
+
+<div class="checklist">
+  <div class="checklist-head">Due diligence — key questions before hosting commitment</div>
+  ${CHECKLIST.map((q,i)=>`
+  <div class="check-item">
+    <div class="check-circle${checkStates[i]?' checked':''}" onclick="togCheck(${i})" id="chk-${i}" role="checkbox" aria-checked="${checkStates[i]}" tabindex="0"></div>
+    <span>${q}</span>
+  </div>`).join('')}
+</div>`;
+}
+
+function updCV() {
+  const s = +(cvVals.reduce((a,b)=>a+b,0)/cvVals.length).toFixed(1);
+  const b = cvBand(s);
+  const n = document.getElementById('cvNum');
+  const bd = document.getElementById('cvBand');
+  const r = document.getElementById('cvResult');
+  if (n) n.textContent = s.toFixed(1);
+  if (bd) { bd.textContent = b.l; bd.style.background = b.bg; bd.style.color = b.c; }
+  if (r) r.textContent = b.r;
+}
+
+function togCheck(i) {
+  checkStates[i] = !checkStates[i];
+  const el = document.getElementById('chk-'+i);
+  if (el) { el.classList.toggle('checked', checkStates[i]); el.setAttribute('aria-checked', checkStates[i]); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIEW — Lessons Learned
+═══════════════════════════════════════════════════════════════ */
+function togLL(id) {
+  openLL[id] = !openLL[id];
+  const b = document.getElementById('llb-'+id);
+  const c = document.getElementById('llc-'+id);
+  if (b) b.style.display = openLL[id] ? 'block' : 'none';
+  if (c) c.classList.toggle('open', openLL[id]);
+}
+
+function vLessons() {
+  return `
+<div class="section-head">
+  <div class="section-eyebrow">Cross-cutting — continuous improvement</div>
+  <div class="section-title">Lessons learned</div>
+  <div class="section-desc">Recurring patterns from prior IS events organized by domain, each mapped directly to the pre-event decision domain where the lesson should be applied. Closing this loop is the difference between repeat excellence and repeat failure.</div>
+</div>
+
+<div class="loop-diagram mb14">
+  <div class="loop-node">
+    <div class="loop-node-title" style="color:var(--c1)">Post-event capture</div>
+    <div class="loop-node-sub">Document structured lessons within 30 days of each IS</div>
+  </div>
+  <div class="loop-arrow">→</div>
+  <div class="loop-node">
+    <div class="loop-node-title">Lessons store</div>
+    <div class="loop-node-sub">Categorize, prioritize, assign owners and resolution status</div>
+  </div>
+  <div class="loop-arrow">→</div>
+  <div class="loop-node">
+    <div class="loop-node-title" style="color:var(--c3)">Pre-event planning</div>
+    <div class="loop-node-sub">Apply to all decision domains before CFP opens</div>
+  </div>
+</div>
+
+<div class="grid2">
+  ${LL_DATA.map(cat=>`
+  <div class="ll-card">
+    <div class="ll-head" onclick="togLL('${cat.id}')">
+      <span style="font-size:.9rem">${cat.icon}</span>
+      <span style="font-size:.82rem;font-weight:600;color:var(--ink);flex:1">${cat.title}</span>
+      <span class="chev${openLL[cat.id]?' open':''}" id="llc-${cat.id}">›</span>
+    </div>
+    <div class="ll-body" id="llb-${cat.id}" style="display:${openLL[cat.id]?'block':'none'}">
+      <div class="sub-label">Recurring patterns observed across IS events</div>
+      ${cat.insights.map(i=>`<div class="item"><span style="color:var(--ink-faint);flex-shrink:0;font-size:.85rem">•</span><span>${i}</span></div>`).join('')}
+      <div class="ff-chip"><strong>Feed-forward:</strong> ${cat.ff}</div>
+    </div>
+  </div>`).join('')}
+</div>
+
+<div class="doc-std">
+  <div class="doc-std-head">Lessons documentation standard — fields captured per IS lesson</div>
+  <div class="doc-std-grid">
+    ${[
+      ['Domain','Content, logistics, comms, participants, knowledge management, chapter'],
+      ['Severity','High (IS-threatening) / Medium (experience quality) / Low (inconvenience)'],
+      ['Frequency','Isolated / Recurring (2 IS) / Systemic (3+ IS cycles)'],
+      ['Owner','Who is accountable for applying this to the next IS planning cycle?'],
+      ['Status','Open / In planning / Resolved — with evidence of resolution action'],
+      ['Evidence','Link to feedback data, survey results, or incident documentation'],
+    ].map(([k,v])=>`<div class="doc-std-item"><div class="doc-std-key">${k}</div><div class="doc-std-val">${v}</div></div>`).join('')}
+  </div>
+</div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VIEW — Decision Evaluator
+═══════════════════════════════════════════════════════════════ */
+const SCORE_LABELS = ['Strong negative','Moderate negative','Neutral','Moderate positive','Strong positive'];
+
+function getVerdict() {
+  const ws = deVals.reduce((a,v,i) => a + v * OBJ_WEIGHTS[i], 0);
+  const max = OBJ_WEIGHTS.reduce((a,w) => a + w*2, 0);
+  const sc = ws / max;
+  if (sc < -0.5) return {t:'Strongly discourage',    d:'Weighted impact significantly negative across high-priority objectives. Reconsider or redesign this decision before proceeding.', bg:'#FCEBEB', c:'#A32D2D'};
+  if (sc < -0.2) return {t:'Proceed with caution',   d:'Decision creates tradeoffs that may be difficult to recover from. Identify which high-priority objectives are most harmed and build explicit mitigations.', bg:'#FAEEDD', c:'#854F0B'};
+  if (sc < 0.2)  return {t:'Conditional — implementation design matters', d:'Net weighted impact is neutral. Outcome depends heavily on how this decision is designed and what mitigations are put in place for lower-scoring objectives.', bg:'var(--paper-warm2)', c:'var(--ink-light)'};
+  if (sc < 0.5)  return {t:'Recommended with active monitoring', d:'Decision is net positive. Put monitoring plans in place for the objectives with lower scores and be prepared to adjust implementation as outcomes become visible.', bg:'#E6F1FB', c:'#185FA5'};
+  return {t:'Strongly recommended',  d:'Broad positive impact across INCOSE strategic objectives, weighted toward the highest-priority dimensions. Move forward with confidence.', bg:'#E2F5EE', c:'#085041'};
+}
+
+function updDE() {
+  deVals.forEach((v,i) => {
+    const lbl = document.getElementById('devl-'+i);
+    const fill = document.getElementById('deb-'+i);
+    const num = document.getElementById('den-'+i);
+    if (lbl) lbl.textContent = SCORE_LABELS[v+2];
+    if (fill) fill.style.width = Math.max(0, ((v+2)/4)*100) + '%';
+    if (num)  num.textContent = (v >= 0 ? '+' : '') + v;
+  });
+  const vd = document.getElementById('deVerdictBox');
+  if (vd) {
+    const r = getVerdict();
+    document.getElementById('deVerdictTitle').textContent = r.t;
+    document.getElementById('deVerdictDesc').textContent  = r.d;
+    vd.style.background = r.bg;
+    vd.style.color = r.c;
+    const tEl = document.getElementById('deVerdictTitle');
+    const dEl = document.getElementById('deVerdictDesc');
+    if (tEl) tEl.style.color = r.c;
+    if (dEl) dEl.style.color = r.c;
+  }
+  if (radarChart) {
+    radarChart.data.datasets[0].data = deVals.map(v => v + 2);
+    radarChart.update();
+  }
+}
+
+function initRadar() {
+  setTimeout(() => {
+    const cv = document.getElementById('deRadar');
+    if (!cv || !window.Chart) return;
+    if (radarChart) { radarChart.destroy(); radarChart = null; }
+    radarChart = new Chart(cv, {
+      type: 'radar',
+      data: {
+        labels: ['Authority','Development','Community','Excellence'],
+        datasets: [{
+          data: deVals.map(v => v+2),
+          backgroundColor: 'rgba(59,47,207,0.1)',
+          borderColor: '#3b2fcf',
+          borderWidth: 1.5,
+          pointBackgroundColor: OBJ_COLORS,
+          pointRadius: 4,
+          pointHoverRadius: 5,
+        }]
+      },
+      options: {
+        responsive: false,
+        scales: {
+          r: {
+            min: 0, max: 4,
+            ticks: { stepSize: 1, display: false },
+            grid: { color: 'rgba(0,0,0,.08)' },
+            angleLines: { color: 'rgba(0,0,0,.08)' },
+            pointLabels: { font: { size: 11, family: "'Instrument Sans', sans-serif" }, color: '#4a4540' }
+          }
+        },
+        plugins: { legend: { display: false } },
+        animation: { duration: 200 }
+      }
+    });
+  }, 120);
+}
+
+function vEvaluator() {
+  const r = getVerdict();
+  return `
+<div class="section-head">
+  <div class="section-eyebrow">Decision support</div>
+  <div class="section-title">Decision evaluator</div>
+  <div class="section-desc">Describe a candidate IS decision and rate its expected impact on each strategic objective (−2 to +2). The evaluator applies the value hierarchy priority weighting — objective ① carries 4× the weight of ④, reflecting that trusted authority is INCOSE's foundational identity.</div>
+</div>
+
+<input class="de-input" type="text" placeholder="Describe the IS decision being evaluated — e.g. 'Move IS to a fully virtual format' or 'Open all session recordings publicly at event close'…">
+
+<div class="grid2 mb14">
+  ${deVals.map((v,i)=>`
+  <div class="de-slider-card">
+    <div class="de-obj-row">
+      <div class="de-obj-name">
+        <span class="de-obj-dot" style="background:${OBJ_COLORS[i]}"></span>
+        ${OBJ_NAMES[i]}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="de-weight">Weight: ${OBJ_WEIGHTS[i]}×</span>
+        <span class="de-val-label" id="devl-${i}">${SCORE_LABELS[v+2]}</span>
+      </div>
+    </div>
+    <div class="de-range-row">
+      <input type="range" min="-2" max="2" step="1" value="${v}"
+        style="accent-color:${OBJ_COLORS[i]}" oninput="deVals[${i}]=+this.value;updDE()">
+      <div class="de-range-marks"><span>−2</span><span>−1</span><span>0</span><span>+1</span><span>+2</span></div>
+    </div>
+  </div>`).join('')}
+</div>
+
+<div class="grid2">
+  <div class="de-result-panel">
+    <div class="de-result-head">Score by objective — priority weight applied</div>
+    <div class="de-bars">
+      ${deVals.map((v,i)=>`
+      <div class="de-bar-row">
+        <div class="de-bar-label"><span class="de-bar-dot" style="background:${OBJ_COLORS[i]}"></span>${OBJ_NAMES[i]}</div>
+        <div class="de-bar-wt">${OBJ_WEIGHTS[i]}×</div>
+        <div class="de-bar-track"><div class="de-bar-fill" id="deb-${i}" style="width:${Math.max(0,((v+2)/4)*100)}%;background:${OBJ_COLORS[i]}"></div></div>
+        <div class="de-bar-num" id="den-${i}">${v>=0?'+'+v:v}</div>
+      </div>`).join('')}
+    </div>
+    <div class="de-verdict" id="deVerdictBox" style="background:${r.bg};color:${r.c}">
+      <span class="de-verdict-label" style="color:${r.c}">Priority-weighted verdict</span>
+      <div class="de-verdict-title" id="deVerdictTitle" style="color:${r.c}">${r.t}</div>
+      <div class="de-verdict-desc" id="deVerdictDesc" style="color:${r.c}">${r.d}</div>
+    </div>
+  </div>
+  <div class="de-result-panel">
+    <div class="de-result-head">Objective impact profile</div>
+    <div class="de-radar-wrap">
+      <canvas id="deRadar" width="200" height="200"></canvas>
+      <div class="de-radar-caption">Dot colors correspond to each strategic objective</div>
+    </div>
+  </div>
+</div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ROUTER
+═══════════════════════════════════════════════════════════════ */
+const VIEWS = {
+  overview:  vOverview,
+  pre:       () => vPhase('pre'),
+  during:    () => vPhase('during'),
+  post:      () => vPhase('post'),
+  chapter:   vChapter,
+  lessons:   vLessons,
+  evaluator: vEvaluator,
+};
+
+function goTo(v) {
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    const oc = b.getAttribute('onclick') || '';
+    b.classList.toggle('active', oc.includes("'"+v+"'"));
+  });
+  const main = document.getElementById('main-content');
+  if (main) {
+    main.innerHTML = (VIEWS[v] || vOverview)();
+    main.scrollTop = 0;
+  }
+  if (v === 'evaluator') initRadar();
+}
+
+// Boot
+goTo('overview');
+</script>
+</body>
+</html>

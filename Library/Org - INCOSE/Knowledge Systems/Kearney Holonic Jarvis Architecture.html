@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kearney Intelligence Holarchy — Solution Architecture & Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #080d1a;
+    --surface-1: #0f1629;
+    --surface-2: #162040;
+    --surface-3: #1e2d55;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --gold-dim: #7a6230;
+    --cyan: #38bdf8;
+    --cyan-dim: #1e6a90;
+    --green: #34d399;
+    --green-dim: #0d5e40;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --text-primary: #e8eaf6;
+    --text-secondary: #94a3b8;
+    --text-muted: #4a5568;
+    --border: rgba(201,168,76,0.18);
+    --border-subtle: rgba(255,255,255,0.07);
+    --glow-gold: 0 0 24px rgba(201,168,76,0.22);
+    --glow-cyan: 0 0 20px rgba(56,189,248,0.18);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--text-primary);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ─── HEADER ─── */
+  .site-header {
+    background: linear-gradient(135deg, #080d1a 0%, #0f1e3a 60%, #0a1628 100%);
+    border-bottom: 1px solid var(--gold-dim);
+    padding: 28px 48px 24px;
+    position: sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .header-brand { display:flex; flex-direction:column; gap:2px; }
+  .header-firm { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:var(--gold); letter-spacing:0.04em; }
+  .header-subtitle { font-size:11px; font-weight:500; letter-spacing:0.15em; color:var(--text-secondary); text-transform:uppercase; }
+  .header-meta { text-align:right; }
+  .header-version { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--gold-dim); letter-spacing:0.08em; }
+  .header-date { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+  /* ─── NAV TABS ─── */
+  .nav-tabs {
+    background: var(--surface-1);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0 48px;
+    display:flex; gap:0; overflow-x:auto;
+  }
+  .tab-btn {
+    background:none; border:none; cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif; font-size:12px; font-weight:500;
+    letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--text-muted); padding:14px 24px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s; white-space:nowrap;
+  }
+  .tab-btn:hover { color:var(--text-secondary); }
+  .tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+  /* ─── MAIN CONTENT ─── */
+  .main { padding: 40px 48px 80px; max-width:1400px; margin:0 auto; }
+
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
+
+  /* ─── TYPOGRAPHY ─── */
+  h1 { font-family:'Playfair Display',serif; font-size:38px; font-weight:900; color:var(--gold); line-height:1.15; }
+  h2 { font-family:'Playfair Display',serif; font-size:26px; font-weight:700; color:var(--text-primary); margin-bottom:8px; }
+  h3 { font-family:'IBM Plex Sans',sans-serif; font-size:14px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--gold); margin-bottom:10px; }
+  h4 { font-family:'IBM Plex Sans',sans-serif; font-size:13px; font-weight:600; color:var(--cyan); margin-bottom:6px; }
+  p { color:var(--text-secondary); line-height:1.7; margin-bottom:12px; }
+
+  .section-header { margin-bottom:32px; padding-bottom:16px; border-bottom:1px solid var(--border-subtle); }
+  .section-tag { font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:500; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold-dim); margin-bottom:8px; display:block; }
+  .section-lead { font-size:15px; color:var(--text-secondary); max-width:760px; margin-top:8px; }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius:8px; padding:24px;
+  }
+  .card-gold { border-color:var(--border); box-shadow: var(--glow-gold); }
+  .card-cyan { border-color:rgba(56,189,248,0.2); box-shadow: var(--glow-cyan); }
+
+  /* ─── GRID LAYOUTS ─── */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .grid-auto { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; }
+
+  /* ─── HOLONIC LEVEL BADGES ─── */
+  .level-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:500;
+    padding:3px 10px; border-radius:3px; letter-spacing:0.08em;
+  }
+  .l1 { background:rgba(52,211,153,0.12); color:var(--green); border:1px solid rgba(52,211,153,0.25); }
+  .l2 { background:rgba(56,189,248,0.12); color:var(--cyan); border:1px solid rgba(56,189,248,0.25); }
+  .l3 { background:rgba(201,168,76,0.12); color:var(--gold); border:1px solid rgba(201,168,76,0.25); }
+  .l4 { background:rgba(167,139,250,0.12); color:var(--purple); border:1px solid rgba(167,139,250,0.25); }
+
+  /* ─── METRIC CHIPS ─── */
+  .metric-chip {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; font-weight:600; padding:4px 10px; border-radius:4px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .chip-green { background:var(--green-dim); color:var(--green); }
+  .chip-gold { background:rgba(201,168,76,0.15); color:var(--gold); }
+  .chip-cyan { background:rgba(56,189,248,0.15); color:var(--cyan); }
+
+  /* ─── DIVIDER ─── */
+  .divider { border:none; border-top:1px solid var(--border-subtle); margin:32px 0; }
+
+  /* ─── PILL TAGS ─── */
+  .pill { display:inline-block; font-size:10px; font-weight:500; letter-spacing:0.06em;
+    padding:2px 8px; border-radius:20px; margin:2px; }
+  .pill-sm { padding:1px 6px; font-size:9px; }
+
+  /* ─── TABLE ─── */
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th { text-align:left; padding:10px 14px; background:var(--surface-2); color:var(--gold); font-weight:600; letter-spacing:0.05em; font-size:11px; border-bottom:1px solid var(--border); }
+  td { padding:10px 14px; border-bottom:1px solid var(--border-subtle); color:var(--text-secondary); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,0.02); }
+
+  /* ─── CALLOUT ─── */
+  .callout { display:flex; gap:14px; padding:16px 20px; border-radius:6px; margin:20px 0; }
+  .callout-gold { background:rgba(201,168,76,0.07); border-left:3px solid var(--gold); }
+  .callout-cyan { background:rgba(56,189,248,0.07); border-left:3px solid var(--cyan); }
+  .callout-green { background:rgba(52,211,153,0.07); border-left:3px solid var(--green); }
+  .callout-icon { font-size:18px; flex-shrink:0; }
+  .callout-text { font-size:13px; color:var(--text-secondary); line-height:1.65; }
+  .callout-text strong { color:var(--text-primary); }
+
+  /* ─── SVG DIAGRAMS ─── */
+  .diagram-wrap { background:var(--surface-1); border:1px solid var(--border-subtle); border-radius:8px; padding:24px; overflow:auto; }
+  .diagram-title { font-size:11px; font-weight:500; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:16px; }
+
+  /* ─── ROADMAP BARS ─── */
+  .roadmap-grid { display:grid; gap:0; }
+  .rm-row { display:grid; grid-template-columns: 200px 1fr; border-bottom:1px solid var(--border-subtle); }
+  .rm-label { padding:12px 16px; background:var(--surface-1); border-right:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:3px; }
+  .rm-label-name { font-size:12px; font-weight:600; color:var(--text-primary); }
+  .rm-label-sub { font-size:10px; color:var(--text-muted); }
+  .rm-timeline { padding:8px 0; position:relative; display:flex; align-items:center; }
+  .rm-bar { position:absolute; height:24px; border-radius:3px; display:flex; align-items:center; padding:0 10px; font-size:10px; font-weight:600; letter-spacing:0.04em; white-space:nowrap; overflow:hidden; }
+  .rm-bar-milestone { position:absolute; width:14px; height:14px; border-radius:50%; top:50%; transform:translateY(-50%); border:2px solid; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; }
+
+  /* ─── PHASE BOXES ─── */
+  .phase-strip { display:flex; gap:12px; margin-bottom:24px; }
+  .phase-box {
+    flex:1; padding:16px 18px; border-radius:6px; border:1px solid;
+    position:relative; cursor:pointer; transition:all 0.2s;
+  }
+  .phase-box:hover { transform:translateY(-2px); }
+  .phase-num { font-family:'Playfair Display',serif; font-size:32px; font-weight:900; opacity:0.15; position:absolute; right:12px; top:8px; }
+  .phase-title { font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:4px; }
+  .phase-months { font-family:'IBM Plex Mono',monospace; font-size:10px; opacity:0.7; }
+  .phase-tag { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:3px; margin-top:8px; }
+  .ph0 { background:rgba(52,211,153,0.08); border-color:rgba(52,211,153,0.3); color:var(--green); }
+  .ph0 .phase-tag { background:rgba(52,211,153,0.2); color:var(--green); }
+  .ph1 { background:rgba(56,189,248,0.08); border-color:rgba(56,189,248,0.3); color:var(--cyan); }
+  .ph1 .phase-tag { background:rgba(56,189,248,0.2); color:var(--cyan); }
+  .ph2 { background:rgba(201,168,76,0.08); border-color:rgba(201,168,76,0.3); color:var(--gold); }
+  .ph2 .phase-tag { background:rgba(201,168,76,0.2); color:var(--gold); }
+  .ph3 { background:rgba(167,139,250,0.08); border-color:rgba(167,139,250,0.3); color:var(--purple); }
+  .ph3 .phase-tag { background:rgba(167,139,250,0.2); color:var(--purple); }
+
+  /* ─── MTBH GAUGE ─── */
+  .gauge-row { display:flex; align-items:center; gap:10px; margin:6px 0; }
+  .gauge-label { font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--text-secondary); width:120px; flex-shrink:0; }
+  .gauge-bar-wrap { flex:1; height:6px; background:var(--surface-2); border-radius:3px; overflow:hidden; }
+  .gauge-bar { height:100%; border-radius:3px; transition:width 0.5s ease; }
+  .gauge-val { font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--text-primary); width:50px; text-align:right; flex-shrink:0; }
+
+  /* ─── CONNECTOR LINES ─── */
+  .connector { width:2px; background:linear-gradient(180deg,transparent,var(--border),transparent); margin:0 auto; }
+
+  /* ─── HOLONIC PYRAMID (SVG-based) ─── */
+  .holo-pyramid svg { width:100%; }
+
+  /* ─── CODE BLOCK ─── */
+  .code-block { background:var(--surface-2); border:1px solid var(--border-subtle); border-radius:4px; padding:14px 18px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#94d4f0; line-height:1.8; overflow-x:auto; }
+  .code-comment { color:var(--text-muted); }
+  .code-key { color:var(--gold); }
+  .code-val { color:var(--green); }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-track { background:var(--surface-1); }
+  ::-webkit-scrollbar-thumb { background:var(--gold-dim); border-radius:2px; }
+
+  /* ─── PRINT / EXPORT hint ─── */
+  .export-hint { font-size:10px; color:var(--text-muted); font-family:'IBM Plex Mono',monospace; margin-top:6px; }
+
+  @media(max-width:900px){
+    .main { padding:24px 20px 60px; }
+    .site-header { padding:16px 20px; }
+    .nav-tabs { padding:0 20px; }
+    .grid-2,.grid-3,.grid-4 { grid-template-columns:1fr; }
+    .phase-strip { flex-direction:column; }
+    .rm-row { grid-template-columns:140px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ HEADER ═══════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-brand">
+    <div class="header-firm">Kearney Intelligence Holarchy</div>
+    <div class="header-subtitle">Solution Architecture · Transformation Roadmap · Trust Metrology</div>
+  </div>
+  <div class="header-meta">
+    <div class="header-version">KIH-ARCH v1.0 &nbsp;|&nbsp; CONFIDENTIAL</div>
+    <div class="header-date">Prepared by The Value Enablement Group, LLC &nbsp;·&nbsp; April 2026</div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════ NAV TABS ══════════════════════════════════════ -->
+<nav class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('exec')">Executive Overview</button>
+  <button class="tab-btn" onclick="showTab('arch')">Solution Architecture</button>
+  <button class="tab-btn" onclick="showTab('hld')">HLD — CTO / AI Science</button>
+  <button class="tab-btn" onclick="showTab('roadmap')">Transformation Roadmap</button>
+  <button class="tab-btn" onclick="showTab('measure')">Measurement & Trust</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<!--                              TAB 1: EXECUTIVE OVERVIEW                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<main class="main">
+<section class="tab-panel active" id="tab-exec">
+
+  <div class="section-header">
+    <span class="section-tag">Executive Briefing</span>
+    <h1>From Generative Tools<br>to Knowledge-Governed Intelligence</h1>
+    <p class="section-lead">The Kearney Intelligence Holarchy (KIH) is not an AI deployment — it is a structural transformation of how Kearney's intellectual capital is governed, composed, and delivered as a deterministic competitive advantage. It operationalises Holonic Semantic Governance as the architectural grammar of the "Jarvis" vision.</p>
+  </div>
+
+  <!-- STRATEGIC THESIS -->
+  <div class="callout callout-gold">
+    <div class="callout-icon">◈</div>
+    <div class="callout-text">
+      <strong>Core Strategic Thesis:</strong> The firms that will dominate management consulting in the next decade are not those that leverage AI fastest — they are those that govern AI knowledge most rigorously. The KIH architecture moves Kearney from probabilistic AI assistance to <em>deterministic knowledge orchestration</em>: every insight delivered is structurally traceable, formally governed, and metrologically verified before it reaches a consultant or client.
+    </div>
+  </div>
+
+  <!-- THREE SHIFTS -->
+  <div style="margin:32px 0;">
+    <h3>Three Paradigm Shifts This Architecture Delivers</h3>
+    <div class="grid-3" style="margin-top:16px;">
+      <div class="card card-gold">
+        <div style="font-size:28px; margin-bottom:12px;">⟳</div>
+        <h4>From Data Management<br>to Knowledge Governance</h4>
+        <p>Every piece of Kearney IP — white papers, frameworks, engagement data — becomes a governed <strong>Knowledge Holon</strong>: formally identified, versioned, quality-validated, and semantically linked. Not a repository. A living governance architecture.</p>
+      </div>
+      <div class="card card-cyan">
+        <div style="font-size:28px; margin-bottom:12px;">⬡</div>
+        <h4>From Vector Search<br>to Holarchic Retrieval</h4>
+        <p>Moving beyond flat RAG and vector databases. The KIH traverses a <strong>four-level holarchy</strong> — Knowledge → Domain → Gateway → Enterprise — navigating governed meaning rather than retrieving probabilistic matches.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:28px; margin-bottom:12px;">◎</div>
+        <h4>From Trust by Hope<br>to Trust by Architecture</h4>
+        <p>Every insight carries a mathematically verifiable <strong>MTBH Trust Score</strong> stratified across five dimensions (WHO/WHAT/WHEN/WHERE/WHY). Hallucinations are not filtered — they are structurally prevented by the holarchy's governance DNA.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- HOLARCHIC PYRAMID DIAGRAM -->
+  <h3>The Four-Level Kearney Holarchy</h3>
+  <p style="max-width:700px; margin-bottom:20px;">Each level is simultaneously self-governing (a whole) and a governed component of the level above (a part). Governance protocols — not schema coupling — connect the levels. This is the structural property that makes the architecture resilient, modular, and trustworthy.</p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">KIH Architecture — Holarchic Pyramid View</div>
+    <svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" style="max-width:900px; display:block; margin:0 auto;">
+      <defs>
+        <linearGradient id="g-l4" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.25"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0.08"/></linearGradient>
+        <linearGradient id="g-l3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#c9a84c" stop-opacity="0.25"/><stop offset="100%" stop-color="#c9a84c" stop-opacity="0.08"/></linearGradient>
+        <linearGradient id="g-l2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.25"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0.08"/></linearGradient>
+        <linearGradient id="g-l1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#34d399" stop-opacity="0.25"/><stop offset="100%" stop-color="#34d399" stop-opacity="0.08"/></linearGradient>
+        <filter id="glow-gold"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+
+      <!-- L4 Enterprise Holarchy -->
+      <rect x="60" y="20" width="780" height="88" rx="6" fill="url(#g-l4)" stroke="#a78bfa" stroke-opacity="0.4" stroke-width="1"/>
+      <text x="80" y="44" fill="#a78bfa" font-family="IBM Plex Mono" font-size="10" font-weight="600" letter-spacing="2">L4 · ENTERPRISE HOLARCHY</text>
+      <text x="80" y="62" fill="#c8b4fa" font-family="IBM Plex Sans" font-size="13" font-weight="600">Enterprise Semantic Governance Council  ·  Global CoE  ·  Value Stream Ontology</text>
+      <text x="80" y="79" fill="#94a3b8" font-family="IBM Plex Sans" font-size="11">Strategic priorities  ·  Cross-practice conflict resolution  ·  Policy approval  ·  Macro-trend synthesis</text>
+      <!-- Roles badges -->
+      <rect x="560" y="40" width="90" height="20" rx="3" fill="rgba(167,139,250,0.2)" stroke="#a78bfa" stroke-opacity="0.4" stroke-width="0.5"/>
+      <text x="605" y="54" fill="#c8b4fa" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">Executive Jarvis</text>
+      <rect x="660" y="40" width="90" height="20" rx="3" fill="rgba(167,139,250,0.2)" stroke="#a78bfa" stroke-opacity="0.4" stroke-width="0.5"/>
+      <text x="705" y="54" fill="#c8b4fa" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">AM Jarvis</text>
+      <rect x="760" y="40" width="70" height="20" rx="3" fill="rgba(167,139,250,0.2)" stroke="#a78bfa" stroke-opacity="0.4" stroke-width="0.5"/>
+      <text x="795" y="54" fill="#c8b4fa" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">Sales Jarvis</text>
+
+      <!-- Connector band -->
+      <line x1="450" y1="108" x2="450" y2="124" stroke="#a78bfa" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="4,3"/>
+
+      <!-- L3 Gateway Holon -->
+      <rect x="100" y="124" width="700" height="100" rx="6" fill="url(#g-l3)" stroke="#c9a84c" stroke-opacity="0.5" stroke-width="1.5" filter="url(#glow-gold)"/>
+      <text x="120" y="148" fill="#c9a84c" font-family="IBM Plex Mono" font-size="10" font-weight="600" letter-spacing="2">L3 · GATEWAY HOLON — RDSG SEMANTIC GATEWAY</text>
+      <text x="120" y="166" fill="#e8c96a" font-family="IBM Plex Sans" font-size="13" font-weight="600">Requirement Context Bundle (RCB)  ·  6-Stage Enforcement Engine  ·  Compiled AI Directive</text>
+      <text x="120" y="182" fill="#94a3b8" font-family="IBM Plex Sans" font-size="11">SHACL validation · SWRL temporal rules · PEP compliance (6 domains) · UCA/STPA safety · Circuit Breaker · MTBH scoring</text>
+      <text x="120" y="198" fill="#94a3b8" font-family="IBM Plex Sans" font-size="11">Simplex Action Gate (irreversibility enforcement) · Human-in-the-loop authorization · Sanitization anti-collapse layer</text>
+      <!-- Consultant badge -->
+      <rect x="560" y="148" width="110" height="20" rx="3" fill="rgba(201,168,76,0.2)" stroke="#c9a84c" stroke-opacity="0.4" stroke-width="0.5"/>
+      <text x="615" y="162" fill="#e8c96a" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">Consultant Jarvis</text>
+      <rect x="680" y="148" width="100" height="20" rx="3" fill="rgba(201,168,76,0.2)" stroke="#c9a84c" stroke-opacity="0.4" stroke-width="0.5"/>
+      <text x="730" y="162" fill="#e8c96a" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">Trust Score ▶</text>
+
+      <!-- Connector -->
+      <line x1="450" y1="224" x2="450" y2="242" stroke="#c9a84c" stroke-opacity="0.3" stroke-width="2" stroke-dasharray="4,3"/>
+
+      <!-- L2 Domain Holons -->
+      <rect x="140" y="242" width="620" height="110" rx="6" fill="url(#g-l2)" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="1"/>
+      <text x="160" y="266" fill="#38bdf8" font-family="IBM Plex Mono" font-size="10" font-weight="600" letter-spacing="2">L2 · DOMAIN HOLONS — PRACTICE AREA ONTOLOGIES</text>
+      <!-- Domain boxes -->
+      <g>
+        <rect x="160" y="276" width="90" height="52" rx="4" fill="rgba(56,189,248,0.1)" stroke="#38bdf8" stroke-opacity="0.3"/>
+        <text x="205" y="296" fill="#7dd3fc" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">Supply Chain</text>
+        <text x="205" y="309" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">OWL + SHACL</text>
+        <text x="205" y="320" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Agent + VectorDB</text>
+      </g>
+      <g>
+        <rect x="262" y="276" width="90" height="52" rx="4" fill="rgba(56,189,248,0.1)" stroke="#38bdf8" stroke-opacity="0.3"/>
+        <text x="307" y="296" fill="#7dd3fc" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">M&amp;A / PE</text>
+        <text x="307" y="309" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">OWL + SHACL</text>
+        <text x="307" y="320" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Agent + VectorDB</text>
+      </g>
+      <g>
+        <rect x="364" y="276" width="90" height="52" rx="4" fill="rgba(56,189,248,0.1)" stroke="#38bdf8" stroke-opacity="0.3"/>
+        <text x="409" y="296" fill="#7dd3fc" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">Digital / Tech</text>
+        <text x="409" y="309" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">OWL + SHACL</text>
+        <text x="409" y="320" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Agent + VectorDB</text>
+      </g>
+      <g>
+        <rect x="466" y="276" width="90" height="52" rx="4" fill="rgba(56,189,248,0.1)" stroke="#38bdf8" stroke-opacity="0.3"/>
+        <text x="511" y="296" fill="#7dd3fc" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">Operations</text>
+        <text x="511" y="309" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">OWL + SHACL</text>
+        <text x="511" y="320" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Agent + VectorDB</text>
+      </g>
+      <g>
+        <rect x="568" y="276" width="90" height="52" rx="4" fill="rgba(56,189,248,0.1)" stroke="#38bdf8" stroke-opacity="0.3"/>
+        <text x="613" y="296" fill="#7dd3fc" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">Sustainability</text>
+        <text x="613" y="309" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">OWL + SHACL</text>
+        <text x="613" y="320" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Agent + VectorDB</text>
+      </g>
+      <g>
+        <rect x="670" y="276" width="82" height="52" rx="4" fill="rgba(56,189,248,0.06)" stroke="#38bdf8" stroke-opacity="0.15" stroke-dasharray="3,2"/>
+        <text x="711" y="299" fill="#4a5568" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">+N Practices</text>
+        <text x="711" y="313" fill="#4a5568" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Extensible</text>
+      </g>
+      <!-- PEP label -->
+      <text x="160" y="347" fill="#64748b" font-family="IBM Plex Mono" font-size="9">PEPs: Compliance · Risk · Legal · Security · Data Gov · AI Gov</text>
+
+      <!-- Connector -->
+      <line x1="450" y1="352" x2="450" y2="370" stroke="#38bdf8" stroke-opacity="0.25" stroke-width="2" stroke-dasharray="4,3"/>
+
+      <!-- L1 Knowledge Holons -->
+      <rect x="180" y="370" width="540" height="100" rx="6" fill="url(#g-l1)" stroke="#34d399" stroke-opacity="0.35" stroke-width="1"/>
+      <text x="200" y="394" fill="#34d399" font-family="IBM Plex Mono" font-size="10" font-weight="600" letter-spacing="2">L1 · KNOWLEDGE HOLONS — GOVERNED SEMANTIC ASSETS</text>
+      <!-- Asset types -->
+      <g>
+        <rect x="200" y="404" width="78" height="40" rx="3" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-opacity="0.25"/>
+        <text x="239" y="421" fill="#6ee7b7" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">IP Library</text>
+        <text x="239" y="434" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">White Papers</text>
+      </g>
+      <g>
+        <rect x="288" y="404" width="78" height="40" rx="3" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-opacity="0.25"/>
+        <text x="327" y="421" fill="#6ee7b7" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">Frameworks</text>
+        <text x="327" y="434" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Methodologies</text>
+      </g>
+      <g>
+        <rect x="376" y="404" width="78" height="40" rx="3" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-opacity="0.25"/>
+        <text x="415" y="421" fill="#6ee7b7" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">Engagement</text>
+        <text x="415" y="434" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Case Data</text>
+      </g>
+      <g>
+        <rect x="464" y="404" width="78" height="40" rx="3" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-opacity="0.25"/>
+        <text x="503" y="421" fill="#6ee7b7" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">Market Intel</text>
+        <text x="503" y="434" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">3rd Party Data</text>
+      </g>
+      <g>
+        <rect x="552" y="404" width="78" height="40" rx="3" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-opacity="0.25"/>
+        <text x="591" y="421" fill="#6ee7b7" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">Taxonomies</text>
+        <text x="591" y="434" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">OWL Classes</text>
+      </g>
+      <g>
+        <rect x="640" y="404" width="72" height="40" rx="3" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-opacity="0.25"/>
+        <text x="676" y="421" fill="#6ee7b7" font-family="IBM Plex Sans" font-size="10" text-anchor="middle" font-weight="600">SHACL</text>
+        <text x="676" y="434" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Constraints</text>
+      </g>
+      <text x="200" y="460" fill="#64748b" font-family="IBM Plex Mono" font-size="9">ORSD lifecycle · KGCL change records · ISO 8000 quality invariants · URI/IRI persistent identity</text>
+
+      <!-- Legend -->
+      <text x="60" y="496" fill="#4a5568" font-family="IBM Plex Mono" font-size="9">Governance flows ▲ upward through protocol composition, not schema coupling</text>
+      <text x="60" y="510" fill="#4a5568" font-family="IBM Plex Mono" font-size="9">Each level is self-governing (whole) and protocol-composable (part) — the fundamental holonic property</text>
+    </svg>
+  </div>
+
+  <hr class="divider">
+
+  <!-- JARVIS EXPERIENCE BY ROLE -->
+  <h3>The Jarvis Experience — Role-Differentiated Holonic Interfaces</h3>
+  <p style="max-width:700px; margin-bottom:20px;">Each interface is a role-specific view into the holarchy — not a separate system. The same governed knowledge, contextualised by the WHO dimension of the RDSG gateway and MTBH persona routing fidelity.</p>
+
+  <div class="grid-4" style="margin-top:16px;">
+    <div class="card">
+      <div style="font-size:22px; margin-bottom:10px;">🔬</div>
+      <h4>Field Consultant</h4>
+      <span class="level-badge l3" style="margin-bottom:10px; display:inline-block;">L2/L3 Gateway</span>
+      <p style="font-size:12px;">IDE-like research companion. Autocompletes analytical models against Kearney's historical engagement data. Pressure-tests hypotheses through SHACL-governed domain holons. Drafts presentation modules grounded in verified IP provenance.</p>
+      <div style="margin-top:10px;">
+        <span class="metric-chip chip-cyan">MTBH_WHO</span>
+        <span class="metric-chip chip-green" style="margin-left:6px;">Trust Score</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:22px; margin-bottom:10px;">📡</div>
+      <h4>Account Manager</h4>
+      <span class="level-badge l4" style="margin-bottom:10px; display:inline-block;">L4 Enterprise</span>
+      <p style="font-size:12px;">Proactive risk & opportunity radar. Third-party signals filtered through the client's portfolio holon. Alerts enriched with Kearney white papers. Talking points generated with full IP provenance and MTBH confidence scores.</p>
+      <div style="margin-top:10px;">
+        <span class="metric-chip chip-gold">MTBH_WHY</span>
+        <span class="metric-chip chip-cyan" style="margin-left:6px;">Intent Delta</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:22px; margin-bottom:10px;">⚡</div>
+      <h4>Sales Teams</h4>
+      <span class="level-badge l4" style="margin-bottom:10px; display:inline-block;">L4 Cross-Domain</span>
+      <p style="font-size:12px;">Automated proposal generator. Traverses the enterprise holarchy to match client pain points with partner expertise holons. Pitch decks built from proven IP, never hallucinated. Win/loss patterns inform the value stream ontology.</p>
+      <div style="margin-top:10px;">
+        <span class="metric-chip chip-green">MTBH_WHERE</span>
+        <span class="metric-chip chip-gold" style="margin-left:6px;">Circuit Breaker</span>
+      </div>
+    </div>
+    <div class="card card-gold">
+      <div style="font-size:22px; margin-bottom:10px;">🌐</div>
+      <h4>Executive Leadership</h4>
+      <span class="level-badge l4" style="margin-bottom:10px; display:inline-block;">L4 Holarchy</span>
+      <p style="font-size:12px;">Macro-trend dashboard synthesised from the full enterprise holarchy. Cross-industry pattern detection across all engagement data. Digital Orchestration — the system governs <em>what should happen</em>, not merely reports what did.</p>
+      <div style="margin-top:10px;">
+        <span class="metric-chip chip-gold">Value-Drift</span>
+        <span class="metric-chip chip-cyan" style="margin-left:6px;">MTBH Aggregate</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-green" style="margin-top:32px;">
+    <div class="callout-icon">✦</div>
+    <div class="callout-text">
+      <strong>Six-Month Jarvis Commitment:</strong> Field Consultant and Sales Jarvis interfaces go live in Month 6, built on two production domain holons (Supply Chain + M&A/PE) and the fully operational L3 Gateway with MTBH trust scoring. Every subsequent month adds a new domain holon, progressively extending the holarchy's intelligence without re-engineering its foundation. See the Roadmap tab for full delivery sequence.
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<!--                            TAB 2: SOLUTION ARCHITECTURE                               -->
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-arch">
+
+  <div class="section-header">
+    <span class="section-tag">Solution Architecture</span>
+    <h2>The Kearney Intelligence Holarchy — Full System View</h2>
+    <p class="section-lead">A four-level, protocol-governed knowledge architecture. Each level self-validates through SHACL invariants, composes with adjacent levels through PEP-defined contracts, and is monitored continuously by the MTBH dimensional trust metric.</p>
+  </div>
+
+  <!-- RDSG FLOW DIAGRAM -->
+  <h3>The RDSG Gateway Holon — Consulting Knowledge Flow</h3>
+  <div class="diagram-wrap" style="margin-bottom:28px;">
+    <div class="diagram-title">Level 3 Gateway — Six-Stage Holarchic Traversal for Kearney Consulting Contexts</div>
+    <svg viewBox="0 0 920 200" xmlns="http://www.w3.org/2000/svg" style="max-width:920px; display:block; margin:0 auto;">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#c9a84c" fill-opacity="0.6"/>
+        </marker>
+      </defs>
+
+      <!-- Stage 0 -->
+      <rect x="10" y="60" width="130" height="80" rx="5" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-opacity="0.4"/>
+      <text x="75" y="84" fill="#34d399" font-family="IBM Plex Mono" font-size="9" text-anchor="middle" font-weight="600">STAGE 0</text>
+      <text x="75" y="100" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle" font-weight="600">RCB Assembly</text>
+      <text x="75" y="115" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">5D Context</text>
+      <text x="75" y="126" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">WHO/WHAT/WHEN</text>
+      <text x="75" y="137" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">WHERE/WHY</text>
+      <line x1="140" y1="100" x2="158" y2="100" stroke="#c9a84c" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Steps 1-4 -->
+      <rect x="160" y="60" width="120" height="80" rx="5" fill="rgba(201,168,76,0.1)" stroke="#c9a84c" stroke-opacity="0.5"/>
+      <text x="220" y="84" fill="#c9a84c" font-family="IBM Plex Mono" font-size="9" text-anchor="middle" font-weight="600">STEPS 1–4</text>
+      <text x="220" y="100" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle" font-weight="600">Enforcement</text>
+      <text x="220" y="115" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">SHACL · SWRL</text>
+      <text x="220" y="126" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">PEP 6-domains</text>
+      <text x="220" y="137" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">UCA/STPA safety</text>
+      <line x1="280" y1="100" x2="298" y2="100" stroke="#c9a84c" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Circuit Breaker -->
+      <rect x="300" y="60" width="110" height="80" rx="5" fill="rgba(248,113,113,0.08)" stroke="#f87171" stroke-opacity="0.4"/>
+      <text x="355" y="84" fill="#f87171" font-family="IBM Plex Mono" font-size="9" text-anchor="middle" font-weight="600">CIRCUIT BREAKER</text>
+      <text x="355" y="100" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle" font-weight="600">MTBH Score</text>
+      <text x="355" y="115" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">5D trust metric</text>
+      <text x="355" y="126" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Trip / Pass / Flag</text>
+      <text x="355" y="137" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Anti-collapse</text>
+      <line x1="410" y1="100" x2="428" y2="100" stroke="#c9a84c" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Step 5 -->
+      <rect x="430" y="60" width="120" height="80" rx="5" fill="rgba(201,168,76,0.12)" stroke="#c9a84c" stroke-opacity="0.6"/>
+      <text x="490" y="84" fill="#c9a84c" font-family="IBM Plex Mono" font-size="9" text-anchor="middle" font-weight="600">STEP 5</text>
+      <text x="490" y="100" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle" font-weight="600">AI Directive</text>
+      <text x="490" y="115" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Compiled governed</text>
+      <text x="490" y="126" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">context delivered</text>
+      <text x="490" y="137" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">to AI agent</text>
+      <line x1="550" y1="100" x2="568" y2="100" stroke="#c9a84c" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Simplex Gate -->
+      <rect x="570" y="60" width="120" height="80" rx="5" fill="rgba(251,191,36,0.08)" stroke="#fbbf24" stroke-opacity="0.4"/>
+      <text x="630" y="84" fill="#fbbf24" font-family="IBM Plex Mono" font-size="9" text-anchor="middle" font-weight="600">SIMPLEX GATE</text>
+      <text x="630" y="100" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle" font-weight="600">Delivery Validation</text>
+      <text x="630" y="115" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">AcceptanceCriteria</text>
+      <text x="630" y="126" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Human auth gate</text>
+      <text x="630" y="137" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Irreversibility check</text>
+      <line x1="690" y1="100" x2="708" y2="100" stroke="#c9a84c" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Service Facade -->
+      <rect x="710" y="60" width="120" height="80" rx="5" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-opacity="0.4"/>
+      <text x="770" y="84" fill="#a78bfa" font-family="IBM Plex Mono" font-size="9" text-anchor="middle" font-weight="600">SERVICE FACADE</text>
+      <text x="770" y="100" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle" font-weight="600">Jarvis Response</text>
+      <text x="770" y="115" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Trust Score delivered</text>
+      <text x="770" y="126" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">with provenance</text>
+      <text x="770" y="137" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">chain to consultant</text>
+
+      <!-- Trip arrow down from CB -->
+      <line x1="355" y1="140" x2="355" y2="170" stroke="#f87171" stroke-opacity="0.5" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="358" y="182" fill="#f87171" font-family="IBM Plex Mono" font-size="8">TRIP → Sanitization Queue</text>
+
+      <!-- Top annotations -->
+      <text x="75" y="42" fill="#34d399" font-family="IBM Plex Mono" font-size="8" text-anchor="middle">Context holon instantiation</text>
+      <text x="220" y="42" fill="#c9a84c" font-family="IBM Plex Mono" font-size="8" text-anchor="middle">Holarchic governance traversal</text>
+      <text x="490" y="42" fill="#c9a84c" font-family="IBM Plex Mono" font-size="8" text-anchor="middle">Semantic authority compilation</text>
+      <text x="770" y="42" fill="#a78bfa" font-family="IBM Plex Mono" font-size="8" text-anchor="middle">Output holonic boundary</text>
+    </svg>
+  </div>
+
+  <!-- FIVE RELEVANCY DIMENSIONS -->
+  <div class="grid-2" style="margin-bottom:28px;">
+    <div>
+      <h3>The Five Relevancy Dimensions in Kearney Context</h3>
+      <p style="margin-bottom:16px;">Every query traversing the KIH Gateway is decomposed into five holonic context vectors that govern routing, retrieval, compliance, and trust measurement simultaneously.</p>
+      <table>
+        <thead><tr><th>Dimension</th><th>Holonic Boundary</th><th>Kearney Application</th><th>MTBH Metric</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="metric-chip chip-cyan">WHO</span></td>
+            <td>Persona-holon</td>
+            <td>Consultant vs. AM vs. Sales vs. Executive — governs IP access scope, PEP permissions, role-aware response format</td>
+            <td><code style="font-family:'IBM Plex Mono'; font-size:10px; color:var(--cyan)">MTBH_WHO</code></td>
+          </tr>
+          <tr>
+            <td><span class="metric-chip chip-green">WHAT</span></td>
+            <td>Concept-holon</td>
+            <td>The specific framework, methodology, or IP asset being queried — OWL class resolution against the Kearney core ontology</td>
+            <td><code style="font-family:'IBM Plex Mono'; font-size:10px; color:var(--green)">MTBH_WHAT</code></td>
+          </tr>
+          <tr>
+            <td><span class="metric-chip chip-gold">WHEN</span></td>
+            <td>Temporal-holon</td>
+            <td>Engagement recency, white paper version, market data timestamp — SWRL temporal rules enforce currency of insights</td>
+            <td><code style="font-family:'IBM Plex Mono'; font-size:10px; color:var(--gold)">MTBH_WHEN</code></td>
+          </tr>
+          <tr>
+            <td><span class="metric-chip chip-cyan">WHERE</span></td>
+            <td>Domain-holon</td>
+            <td>Which practice area ontology to activate — Supply Chain, M&A, Digital, etc. Prevents cross-domain hallucination</td>
+            <td><code style="font-family:'IBM Plex Mono'; font-size:10px; color:var(--cyan)">MTBH_WHERE</code></td>
+          </tr>
+          <tr>
+            <td><span class="metric-chip chip-gold">WHY</span></td>
+            <td>Intent-holon</td>
+            <td>The governance purpose — client proposal, internal briefing, market analysis. Activates appropriate PEP compliance rules and IP licensing constraints</td>
+            <td><code style="font-family:'IBM Plex Mono'; font-size:10px; color:var(--gold)">MTBH_WHY</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <h3>Domain Holon Architecture — Practice Area Model</h3>
+      <p style="margin-bottom:16px;">Each practice area is a sovereign domain holon: self-governed, self-validating, and protocol-composable. Adding a new practice never requires re-engineering the core.</p>
+      <div class="card" style="margin-bottom:12px;">
+        <h4>Domain Holon Components (per Practice)</h4>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="level-badge l1">L1</span>
+            <span style="font-size:12px; color:var(--text-secondary)">Practice IP as Knowledge Holons — OWL classes, SHACL shapes, SKOS vocabularies, KGCL change records</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="level-badge l2">L2</span>
+            <span style="font-size:12px; color:var(--text-secondary)">Domain Ontology (OWL 2) + Domain Agent + Hybrid Vector DB (ANN + symbolic reasoning)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="level-badge l2">PEP</span>
+            <span style="font-size:12px; color:var(--text-secondary)">6 Policy Enforcement Points: Compliance · Risk · Legal · Security · Data Gov · AI Gov</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="level-badge l3">L3</span>
+            <span style="font-size:12px; color:var(--text-secondary)">RDSG Gateway interfaces with domain via PEP contracts — never schema coupling</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>DEV / STG / PRD Holonic Lifecycle</h4>
+        <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+          <div><strong style="color:var(--green)">DEV</strong> — Holonic construction: IP ingestion, agent training, ontology authoring, SHACL validation</div>
+          <div><strong style="color:var(--gold)">STG</strong> — Holonic composition: Top-Down (core ontology) ↔ Bottom-Up (legacy SharePoint/DB) reconciliation, R2RML mapping, cross-domain alignment</div>
+          <div><strong style="color:var(--purple)">PRD</strong> — Holonic production: Semantic search, conversational Jarvis, agent federation, real-time trust scoring</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUDA TRAVERSAL -->
+  <h3>SUDA — Holonic Traversal Protocol for All Jarvis Interactions</h3>
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 880 120" xmlns="http://www.w3.org/2000/svg" style="max-width:880px;">
+      <defs>
+        <marker id="arr2" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0,7 2.5,0 5" fill="#38bdf8" fill-opacity="0.7"/>
+        </marker>
+      </defs>
+      <!-- Sense -->
+      <rect x="10" y="20" width="190" height="80" rx="5" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-opacity="0.35"/>
+      <text x="105" y="44" fill="#34d399" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" font-weight="700">SENSE</text>
+      <text x="105" y="60" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">WHO/WHAT/WHEN/</text>
+      <text x="105" y="74" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">WHERE/WHY tagging</text>
+      <text x="105" y="92" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Collect &amp; tag input context</text>
+      <line x1="200" y1="60" x2="218" y2="60" stroke="#38bdf8" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+      <!-- Understand -->
+      <rect x="220" y="20" width="190" height="80" rx="5" fill="rgba(56,189,248,0.08)" stroke="#38bdf8" stroke-opacity="0.35"/>
+      <text x="315" y="44" fill="#38bdf8" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" font-weight="700">UNDERSTAND</text>
+      <text x="315" y="60" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">L2 Domain Holon</text>
+      <text x="315" y="74" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">Activation + SWRL</text>
+      <text x="315" y="92" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Resolve meaning within governed context</text>
+      <line x1="410" y1="60" x2="428" y2="60" stroke="#38bdf8" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+      <!-- Decide -->
+      <rect x="430" y="20" width="190" height="80" rx="5" fill="rgba(201,168,76,0.08)" stroke="#c9a84c" stroke-opacity="0.4"/>
+      <text x="525" y="44" fill="#c9a84c" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" font-weight="700">DECIDE</text>
+      <text x="525" y="60" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">L3 RDSG Traversal</text>
+      <text x="525" y="74" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">RCB + PEP + Directive</text>
+      <text x="525" y="92" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Govern what to retrieve &amp; how</text>
+      <line x1="620" y1="60" x2="638" y2="60" stroke="#38bdf8" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+      <!-- Act -->
+      <rect x="640" y="20" width="220" height="80" rx="5" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-opacity="0.35"/>
+      <text x="750" y="44" fill="#a78bfa" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" font-weight="700">ACT</text>
+      <text x="750" y="60" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">L2 Domain Agent Execution</text>
+      <text x="750" y="74" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">Bounded by holonic governance</text>
+      <text x="750" y="92" fill="#64748b" font-family="IBM Plex Sans" font-size="9" text-anchor="middle">Deliver Jarvis response + MTBH Trust Score</text>
+    </svg>
+  </div>
+
+  <hr class="divider">
+
+  <!-- DATA QUALITY AS HOLONIC INVARIANTS -->
+  <h3>Data Quality as Holonic Invariants — Kearney IP Governance</h3>
+  <table style="margin-top:12px;">
+    <thead><tr><th>ISO 8000 Dimension</th><th>Holonic Invariant</th><th>Kearney IP Application</th><th>SHACL / Circuit Breaker Response</th></tr></thead>
+    <tbody>
+      <tr><td><strong style="color:var(--text-primary)">Accuracy</strong></td><td>Ground-truth conformance</td><td>Engagement statistics, market size claims, client outcomes verified against source data</td><td>MTBH_WHAT trip on accuracy failure</td></tr>
+      <tr><td><strong style="color:var(--text-primary)">Completeness</strong></td><td>Required properties populated</td><td>White papers must carry author, date, engagement context, version before admission to holarchy</td><td>Rejected at inbound gateway — KGCL rejection record</td></tr>
+      <tr><td><strong style="color:var(--text-primary)">Timeliness</strong></td><td>WHEN dimension freshness</td><td>Market data &gt;90 days triggers MTBH_WHEN degradation; consultant is informed of data currency</td><td>SWRL temporal rules; Stale Asset Rate metric</td></tr>
+      <tr><td><strong style="color:var(--text-primary)">Relevance</strong></td><td>WHY alignment</td><td>Insights filtered by intent context — client-facing vs. internal; proposal vs. research</td><td>MTBH_WHY degradation; Contextual Relevancy Agent reroutes</td></tr>
+      <tr><td><strong style="color:var(--text-primary)">Traceability</strong></td><td>Holonic provenance</td><td>Every insight response carries full KGCL chain of custody: which white papers, which engagement data, which analyst reports</td><td>Compliance PEP violation if provenance gap detected</td></tr>
+    </tbody>
+  </table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<!--                             TAB 3: HLD — CTO / AI SCIENCE                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-hld">
+
+  <div class="section-header">
+    <span class="section-tag">High-Level Design — CTO &amp; AI Science</span>
+    <h2>Technical Architecture Specification</h2>
+    <p class="section-lead">Formal component breakdown of the Kearney Intelligence Holarchy — technology stack, data flows, agent architecture, trust metrology implementation, and the Observe–Reason–Adapt self-evolution loop.</p>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="grid-2" style="margin-bottom:28px;">
+    <div>
+      <h3>Technology Stack — By Holonic Level</h3>
+      <table style="margin-top:12px;">
+        <thead><tr><th>Layer</th><th>Technology</th><th>Holonic Role</th></tr></thead>
+        <tbody>
+          <tr><td><span class="level-badge l1">L1</span></td><td>OWL 2, RDFS, SKOS, SHACL, SWRL</td><td>Knowledge holon definition &amp; invariant enforcement</td></tr>
+          <tr><td><span class="level-badge l1">L1</span></td><td>Metaphactory (Holon Platform)</td><td>ORSD lifecycle, KGCL change records, governance agent audit</td></tr>
+          <tr><td><span class="level-badge l1">L1</span></td><td>RDFLib, Stardog / GraphDB</td><td>RDF triple store; SPARQL reasoning; graph persistence</td></tr>
+          <tr><td><span class="level-badge l2">L2</span></td><td>Pinecone / Weaviate</td><td>Domain holon vector DBs; ANN retrieval indexed by domain ontology</td></tr>
+          <tr><td><span class="level-badge l2">L2</span></td><td>LangGraph / AutoGen (Agents)</td><td>Domain agent orchestration; multi-agent composition</td></tr>
+          <tr><td><span class="level-badge l2">L2</span></td><td>OMG ODM, FIBO (Finance domain)</td><td>Domain ontology scaffold; cross-domain interoperability</td></tr>
+          <tr><td><span class="level-badge l3">L3</span></td><td>RDSG Gateway (custom)</td><td>Six-stage holarchic traversal; RCB assembly; PEP enforcement</td></tr>
+          <tr><td><span class="level-badge l3">L3</span></td><td>Circuit Breaker Engine (custom)</td><td>MTBH dimensional scoring; trip logic; sanitization queue</td></tr>
+          <tr><td><span class="level-badge l3">L3</span></td><td>Anthropic MCP</td><td>Standardised agent-to-gateway communication protocol</td></tr>
+          <tr><td><span class="level-badge l4">L4</span></td><td>Tom Sawyer Perspectives</td><td>OPS Workbench — holarchic observatory; impact analysis</td></tr>
+          <tr><td><span class="level-badge l4">L4</span></td><td>Celery + Redis</td><td>Inbound admission workflow; holonic onboarding queue</td></tr>
+          <tr><td><span class="level-badge l4">L4</span></td><td>ElasticSearch</td><td>Asset discovery; catalog search across holarchy</td></tr>
+          <tr><td><span class="level-badge l4">L4</span></td><td>Claude claude-sonnet-4-20250514</td><td>LLM execution within governed AI Directive; Jarvis interfaces</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <h3>Agent Architecture — Multi-Holon Orchestration</h3>
+      <p style="margin-bottom:14px;">Each domain holon carries a sovereign AI agent. Agents receive compiled, governed directives from the L3 Gateway — never raw prompts. Agent federation occurs through the holarchic protocol, not direct agent-to-agent communication.</p>
+
+      <div class="card" style="margin-bottom:12px;">
+        <h4>Agent Registry (per Domain Holon)</h4>
+        <div class="code-block">
+<span class="code-comment"># Agent Holon Identity Schema</span>
+<span class="code-key">agent_id:</span>     <span class="code-val">IRI — persistent holonic identity</span>
+<span class="code-key">domain:</span>      <span class="code-val">supply_chain | mna | digital | ops | ...</span>
+<span class="code-key">ontology_ref:</span> <span class="code-val">OWL domain ontology IRI</span>
+<span class="code-key">vector_db:</span>   <span class="code-val">Pinecone index linked to domain ontology</span>
+<span class="code-key">mtbh_score:</span>  <span class="code-val">{ WHO, WHAT, WHEN, WHERE, WHY } dimensions</span>
+<span class="code-key">access_ctrl:</span> <span class="code-val">RBAC + zero-trust PEP enforcement</span>
+<span class="code-key">audit_trail:</span> <span class="code-val">immutable KGCL log — every invocation</span>
+<span class="code-key">lifecycle:</span>   <span class="code-val">DEV | STG | PRD</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Specialized Micro-Agents (L3 Gateway Orchestration)</h4>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px; font-size:12px; color:var(--text-secondary);">
+          <div><strong style="color:var(--green)">IP Retrieval Agent</strong> — Traverses L1 knowledge holons; retrieves Kearney white papers, frameworks, engagement data with SHACL-validated provenance</div>
+          <div><strong style="color:var(--cyan)">Market Synthesis Agent</strong> — Integrates third-party feeds (financial, analyst reports) governed by SHACL data contracts; temporal SWRL rules enforce recency</div>
+          <div><strong style="color:var(--gold)">Context Router Agent</strong> — Assembles the 5D RCB; routes to correct domain holon based on MTBH_WHERE; validates persona scope (MTBH_WHO)</div>
+          <div><strong style="color:var(--purple)">Brand Voice Agent</strong> — Formats Compiled AI Directive output to Kearney voice and structure; post-Gateway formatting only — never touches governed content</div>
+          <div><strong style="color:var(--amber)">Governance Agent</strong> — Audit validation on all inbound IP assets; metadata conformance; provenance chain verification; KGCL record creation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- MTBH IMPLEMENTATION -->
+  <h3>MTBH — Mean Time Between Hallucinations: Implementation Specification</h3>
+  <div class="callout callout-gold">
+    <div class="callout-icon">◈</div>
+    <div class="callout-text">
+      <strong>Design Principle:</strong> MTBH must never be operated as an aggregate score. Dimensional stratification is the mechanism that enables targeted remediation — a domain-routing failure (MTBH_WHERE) must not trigger suspension of concept resolution (MTBH_WHAT) in an unrelated domain holon. Each dimension monitors the specific holonic level it corresponds to.
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px;">
+    <div class="card">
+      <h4>MTBH Dimensional Scoring — Kearney Mapping</h4>
+      <div style="margin-top:12px; display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <div class="gauge-row">
+            <span class="gauge-label">MTBH_WHO</span>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" style="width:92%; background:linear-gradient(90deg,#38bdf8,#7dd3fc)"></div></div>
+            <span class="gauge-val">Target: 98%</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); padding-left:126px;">Persona routing fidelity — consultant vs. AM vs. exec context isolation</div>
+        </div>
+        <div>
+          <div class="gauge-row">
+            <span class="gauge-label">MTBH_WHAT</span>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" style="width:96%; background:linear-gradient(90deg,#34d399,#6ee7b7)"></div></div>
+            <span class="gauge-val">Target: 99%</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); padding-left:126px;">IP concept resolution accuracy — framework/method correctly identified from Kearney knowledge graph</div>
+        </div>
+        <div>
+          <div class="gauge-row">
+            <span class="gauge-label">MTBH_WHEN</span>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" style="width:88%; background:linear-gradient(90deg,#c9a84c,#e8c96a)"></div></div>
+            <span class="gauge-val">Target: 95%</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); padding-left:126px;">Temporal anchoring fidelity — stale market data flagged before reaching consultant</div>
+        </div>
+        <div>
+          <div class="gauge-row">
+            <span class="gauge-label">MTBH_WHERE</span>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" style="width:94%; background:linear-gradient(90deg,#38bdf8,#7dd3fc)"></div></div>
+            <span class="gauge-val">Target: 97%</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); padding-left:126px;">Domain boundary routing — supply chain IP not contaminating M&amp;A responses</div>
+        </div>
+        <div>
+          <div class="gauge-row">
+            <span class="gauge-label">MTBH_WHY</span>
+            <div class="gauge-bar-wrap"><div class="gauge-bar" style="width:91%; background:linear-gradient(90deg,#a78bfa,#c4b5fd)"></div></div>
+            <span class="gauge-val">Target: 96%</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); padding-left:126px;">Intent-governance alignment — client-facing vs. internal output correctly governed</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:12px;">
+        <h4>Three Complementary Trust Metrics</h4>
+        <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+          <div>
+            <strong style="color:var(--gold)">MTBH (Mean Time Between Hallucinations)</strong><br>
+            Primary holonic health metric. Time elapsed between AI fidelity failures, stratified per WHO/WHAT/WHEN/WHERE/WHY. Reported per domain holon and per gateway invocation. SLO: ≥95% dimensional fidelity across all active holons.
+          </div>
+          <div>
+            <strong style="color:var(--cyan)">Value-Drift Coefficient</strong><br>
+            Numerical distance between an agent's current objective function and the original human intent encoded in its governing domain ontology. Monitored continuously; triggers Domain Governance Team review above threshold of 0.15.
+          </div>
+          <div>
+            <strong style="color:var(--green)">Intent Delta</strong><br>
+            Discrepancy between the AI agent's logical understanding of a query and the operational context it is addressing. Critical for Kearney: consultant asks about EU pricing — agent must not apply APAC pricing holon even if similarity scores are high.
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Circuit Breaker Trip Logic</h4>
+        <div class="code-block">
+<span class="code-comment"># Circuit Breaker Decision Tree</span>
+<span class="code-key">if</span> mtbh_dim_score &lt; threshold:
+  <span class="code-key">if</span> action_type == IRREVERSIBLE:
+    → <span class="code-val">HARD_TRIP</span>  <span class="code-comment"># Human auth required</span>
+  <span class="code-key">elif</span> confidence &lt; 0.80:
+    → <span class="code-val">SOFT_TRIP</span>  <span class="code-comment"># Reroute + flag</span>
+  <span class="code-key">else</span>:
+    → <span class="code-val">WARN</span>  <span class="code-comment"># Deliver with caveat</span>
+<span class="code-key">on</span> TRIP:
+  → sanitization_queue.add(response)
+  → training_data.exclude(response)  <span class="code-comment"># Anti-collapse</span>
+  → kgcl.record(WHO,WHAT,WHEN,WHERE,WHY)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- OBSERVE-REASON-ADAPT -->
+  <h3>Observe–Reason–Adapt: The Self-Evolving Knowledge Holarchy</h3>
+  <p style="max-width:760px; margin-bottom:20px;">The KIH is a living system. Design-time governance is continuously nourished by run-time operational experience, closing the loop that has historically been the central challenge of enterprise knowledge systems. The model that governs design is the same model that learns from operations.</p>
+
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 860 160" xmlns="http://www.w3.org/2000/svg" style="max-width:860px;">
+      <defs>
+        <marker id="arr3" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0,7 2.5,0 5" fill="#34d399" fill-opacity="0.7"/>
+        </marker>
+      </defs>
+      <!-- OBSERVE -->
+      <rect x="20" y="30" width="230" height="100" rx="5" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-opacity="0.4"/>
+      <text x="135" y="54" fill="#34d399" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" font-weight="700">OBSERVE</text>
+      <text x="135" y="72" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">Semantic Telemetry</text>
+      <text x="135" y="88" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">Every response tagged:</text>
+      <text x="135" y="102" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">WHO/WHAT/WHEN/WHERE/WHY</text>
+      <text x="135" y="118" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">MTBH scores + KGCL events</text>
+      <line x1="250" y1="80" x2="268" y2="80" stroke="#34d399" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <!-- REASON -->
+      <rect x="270" y="30" width="300" height="100" rx="5" fill="rgba(201,168,76,0.08)" stroke="#c9a84c" stroke-opacity="0.4"/>
+      <text x="420" y="54" fill="#c9a84c" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" font-weight="700">REASON</text>
+      <text x="420" y="72" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">Distributed Holarchic Analysis</text>
+      <text x="420" y="88" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">L1: SHACL constraint evaluation</text>
+      <text x="420" y="102" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">L2: SWRL rules + RAG entity discovery</text>
+      <text x="420" y="116" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">L3/L4: Enterprise Council policy review</text>
+      <line x1="570" y1="80" x2="588" y2="80" stroke="#34d399" stroke-opacity="0.5" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <!-- ADAPT -->
+      <rect x="590" y="30" width="250" height="100" rx="5" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-opacity="0.4"/>
+      <text x="715" y="54" fill="#a78bfa" font-family="IBM Plex Mono" font-size="10" text-anchor="middle" font-weight="700">ADAPT</text>
+      <text x="715" y="72" fill="#e8eaf6" font-family="IBM Plex Sans" font-size="11" text-anchor="middle">Holonic Self-Evolution</text>
+      <text x="715" y="88" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">ORSD updates, KGCL records</text>
+      <text x="715" y="102" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">Vector DB reindexing</text>
+      <text x="715" y="116" fill="#64748b" font-family="IBM Plex Sans" font-size="10" text-anchor="middle">SWRL rule revision — governance-bounded</text>
+
+      <!-- Feedback loop arc -->
+      <path d="M 715 130 Q 715 155 450 155 Q 135 155 135 130" stroke="#34d399" stroke-opacity="0.3" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+      <text x="450" y="150" fill="#4a5568" font-family="IBM Plex Mono" font-size="8" text-anchor="middle">Closed-loop: run-time intelligence nourishes design-time governance DNA</text>
+    </svg>
+  </div>
+
+  <hr class="divider">
+
+  <!-- RAG IMPLEMENTATION -->
+  <h3>GraphRAG + Holonic Retrieval — Technical Specification</h3>
+  <div class="grid-2">
+    <div class="card">
+      <h4>Two-Level Hybrid Retrieval Strategy</h4>
+      <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+        <div>
+          <strong style="color:var(--cyan)">Level 1 — ANN Vector Search (Pinecone/Weaviate)</strong><br>
+          Fast approximate nearest-neighbor search within the domain holon's vector space. Indexes are built against domain ontology classes — not flat embeddings. This is the holon's pattern-recognition capability: find semantically similar Kearney IP without traversing the full ontology.
+        </div>
+        <div>
+          <strong style="color:var(--gold)">Level 2 — Symbolic Reasoning (SPARQL + SHACL)</strong><br>
+          Precise symbolic reasoning to verify that retrieved IP satisfies the domain holon's invariants. Multi-hop graph traversal: "How did this supply chain framework perform in a similar EU client context in the last 3 years?" — traversing engagement, framework, and outcome holons.
+        </div>
+        <div>
+          <strong style="color:var(--green)">Closed-Loop Discovery</strong><br>
+          RAG-discovered entities (new frameworks emerging in consultant outputs, novel client relationships) are validated by Domain Governance Team review and admitted to the holarchy via KGCL change protocol. RAG proposes; the holarchy governs.
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h4>Inbound IP Admission Pipeline</h4>
+      <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="background:rgba(52,211,153,0.2); color:var(--green); font-family:'IBM Plex Mono'; font-size:9px; padding:2px 8px; border-radius:3px; flex-shrink:0;">1</span>
+          <span><strong style="color:var(--text-primary)">Scheduler</strong> — Celery + Redis queue; assigns admission ID; tracks through lifecycle</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="background:rgba(52,211,153,0.2); color:var(--green); font-family:'IBM Plex Mono'; font-size:9px; padding:2px 8px; border-radius:3px; flex-shrink:0;">2</span>
+          <span><strong style="color:var(--text-primary)">Extraction</strong> — ElasticSearch asset discovery; extract schema, version, datetime, author, engagement context</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="background:rgba(52,211,153,0.2); color:var(--green); font-family:'IBM Plex Mono'; font-size:9px; padding:2px 8px; border-radius:3px; flex-shrink:0;">3</span>
+          <span><strong style="color:var(--text-primary)">RDF Generation</strong> — RDFLib transforms asset to RDF triple structure conformant with target domain ontology template</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="background:rgba(201,168,76,0.2); color:var(--gold); font-family:'IBM Plex Mono'; font-size:9px; padding:2px 8px; border-radius:3px; flex-shrink:0;">4</span>
+          <span><strong style="color:var(--text-primary)">SHACL Validation</strong> — Metaphactory: does this IP satisfy the domain holon's invariants? Fail → quarantine + rejection KGCL record</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="background:rgba(201,168,76,0.2); color:var(--gold); font-family:'IBM Plex Mono'; font-size:9px; padding:2px 8px; border-radius:3px; flex-shrink:0;">5</span>
+          <span><strong style="color:var(--text-primary)">Ontology Versioning</strong> — KGCL change record generated; domain ontology version incremented; identity assigned via URI/IRI</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="background:rgba(167,139,250,0.2); color:var(--purple); font-family:'IBM Plex Mono'; font-size:9px; padding:2px 8px; border-radius:3px; flex-shrink:0;">6</span>
+          <span><strong style="color:var(--text-primary)">Governance Audit</strong> — Governance Agent validates metadata, naming conventions, provenance chain before PRD admission</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SRE FOR AI -->
+  <h3>SRE for Knowledge Intelligence — Service Level Objectives</h3>
+  <table>
+    <thead><tr><th>SLO Category</th><th>Metric</th><th>Target</th><th>Holonic Level</th><th>Alert Trigger</th></tr></thead>
+    <tbody>
+      <tr><td>AI Accuracy</td><td>Precision / Recall on IP retrieval</td><td>Precision ≥0.95, Recall ≥0.90</td><td><span class="level-badge l3">L3 Gateway</span></td><td>Circuit Breaker soft trip</td></tr>
+      <tr><td>Trust Fidelity</td><td>MTBH aggregate (all dimensions)</td><td>≥95% per dimension</td><td><span class="level-badge l3">L3 Gateway</span></td><td>Dimensional degradation alert → Domain Gov Team</td></tr>
+      <tr><td>Insight Latency</td><td>P95 gateway response time</td><td>≤4s Field Consultant; ≤8s Exec</td><td><span class="level-badge l3">L3 Gateway</span></td><td>Performance SLO breach → scale domain agents</td></tr>
+      <tr><td>Data Currency</td><td>Stale Asset Rate (&gt;90 days)</td><td>≤5% of active knowledge holons</td><td><span class="level-badge l1">L1 Knowledge</span></td><td>MTBH_WHEN degradation; KGCL stale flag</td></tr>
+      <tr><td>Catalog Health</td><td>SHACL validation pass rate</td><td>≥98% on inbound</td><td><span class="level-badge l1">L1 Knowledge</span></td><td>Ingestion Rejection Rate spike</td></tr>
+      <tr><td>Agent Uptime</td><td>Domain agent availability</td><td>≥99.5%</td><td><span class="level-badge l2">L2 Domain</span></td><td>Graceful degradation to L1 pre-compiled rules</td></tr>
+      <tr><td>Value Drift</td><td>Value-Drift Coefficient</td><td>≤0.15 per agent</td><td><span class="level-badge l2">L2 Domain</span></td><td>Domain Gov Team review initiated</td></tr>
+    </tbody>
+  </table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<!--                              TAB 4: TRANSFORMATION ROADMAP                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-roadmap">
+
+  <div class="section-header">
+    <span class="section-tag">Transformation Roadmap</span>
+    <h2>18-Month Holarchic Build — Jarvis in 6, Scale Progressively</h2>
+    <p class="section-lead">Four phases. Each phase delivers a complete, functional increment of the holarchy — not a technical building block waiting for future payoff. Jarvis goes live for Field Consultants and Sales in Month 6, grounded on two production domain holons. Every subsequent month extends the holarchy's intelligence without re-engineering its foundation.</p>
+  </div>
+
+  <!-- PHASE STRIP -->
+  <div class="phase-strip">
+    <div class="phase-box ph0">
+      <div class="phase-num">0</div>
+      <div class="phase-title">Foundation</div>
+      <div class="phase-months">Months 1–2</div>
+      <div class="phase-tag">Semantic Infrastructure</div>
+    </div>
+    <div class="phase-box ph1">
+      <div class="phase-num">1</div>
+      <div class="phase-title">Jarvis MVP</div>
+      <div class="phase-months">Months 3–6</div>
+      <div class="phase-tag">🚀 GO LIVE Month 6</div>
+    </div>
+    <div class="phase-box ph2">
+      <div class="phase-num">2</div>
+      <div class="phase-title">Holarchy Expansion</div>
+      <div class="phase-months">Months 7–12</div>
+      <div class="phase-tag">Practice Holon Scale-Out</div>
+    </div>
+    <div class="phase-box ph3">
+      <div class="phase-num">3</div>
+      <div class="phase-title">Enterprise Holarchy</div>
+      <div class="phase-months">Months 13–18</div>
+      <div class="phase-tag">Digital Orchestration</div>
+    </div>
+  </div>
+
+  <!-- GANTT-STYLE TIMELINE -->
+  <div class="diagram-wrap" style="margin-bottom:28px; overflow-x:auto;">
+    <div class="diagram-title">Delivery Timeline — 18 Months</div>
+    <div style="min-width:800px;">
+      <!-- Header: months -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid var(--border-subtle); padding:6px 0;">
+        <div style="font-size:10px; color:var(--text-muted); padding:0 12px;"></div>
+        <div style="grid-column:2/4; text-align:center; font-size:9px; color:var(--green); font-family:'IBM Plex Mono'; letter-spacing:0.05em; background:rgba(52,211,153,0.06); border-radius:2px; padding:3px;">Phase 0: Foundation</div>
+        <div style="grid-column:4/8; text-align:center; font-size:9px; color:var(--cyan); font-family:'IBM Plex Mono'; letter-spacing:0.05em; background:rgba(56,189,248,0.06); border-radius:2px; padding:3px;">Phase 1: Jarvis MVP ★ GO LIVE</div>
+        <div style="grid-column:8/14; text-align:center; font-size:9px; color:var(--gold); font-family:'IBM Plex Mono'; letter-spacing:0.05em; background:rgba(201,168,76,0.06); border-radius:2px; padding:3px;">Phase 2: Holarchy Expansion</div>
+        <div style="grid-column:14/20; text-align:center; font-size:9px; color:var(--purple); font-family:'IBM Plex Mono'; letter-spacing:0.05em; background:rgba(167,139,250,0.06); border-radius:2px; padding:3px;">Phase 3: Enterprise Holarchy</div>
+      </div>
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid var(--border-subtle); padding:4px 0;">
+        <div style="font-size:10px; color:var(--text-muted); padding:0 12px;">Workstream</div>
+        <!-- Month labels -->
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M1</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M2</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M3</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M4</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M5</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M6</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M7</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M8</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M9</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M10</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M11</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M12</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M13</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M14</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M15</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M16</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M17</div>
+        <div style="text-align:center; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">M18</div>
+      </div>
+
+      <!-- Workstream rows -->
+      <!-- semantic foundation -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">Semantic Foundation</div>
+        <div style="grid-column:2/8; background:linear-gradient(90deg,rgba(52,211,153,0.35),rgba(52,211,153,0.2)); border-radius:3px; margin:5px 2px; padding:4px 10px; font-size:9px; color:#6ee7b7; font-weight:600; font-family:'IBM Plex Mono';">IP Audit → Core Ontology → ORSD Protocols → Knowledge Holon Ingestion</div>
+        <div style="grid-column:8/13; background:rgba(52,211,153,0.1); border-radius:3px; margin:5px 2px; padding:4px 8px; font-size:9px; color:#4a5568; font-weight:500; font-family:'IBM Plex Mono';">Ongoing ingestion</div>
+      </div>
+      <!-- L3 Gateway -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">L3 RDSG Gateway</div>
+        <div style="grid-column:3/7; background:linear-gradient(90deg,rgba(201,168,76,0.35),rgba(201,168,76,0.2)); border-radius:3px; margin:5px 2px; padding:4px 10px; font-size:9px; color:#e8c96a; font-weight:600; font-family:'IBM Plex Mono';">Gateway Build → Circuit Breaker → MTBH Engine</div>
+        <div style="grid-column:7/13; background:rgba(201,168,76,0.1); border-radius:3px; margin:5px 2px; padding:4px 8px; font-size:9px; color:#4a5568; font-weight:500; font-family:'IBM Plex Mono';">Tuning + scale</div>
+      </div>
+      <!-- Domain Holon 1 -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">Supply Chain Holon</div>
+        <div style="grid-column:3/7; background:linear-gradient(90deg,rgba(56,189,248,0.35),rgba(56,189,248,0.2)); border-radius:3px; margin:5px 2px; padding:4px 10px; font-size:9px; color:#7dd3fc; font-weight:600; font-family:'IBM Plex Mono';">Ontology → Agent → VectorDB → PEPs → PRD</div>
+      </div>
+      <!-- Domain Holon 2 -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">M&amp;A / PE Holon</div>
+        <div style="grid-column:4/7; background:linear-gradient(90deg,rgba(56,189,248,0.3),rgba(56,189,248,0.15)); border-radius:3px; margin:5px 2px; padding:4px 10px; font-size:9px; color:#7dd3fc; font-weight:600; font-family:'IBM Plex Mono';">Ontology → Agent → VectorDB → PEPs → PRD</div>
+      </div>
+      <!-- Consultant Jarvis -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">Consultant Jarvis UI</div>
+        <div style="grid-column:5/7; background:linear-gradient(90deg,rgba(56,189,248,0.25),rgba(56,189,248,0.15)); border-radius:3px; margin:5px 2px; padding:4px 8px; font-size:9px; color:#7dd3fc; font-weight:600; font-family:'IBM Plex Mono';">Build → Pilot</div>
+        <div style="grid-column:7/14; background:rgba(56,189,248,0.1); border-radius:3px; margin:5px 2px; padding:4px 8px; font-size:9px; color:#4a5568; font-weight:500; font-family:'IBM Plex Mono';">Rollout + refine</div>
+      </div>
+      <!-- Sales Jarvis -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">Sales Jarvis UI</div>
+        <div style="grid-column:5/7; background:linear-gradient(90deg,rgba(56,189,248,0.2),rgba(56,189,248,0.1)); border-radius:3px; margin:5px 2px; padding:4px 8px; font-size:9px; color:#7dd3fc; font-weight:600; font-family:'IBM Plex Mono';">Build → Pilot</div>
+        <div style="grid-column:7/14; background:rgba(56,189,248,0.08); border-radius:3px; margin:5px 2px; padding:4px 8px; font-size:9px; color:#4a5568; font-weight:500; font-family:'IBM Plex Mono';">Rollout + refine</div>
+      </div>
+      <!-- Phase 2 domain holons -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">+3 Practice Holons</div>
+        <div style="grid-column:8/13; background:linear-gradient(90deg,rgba(201,168,76,0.3),rgba(201,168,76,0.15)); border-radius:3px; margin:5px 2px; padding:4px 10px; font-size:9px; color:#e8c96a; font-weight:600; font-family:'IBM Plex Mono';">Digital · Operations · Sustainability domain holons</div>
+      </div>
+      <!-- AM + Exec Jarvis -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">AM + Exec Jarvis</div>
+        <div style="grid-column:9/14; background:linear-gradient(90deg,rgba(201,168,76,0.25),rgba(201,168,76,0.1)); border-radius:3px; margin:5px 2px; padding:4px 10px; font-size:9px; color:#e8c96a; font-weight:600; font-family:'IBM Plex Mono';">Build → Pilot → Rollout</div>
+      </div>
+      <!-- MTBH Dashboard -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">MTBH OPS Dashboard</div>
+        <div style="grid-column:7/9; background:rgba(201,168,76,0.2); border-radius:3px; margin:5px 2px; padding:4px 8px; font-size:9px; color:#e8c96a; font-weight:600; font-family:'IBM Plex Mono';">Build</div>
+        <div style="grid-column:9/20; background:rgba(201,168,76,0.1); border-radius:3px; margin:5px 2px; padding:4px 8px; font-size:9px; color:#4a5568; font-weight:500; font-family:'IBM Plex Mono';">Live — continuous monitoring</div>
+      </div>
+      <!-- L4 Governance -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); border-bottom:1px solid rgba(255,255,255,0.04); align-items:center; min-height:36px;">
+        <div style="padding:6px 12px; font-size:11px; color:var(--text-secondary); font-weight:500;">L4 Enterprise Council</div>
+        <div style="grid-column:14/20; background:linear-gradient(90deg,rgba(167,139,250,0.35),rgba(167,139,250,0.15)); border-radius:3px; margin:5px 2px; padding:4px 10px; font-size:9px; color:#c4b5fd; font-weight:600; font-family:'IBM Plex Mono';">Value Stream Ontology → Global Rollout → Self-Evolving Holarchy</div>
+      </div>
+      <!-- GO LIVE marker -->
+      <div style="display:grid; grid-template-columns:200px repeat(18,1fr); align-items:center; min-height:28px;">
+        <div style="padding:4px 12px; font-size:9px; color:var(--text-muted); font-family:'IBM Plex Mono';">Key Milestones ▶</div>
+        <div style="grid-column:7/8; text-align:center; font-size:9px; color:var(--cyan); font-family:'IBM Plex Mono'; font-weight:700;">★ M6<br>JARVIS<br>LIVE</div>
+        <div style="grid-column:13/14; text-align:center; font-size:9px; color:var(--gold); font-family:'IBM Plex Mono'; font-weight:700;">★ M12<br>FULL<br>SCALE</div>
+        <div style="grid-column:19/20; text-align:center; font-size:9px; color:var(--purple); font-family:'IBM Plex Mono'; font-weight:700;">★ M18<br>DIGITAL<br>ORCH</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE DETAIL CARDS -->
+  <div style="margin-top:8px;">
+    <h3>Phase Detail — Deliverables and Governance Gates</h3>
+
+    <!-- Phase 0 -->
+    <div class="card" style="margin-bottom:16px; border-left:3px solid var(--green);">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+        <span class="level-badge l1" style="font-size:12px; padding:4px 14px;">Phase 0</span>
+        <div>
+          <div style="font-size:15px; font-weight:700; color:var(--text-primary);">Semantic Foundation — Months 1–2</div>
+          <div style="font-size:11px; color:var(--text-muted);">Objective: Structure the unstructured. Establish the holonic grammar before any AI is deployed.</div>
+        </div>
+      </div>
+      <div class="grid-2" style="gap:16px;">
+        <div>
+          <h4>Deliverables</h4>
+          <ul style="font-size:12px; color:var(--text-secondary); padding-left:16px; display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+            <li>IP Audit — catalog all SharePoint, proprietary databases, engagement archives; assign URI/IRI identity to each asset</li>
+            <li>Kearney Core Ontology (RDF/OWL) — enterprise-level shared vocabulary; polymorphic inheritance protocol</li>
+            <li>ORSD Template Library — governance contract specification for every IP asset type</li>
+            <li>KGCL Change Protocol — established for all IP modifications; audit trail architecture live</li>
+            <li>ISO 8000 Quality Dimensions — mapped to SHACL constraints for the inbound admission pipeline</li>
+            <li>Baseline SRE Metrics — established for all existing AI tools currently in use at Kearney</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Governance Gate (Month 2)</h4>
+          <ul style="font-size:12px; color:var(--text-secondary); padding-left:16px; display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+            <li>✓ Core ontology validated by Enterprise Semantic Governance Council</li>
+            <li>✓ ≥500 IP assets admitted as governed Knowledge Holons with SHACL validation ≥98%</li>
+            <li>✓ ORSD template approved for all six core IP asset types</li>
+            <li>✓ KGCL audit trail demonstrating full WHO/WHAT/WHEN/WHERE/WHY capture</li>
+          </ul>
+          <div class="callout callout-green" style="margin-top:12px; padding:12px;">
+            <div class="callout-text" style="font-size:11px;"><strong>Measurement Active from Day 1:</strong> Ingestion Rejection Rate, SHACL validation pass rate, and catalog discovery metrics baseline established in Month 1. No insight from the holarchy can be delivered without provenance — this principle is enforced architecturally, not procedurally.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 1 -->
+    <div class="card" style="margin-bottom:16px; border-left:3px solid var(--cyan);">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+        <span class="level-badge l2" style="font-size:12px; padding:4px 14px;">Phase 1</span>
+        <div>
+          <div style="font-size:15px; font-weight:700; color:var(--text-primary);">Jarvis MVP — Months 3–6 &nbsp; <span style="color:var(--cyan); font-size:13px;">★ GO LIVE Month 6</span></div>
+          <div style="font-size:11px; color:var(--text-muted);">Objective: Deliver Jarvis to Field Consultants and Sales Teams. Two production domain holons. Full RDSG gateway with MTBH trust scoring.</div>
+        </div>
+      </div>
+      <div class="grid-2" style="gap:16px;">
+        <div>
+          <h4>Deliverables</h4>
+          <ul style="font-size:12px; color:var(--text-secondary); padding-left:16px; display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+            <li><strong style="color:var(--green)">Month 3</strong> — Supply Chain Domain Holon: OWL ontology, SHACL shapes, SWRL temporal rules, domain agent (LangGraph), Pinecone/Weaviate vector DB indexed against domain ontology, 6 PEPs</li>
+            <li><strong style="color:var(--green)">Month 4</strong> — M&A/PE Domain Holon: same stack; cross-domain alignment protocol established between SC and M&A holons</li>
+            <li><strong style="color:var(--green)">Month 4-5</strong> — L3 RDSG Gateway operational: RCB assembly, 6-stage enforcement, Circuit Breaker with MTBH 5D scoring, Simplex Action Gate, sanitization queue</li>
+            <li><strong style="color:var(--cyan)">Month 5</strong> — Field Consultant Jarvis: IDE-like interface; hypothesis pressure-test; presentation module drafting; Trust Score displayed per response</li>
+            <li><strong style="color:var(--cyan)">Month 5</strong> — Sales Jarvis: Proposal generator; cross-domain pain-point-to-partner-expertise matching; pitch deck generation with IP provenance</li>
+            <li><strong style="color:var(--gold)">Month 6</strong> — Pilot group launch (20–30 consultants, 5–10 sales); MTBH dashboard live; feedback loops active</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Month 6 Go-Live Success Criteria</h4>
+          <ul style="font-size:12px; color:var(--text-secondary); padding-left:16px; display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+            <li>✓ MTBH_WHAT ≥95% on IP concept resolution for SC and M&A domains</li>
+            <li>✓ P95 Consultant Jarvis response latency ≤4 seconds</li>
+            <li>✓ 100% of responses carry provenance chain (zero unattributed claims)</li>
+            <li>✓ Circuit Breaker trip rate ≤2% (hallucination containment verified)</li>
+            <li>✓ Net Promoter Score ≥40 from pilot consultant cohort</li>
+            <li>✓ Sales pitch deck generation time reduced ≥60% vs. manual baseline</li>
+          </ul>
+          <div class="callout callout-cyan" style="margin-top:12px; padding:12px;">
+            <div class="callout-text" style="font-size:11px;"><strong>Progressive Complexity Management:</strong> Adding the third domain holon (Month 7) does not require gateway re-architecture. The holonic protocol absorbs new domain holons as sovereign units — the gateway simply activates additional routing paths. This is the compounding advantage of holonic design over monolithic architectures.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 2 -->
+    <div class="card" style="margin-bottom:16px; border-left:3px solid var(--gold);">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+        <span class="level-badge l3" style="font-size:12px; padding:4px 14px;">Phase 2</span>
+        <div>
+          <div style="font-size:15px; font-weight:700; color:var(--text-primary);">Holarchy Expansion — Months 7–12</div>
+          <div style="font-size:11px; color:var(--text-muted);">Objective: All practice areas as production domain holons. AM and Executive Jarvis live. Full MTBH observability across the holarchy.</div>
+        </div>
+      </div>
+      <div class="grid-3" style="gap:14px;">
+        <div>
+          <h4>Domain Holon Scale-Out</h4>
+          <ul style="font-size:11px; color:var(--text-secondary); padding-left:14px; display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+            <li>M7: Digital / Technology Holon</li>
+            <li>M8: Operations Holon</li>
+            <li>M9: Sustainability Holon</li>
+            <li>M10: Healthcare / Pharma Holon</li>
+            <li>M11: Public Sector / Defense Holon</li>
+            <li>M12: Cross-domain value stream ontology linking all practice holons</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Role Interface Completion</h4>
+          <ul style="font-size:11px; color:var(--text-secondary); padding-left:14px; display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+            <li>M9: Account Manager Jarvis — proactive client risk/opportunity radar</li>
+            <li>M10: Executive Jarvis — macro-trend dashboard; cross-practice pattern synthesis</li>
+            <li>M11: AM + Exec interface refinement based on pilot feedback</li>
+            <li>M12: Global office rollout begins; multi-language support</li>
+          </ul>
+        </div>
+        <div>
+          <h4>Trust Metrology Maturation</h4>
+          <ul style="font-size:11px; color:var(--text-secondary); padding-left:14px; display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+            <li>M7: MTBH OPS Workbench (Tom Sawyer Perspectives) live</li>
+            <li>M8: Value-Drift Coefficient monitoring per agent</li>
+            <li>M9: Intent Delta automated detection operational</li>
+            <li>M10: SRE SLOs formally established for all domain holons</li>
+            <li>M12: Observe–Reason–Adapt loop closed: RAG discovery → Domain Gov review → KGCL admission active</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3 -->
+    <div class="card" style="border-left:3px solid var(--purple);">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+        <span class="level-badge l4" style="font-size:12px; padding:4px 14px;">Phase 3</span>
+        <div>
+          <div style="font-size:15px; font-weight:700; color:var(--text-primary);">Enterprise Holarchy — Months 13–18</div>
+          <div style="font-size:11px; color:var(--text-muted);">Objective: Digital Orchestration. The holarchy governs what should happen, not merely records what happened. Global rollout; self-evolving knowledge holarchy; bespoke practice-area extensions.</div>
+        </div>
+      </div>
+      <div class="grid-2" style="gap:16px;">
+        <ul style="font-size:12px; color:var(--text-secondary); padding-left:16px; display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+          <li><strong style="color:var(--purple)">M13:</strong> Enterprise Semantic Governance Council formally constituted; L4 holarchy governance active; cross-practice conflict resolution protocol operational</li>
+          <li><strong style="color:var(--purple)">M14:</strong> Global office deployment — all regions; full SRE management of AI infrastructure; automated failover and real-time degradation monitoring</li>
+          <li><strong style="color:var(--purple)">M15:</strong> Self-evolving holarchy operational: Observe–Reason–Adapt loop autonomously extends knowledge holons from engagement outputs</li>
+          <li><strong style="color:var(--purple)">M16:</strong> Practice-area bespoke extensions: M&A deal analytics agent; Supply Chain risk prediction holon; Digital transformation pattern library</li>
+          <li><strong style="color:var(--purple)">M17:</strong> Third-party analyst network integration (financial feeds, analyst reports) governed by SHACL data contracts</li>
+          <li><strong style="color:var(--purple)">M18:</strong> Full Digital Orchestration: the KIH governs Kearney's competitive intelligence strategy in real time — the holarchy is the strategy engine</li>
+        </ul>
+        <div>
+          <div class="callout callout-gold">
+            <div class="callout-icon">◈</div>
+            <div class="callout-text" style="font-size:11px;">
+              <strong>The Compounding Holonic Advantage:</strong> Each new domain holon added in Phase 3 does not add linear complexity — it adds exponential connectivity. The enterprise holarchy at Month 18 is not 9× more powerful than Month 6's two-holon MVP; it is orders of magnitude more powerful because cross-domain pattern synthesis becomes possible. A cross-practice engagement linking supply chain, digital, and M&A holons generates insights impossible in any single practice.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<!--                           TAB 5: MEASUREMENT & TRUST                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<section class="tab-panel" id="tab-measure">
+
+  <div class="section-header">
+    <span class="section-tag">Measurement & Trust Architecture</span>
+    <h2>Holarchic Metrics Framework — Experiential &amp; Operational</h2>
+    <p class="section-lead">Measurement in the KIH is not reporting — it is holarchic health monitoring. Every metric maps to a specific holonic level, a specific governance pillar, and a specific remediation protocol. Measurement is the mechanism by which the holarchy observes itself.</p>
+  </div>
+
+  <!-- MEASUREMENT FRAMEWORK TABLE -->
+  <h3>Master Metrics Framework — By Holonic Level &amp; Stakeholder</h3>
+  <table style="margin-top:12px; margin-bottom:28px;">
+    <thead><tr><th>Metric</th><th>Holonic Level</th><th>Governance Pillar</th><th>Target</th><th>Primary Stakeholder</th><th>Remediation Protocol</th></tr></thead>
+    <tbody>
+      <!-- Trust / AI Accuracy -->
+      <tr style="background:rgba(201,168,76,0.04);">
+        <td colspan="6" style="color:var(--gold); font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:8px 14px;">Trusted BI &amp; AI — L3 Gateway Health</td>
+      </tr>
+      <tr><td>MTBH_WHO (Persona Routing Fidelity)</td><td><span class="level-badge l3">L3</span></td><td>Trusted BI &amp; AI</td><td>≥98%</td><td>CTO / AI Science</td><td>Persona PEP revalidation; agent registry audit</td></tr>
+      <tr><td>MTBH_WHAT (IP Concept Resolution)</td><td><span class="level-badge l3">L3</span></td><td>Trusted BI &amp; AI</td><td>≥99%</td><td>CTO / AI Science</td><td>SHACL constraint review; domain ontology update</td></tr>
+      <tr><td>MTBH_WHEN (Temporal Anchoring)</td><td><span class="level-badge l3">L3</span></td><td>Trusted BI &amp; AI</td><td>≥95%</td><td>CTO / AI Science</td><td>SWRL temporal rule update; force re-ingestion of stale assets</td></tr>
+      <tr><td>MTBH_WHERE (Domain Routing)</td><td><span class="level-badge l3">L3</span></td><td>Trusted BI &amp; AI</td><td>≥97%</td><td>CTO / AI Science</td><td>Context Router Agent retraining; WHERE PEP boundary review</td></tr>
+      <tr><td>MTBH_WHY (Intent-Governance Alignment)</td><td><span class="level-badge l3">L3</span></td><td>Trusted BI &amp; AI</td><td>≥96%</td><td>CTO / AI Science</td><td>Intent-tag recalibration; Contextual Relevancy Agent retuning</td></tr>
+      <tr><td>Circuit Breaker Trip Rate</td><td><span class="level-badge l3">L3</span></td><td>Trusted BI &amp; AI</td><td>≤2%</td><td>CTO / Consultants</td><td>Investigate trip cause by dimension; domain holon invariant review</td></tr>
+      <tr><td>Value-Drift Coefficient (per Agent)</td><td><span class="level-badge l2">L2</span></td><td>Trusted BI &amp; AI</td><td>≤0.15</td><td>AI Science</td><td>Domain Governance Team review; agent objective function re-alignment</td></tr>
+      <tr><td>Intent Delta (per Interaction)</td><td><span class="level-badge l3">L3</span></td><td>Trusted BI &amp; AI</td><td>≤0.10</td><td>AI Science</td><td>RCB assembly review; 5D context tagging improvement</td></tr>
+      <tr><td>AI Confidence Score (per Response)</td><td><span class="level-badge l3">L3</span></td><td>Trusted BI &amp; AI</td><td>≥0.85 to deliver</td><td>Consultants (displayed)</td><td>Soft-trip; reroute to higher-confidence domain path</td></tr>
+      <!-- Data Quality -->
+      <tr style="background:rgba(52,211,153,0.04);">
+        <td colspan="6" style="color:var(--green); font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:8px 14px;">Meaning at Scale — L1 Knowledge Holon Health</td>
+      </tr>
+      <tr><td>SHACL Validation Pass Rate (Inbound)</td><td><span class="level-badge l1">L1</span></td><td>Meaning at Scale</td><td>≥98%</td><td>CoE / Data Stewards</td><td>Ingestion quality review; source data remediation</td></tr>
+      <tr><td>Ingestion Rejection Rate</td><td><span class="level-badge l1">L1</span></td><td>Meaning at Scale</td><td>≤2%</td><td>CoE / Data Stewards</td><td>KGCL rejection analysis; source system data quality improvement</td></tr>
+      <tr><td>Stale Asset Rate (&gt;90 days)</td><td><span class="level-badge l1">L1</span></td><td>Meaning at Scale</td><td>≤5%</td><td>Domain Gov Teams</td><td>MTBH_WHEN triggered; forced re-ingestion or flagging</td></tr>
+      <tr><td>AI Suggestion Adoption Rate (RAG discovery)</td><td><span class="level-badge l2">L2</span></td><td>Meaning at Scale</td><td>≥60%</td><td>Domain Gov Teams</td><td>RAG model recalibration; entity evaluator retuning</td></tr>
+      <tr><td>Manual Correction Rate</td><td><span class="level-badge l1">L1</span></td><td>Meaning at Scale</td><td>≤5%</td><td>CoE</td><td>Root-cause analysis; upstream data quality or SWRL rule gap</td></tr>
+      <!-- Business Literacy -->
+      <tr style="background:rgba(167,139,250,0.04);">
+        <td colspan="6" style="color:var(--purple); font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:8px 14px;">Business Literacy — L4 Enterprise Holarchy Engagement</td>
+      </tr>
+      <tr><td>Vocabulary Adoption Rate</td><td><span class="level-badge l4">L4</span></td><td>Business Literacy</td><td>≥75% of active consultants</td><td>Enterprise Council</td><td>Communication outreach; training program; KSWG-style engagement</td></tr>
+      <tr><td>Catalog Discovery Rate</td><td><span class="level-badge l4">L4</span></td><td>Business Literacy</td><td>≥80% queries resolved via holarchy</td><td>All stakeholders</td><td>Zero-Result Rate analysis; ontology gap identification</td></tr>
+      <tr><td>Domain Alignment Score</td><td><span class="level-badge l4">L4</span></td><td>Business Literacy</td><td>≥0.85 per practice</td><td>Practice Leaders</td><td>Practice-specific ontology enrichment; cross-domain RAG tuning</td></tr>
+      <!-- Decision Quality -->
+      <tr style="background:rgba(56,189,248,0.04);">
+        <td colspan="6" style="color:var(--cyan); font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:8px 14px;">Decision Quality — L2 Domain Holon Effectiveness</td>
+      </tr>
+      <tr><td>Search Relevance (P@5)</td><td><span class="level-badge l2">L2</span></td><td>Decision Quality</td><td>≥0.90</td><td>Consultants / AMs</td><td>Domain vector DB reindexing; ontology class refinement</td></tr>
+      <tr><td>Zero-Result Rate</td><td><span class="level-badge l2">L2</span></td><td>Decision Quality</td><td>≤3%</td><td>Consultants</td><td>Holarchy gap identified → ORSD initiated for new knowledge holon</td></tr>
+      <tr><td>Query Response Time (P95)</td><td><span class="level-badge l3">L3</span></td><td>Decision Quality</td><td>≤4s (Consultant)</td><td>All users</td><td>Domain agent scaling; gateway performance optimisation</td></tr>
+      <tr><td>Insight-to-Action Conversion (Sales)</td><td><span class="level-badge l4">L4</span></td><td>Decision Quality</td><td>≥35% (proposals advancing)</td><td>Sales Leadership</td><td>Sales Jarvis prompt engineering; domain holon coverage expansion</td></tr>
+    </tbody>
+  </table>
+
+  <!-- EXPERIENTIAL MEASUREMENT -->
+  <h3>Experiential Measurement — Stakeholder Outcome Tracking</h3>
+  <p style="max-width:760px; margin-bottom:20px;">Trust is not purely technical — it is experiential. The holarchy must prove its value to internal stakeholders through measurable outcome improvements, tracked continuously from Month 6 onwards. These metrics sit above the technical MTBH scores as the business case evidence layer.</p>
+
+  <div class="grid-3" style="margin-bottom:28px;">
+    <div class="card">
+      <h4>Field Consultant Outcomes</h4>
+      <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Research Time Reduction</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:65%; height:100%; background:linear-gradient(90deg,var(--cyan),#7dd3fc);"></div></div>
+            <span class="metric-chip chip-cyan">Target: ≥60%</span>
+          </div>
+        </div>
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Hypothesis Accuracy (SHACL-validated)</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:85%; height:100%; background:linear-gradient(90deg,var(--green),#6ee7b7);"></div></div>
+            <span class="metric-chip chip-green">Target: ≥85%</span>
+          </div>
+        </div>
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Jarvis NPS (Pilot Cohort)</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:55%; height:100%; background:linear-gradient(90deg,var(--gold),var(--gold-light));"></div></div>
+            <span class="metric-chip chip-gold">Target: ≥40 NPS</span>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Measured: Monthly NPS survey, time-tracking integration, hypothesis validation log from KGCL</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h4>Account Manager &amp; Sales Outcomes</h4>
+      <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Proposal Generation Time</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:70%; height:100%; background:linear-gradient(90deg,var(--cyan),#7dd3fc);"></div></div>
+            <span class="metric-chip chip-cyan">Target: ≥65% faster</span>
+          </div>
+        </div>
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Proposal Advance Rate</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:40%; height:100%; background:linear-gradient(90deg,var(--green),#6ee7b7);"></div></div>
+            <span class="metric-chip chip-green">Target: ≥35% advance</span>
+          </div>
+        </div>
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Client Risk Alert Accuracy</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:90%; height:100%; background:linear-gradient(90deg,var(--gold),var(--gold-light));"></div></div>
+            <span class="metric-chip chip-gold">Target: ≥90%</span>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Measured: CRM integration; proposal pipeline tracking; AM weekly feedback log</div>
+      </div>
+    </div>
+
+    <div class="card card-gold">
+      <h4>Executive &amp; Enterprise Outcomes</h4>
+      <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Strategic Trend Detection Lead Time</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:80%; height:100%; background:linear-gradient(90deg,var(--gold),var(--gold-light));"></div></div>
+            <span class="metric-chip chip-gold">Target: +3 months ahead</span>
+          </div>
+        </div>
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Cross-Practice IP Utilisation</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:75%; height:100%; background:linear-gradient(90deg,var(--cyan),#7dd3fc);"></div></div>
+            <span class="metric-chip chip-cyan">Target: ≥75% of IP active</span>
+          </div>
+        </div>
+        <div>
+          <div style="color:var(--text-primary); font-weight:600; margin-bottom:2px;">Knowledge Monetisation Index</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="flex:1; height:5px; background:var(--surface-2); border-radius:3px; overflow:hidden;"><div style="width:60%; height:100%; background:linear-gradient(90deg,var(--green),#6ee7b7);"></div></div>
+            <span class="metric-chip chip-green">Catalog Discovery Rate × Trust Score</span>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Measured: L4 holarchy OPS dashboard; cross-practice query analytics; executive briefing cadence vs. manual research baseline</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPS WORKBENCH -->
+  <h3>The Holarchic Observatory — OPS Workbench Architecture</h3>
+  <div class="callout callout-gold">
+    <div class="callout-icon">◎</div>
+    <div class="callout-text">
+      <strong>Design Principle:</strong> Holarchic health cannot be monitored from outside the holarchy — it must be observed from within it. The OPS Workbench (Tom Sawyer Perspectives) is not a reporting tool; it is the holarchy's self-awareness system, surfacing governance state in real time across all four holonic levels simultaneously.
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px;">
+    <div class="card">
+      <h4>Four Perspectives Monitoring Functions</h4>
+      <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+        <div><strong style="color:var(--green)">Unified Knowledge Graph View</strong> — Visualises the holarchic structure: nested relationship between core holons, domain practice holons, and knowledge holons across all repositories. Shows which IP assets are active, stale, or under governance review.</div>
+        <div><strong style="color:var(--cyan)">Real-Time Change Binding</strong> — Every KGCL change record, SHACL validation event, and MTBH score update surfaced in real time with version metadata. The Observe phase of the O-R-A loop made visible.</div>
+        <div><strong style="color:var(--gold)">Impact Analysis Pathfinding</strong> — When a knowledge holon changes (e.g., a supply chain framework is updated), the pathfinding engine propagates governance impact upward through the holarchy, identifying all domain agents, PEPs, and downstream consultant-facing services affected.</div>
+        <div><strong style="color:var(--purple)">Lifecycle &amp; Governance Dashboard</strong> — Every knowledge holon's lifecycle state (draft, validated, deprecated), approval pipeline, steward assignment, and MTBH dimensional health visible and actionable. Transforms abstract RDF governance into an operational interface.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:12px;">
+        <h4>Governance Tier → Metrics Access</h4>
+        <table style="margin-top:8px;">
+          <thead><tr><th>Governance Tier</th><th>Primary Dashboard View</th><th>Key Metrics</th></tr></thead>
+          <tbody>
+            <tr><td><span class="level-badge l4">Enterprise Council</span></td><td>L4 Holarchy health</td><td>Domain Alignment, Cross-Practice Utilisation, Value-Drift aggregate</td></tr>
+            <tr><td><span class="level-badge l2">Domain Gov Teams</span></td><td>L2 Domain holon health</td><td>Per-domain MTBH dimensions, Stale Asset Rate, PEP violation trends</td></tr>
+            <tr><td><span class="level-badge l1">CoE / Ontology Eng</span></td><td>L1 Knowledge holon health</td><td>SHACL pass rate, Ingestion Rejection Rate, KGCL change velocity</td></tr>
+            <tr><td><span class="level-badge l3">CTO / AI Science</span></td><td>L3 Gateway health</td><td>MTBH 5D scores, Circuit Breaker trips, Intent Delta, Latency SLOs</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h4>Anti-Collapse Monitoring — Critical Safety Metrics</h4>
+        <div style="font-size:12px; color:var(--text-secondary); display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+          <div><strong style="color:var(--red)">Sanitization Queue Volume</strong> — Count of Circuit Breaker trips excluded from training queue. Rising trend → investigate holonic failure cascade risk</div>
+          <div><strong style="color:var(--amber)">Training Contamination Rate</strong> — Proportion of agent updates derived from non-sanitized outputs. Target: 0%. Alert on any non-zero value.</div>
+          <div><strong style="color:var(--gold)">Model Collapse Early-Warning</strong> — Statistical divergence in agent output distribution from baseline. Detected before consultant-facing degradation occurs.</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">These three metrics together constitute the holarchic anti-collapse monitoring layer — the most critical safety instruments in the entire KIH architecture.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- DELIVERY CADENCE -->
+  <h3>Measurement Delivery Cadence</h3>
+  <table>
+    <thead><tr><th>Cadence</th><th>Report</th><th>Audience</th><th>Key Content</th></tr></thead>
+    <tbody>
+      <tr><td><strong style="color:var(--green)">Real-time</strong></td><td>MTBH Dimensional Dashboard</td><td>CTO / AI Science</td><td>Live MTBH per dimension, Circuit Breaker status, agent health, latency SLOs</td></tr>
+      <tr><td><strong style="color:var(--cyan)">Daily</strong></td><td>Holarchy Health Digest</td><td>CoE + Domain Gov Teams</td><td>SHACL validation pass rate, ingestion volume, KGCL change velocity, stale asset alerts</td></tr>
+      <tr><td><strong style="color:var(--gold)">Weekly</strong></td><td>Jarvis Experience Report</td><td>Practice Leaders + AM Leads</td><td>NPS by role, research time reduction, proposal advance rate, zero-result analysis</td></tr>
+      <tr><td><strong style="color:var(--purple)">Monthly</strong></td><td>Enterprise Intelligence Review</td><td>Enterprise Council</td><td>Cross-practice utilisation, knowledge monetisation index, strategic trend detection lag, Value-Drift aggregate, Phase milestone tracking</td></tr>
+      <tr><td><strong style="color:var(--gold)">Quarterly</strong></td><td>Holarchic Evolution Report</td><td>Executive Leadership</td><td>O-R-A loop: how many new knowledge holons discovered by RAG, admitted by governance, actively used by consultants; holarchy ROI</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-cyan" style="margin-top:28px;">
+    <div class="callout-icon">✦</div>
+    <div class="callout-text">
+      <strong>The Measurement Principle That Distinguishes This Architecture:</strong> In conventional AI deployments, trust is asserted ("our model is 95% accurate"). In the KIH, trust is <em>architecturally produced and continuously demonstrated</em> through the MTBH dimensional scoring, Circuit Breaker containment records, KGCL provenance chains, and the sanitization anti-collapse protocol. Every single insight delivered to a Kearney consultant carries a verifiable, mathematically grounded trust signature — not a confidence percentage, but a structured governance attestation traceable to specific IP assets, specific holonic levels, and specific governance decisions. <strong>This is what "Jarvis" actually means in the context of management consulting: not an assistant that answers questions, but a governance architecture that certifies answers.</strong>
+    </div>
+  </div>
+
+</section>
+</main>
+
+<!-- ═══════════════════════════════════════ FOOTER ══════════════════════════════════════ -->
+<footer style="background:var(--surface-1); border-top:1px solid var(--border-subtle); padding:20px 48px; display:flex; justify-content:space-between; align-items:center; margin-top:60px;">
+  <div>
+    <div style="font-family:'Playfair Display',serif; font-size:14px; color:var(--gold);">Kearney Intelligence Holarchy</div>
+    <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Solution Architecture &amp; Transformation Roadmap — KIH-ARCH v1.0</div>
+  </div>
+  <div style="text-align:right;">
+    <div style="font-size:10px; color:var(--text-muted);">Prepared by The Value Enablement Group, LLC</div>
+    <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Jeffrey Wallk, Senior Enterprise Architect &amp; Knowledge Engineering Leader</div>
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--gold-dim); margin-top:4px;">Holonic Semantic Governance Architecture v2.0 · RDSG v2.0 · MTBH Trust Metrology</div>
+  </div>
+</footer>
+
+<script>
+  function showTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

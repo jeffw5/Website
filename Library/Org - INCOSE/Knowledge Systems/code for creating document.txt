@@ -1,0 +1,1606 @@
+﻿import subprocess
+import os
+from datetime import datetime
+
+
+# Create the document
+output_path = "/mnt/user-data/outputs/Human-AI_Teaming_Framework_for_Semantic_Governance.docx"
+
+
+# Use python-docx to create a professional document
+subprocess.run([
+    "pip", "install", "python-docx", "--break-system-packages"
+], capture_output=True)
+
+
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.style import WD_STYLE_TYPE
+
+
+# Create document
+doc = Document()
+
+
+# Set up styles
+style = doc.styles['Normal']
+font = style.font
+font.name = 'Calibri'
+font.size = Pt(11)
+
+
+# Title Page
+title = doc.add_paragraph()
+title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+run = title.add_run("Human-AI Teaming Framework\nfor Semantic Governance")
+run.font.size = Pt(24)
+run.font.bold = True
+run.font.color.rgb = RGBColor(0, 51, 102)
+
+
+doc.add_paragraph()
+
+
+subtitle = doc.add_paragraph()
+subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+run = subtitle.add_run("Integrating Human Factors Across AI-Driven Knowledge Engineering")
+run.font.size = Pt(14)
+run.font.italic = True
+
+
+doc.add_paragraph()
+doc.add_paragraph()
+
+
+# Metadata
+metadata = doc.add_paragraph()
+metadata.alignment = WD_ALIGN_PARAGRAPH.CENTER
+run = metadata.add_run(f"""Version: 1.0
+Date: February 2026
+Purpose: Close critical human factors gaps identified in Cummings research across Semantic Governance architecture
+""")
+run.font.size = Pt(10)
+
+
+doc.add_page_break()
+
+
+# Executive Summary
+doc.add_heading('Executive Summary', 1)
+
+
+doc.add_paragraph("""The Semantic Governance architecture comprises world-class technical infrastructure: federated RAG 2.0, AI Circuit Breakers, vector databases, comprehensive service portfolios, and operational tooling. However, research by Dr. Missy Cummings and others on human-automation interaction reveals a critical pattern: technically sophisticated systems fail when human oversight degrades due to automation complacency, alert fatigue, skill atrophy, and trust miscalibration.""")
+
+
+doc.add_paragraph("""This framework addresses the 20% missing layer: Human-AI Teaming. It ensures knowledge engineers can effectively supervise AI agents, maintain decision-making competency, calibrate trust appropriately, and sustain performance over extended operations.""")
+
+
+doc.add_heading('Integration Points', 2)
+doc.add_paragraph("""This document integrates with:""")
+
+
+integration_points = [
+    "Semantic Governance Architecture (Solution Architecture PDF) - adds human factors to federated agents",
+    "AI Circuit Breaker Framework (INCOSE paper) - adds human takeover protocols",
+    "Vector DB/Context Engine - adds human comprehension interfaces",
+    "Service Portfolio - adds human performance services",
+    "Operating Model - adds human-centered workflows",
+    "Tom Sawyer Workbench - adds cognitive support visualizations"
+]
+
+
+for point in integration_points:
+    doc.add_paragraph(point, style='List Bullet')
+
+
+doc.add_page_break()
+
+
+# Table of Contents
+doc.add_heading('Table of Contents', 1)
+
+
+toc_items = [
+    ("Part 1: Theoretical Foundation", "3"),
+    ("1.1 The Human-Automation Paradox", "3"),
+    ("1.2 Critical Human Factors Failures", "4"),
+    ("1.3 Design Principles for Human-AI Teaming", "5"),
+    ("Part 2: Human Performance Monitoring System", "6"),
+    ("2.1 Architecture Overview", "6"),
+    ("2.2 Human Performance Metrics Schema", "7"),
+    ("2.3 Validation Quality Tracker Service", "9"),
+    ("2.4 Trust Calibration Monitor Service", "12"),
+    ("2.5 Cognitive Workload Manager Service", "15"),
+    ("Part 3: Enhanced AI Interfaces with Human Factors", "18"),
+    ("3.1 Confidence Score Explainability Service", "18"),
+    ("Part 4: Enhanced User Interfaces", "24"),
+    ("4.1 Mapping Validation Interface", "24"),
+    ("4.2 Tom Sawyer Enhanced Workbench Views", "28"),
+    ("Part 5: Competency Maintenance & Training", "30"),
+    ("5.1 Skill Maintenance Scheduler", "30"),
+    ("5.2 Knowledge Assessment Quiz Generator", "33"),
+    ("Part 6: Organizational Safeguards", "35"),
+    ("6.1 Production Pressure Monitoring", "35"),
+    ("Part 7: Implementation Roadmap", "39"),
+    ("7.1 Phased Implementation", "39"),
+    ("7.2 Success Metrics", "41"),
+    ("Part 8: Conclusion", "42"),
+]
+
+
+for item, page in toc_items:
+    p = doc.add_paragraph()
+    if not item.startswith("Part"):
+        p.style = 'List Bullet'
+        run = p.add_run(f"{item}")
+    else:
+        run = p.add_run(f"{item}")
+        run.font.bold = True
+    
+    # Add dots and page number
+    run = p.add_run("." * (80 - len(item) - len(page)))
+    run.font.color.rgb = RGBColor(128, 128, 128)
+    run = p.add_run(page)
+
+
+doc.add_page_break()
+
+
+# Part 1: Theoretical Foundation
+doc.add_heading('Part 1: Theoretical Foundation', 1)
+
+
+doc.add_heading('1.1 The Human-Automation Paradox', 2)
+
+
+doc.add_paragraph("Cummings' Core Finding:", style='Intense Quote')
+quote = doc.add_paragraph(""""The better the automation, the worse the human performance when automation fails or requires oversight."""")
+quote.style = 'Intense Quote'
+
+
+doc.add_heading('Why This Matters for Semantic Governance:', 3)
+
+
+doc.add_paragraph("""The automation quality paradox manifests in knowledge engineering as follows:""")
+
+
+doc.add_paragraph("Week 1: AI suggests mappings with 65% accuracy", style='List Bullet')
+doc.add_paragraph("Knowledge engineers carefully review each suggestion", style='List Bullet 2')
+doc.add_paragraph("Build deep understanding of domain patterns", style='List Bullet 2')
+doc.add_paragraph("Maintain sharp validation skills", style='List Bullet 2')
+
+
+doc.add_paragraph("Week 12: AI suggests mappings with 92% accuracy", style='List Bullet')
+doc.add_paragraph("Knowledge engineers trust AI recommendations", style='List Bullet 2')
+doc.add_paragraph("Review becomes perfunctory (rubber stamping)", style='List Bullet 2')
+doc.add_paragraph("Domain knowledge atrophies (don't need to think deeply)", style='List Bullet 2')
+doc.add_paragraph("When AI fails (8% error rate), humans can't detect failures", style='List Bullet 2')
+
+
+doc.add_paragraph("""Result: Better AI → Worse human supervision → Higher risk""")
+
+
+doc.add_heading('1.2 Critical Human Factors Failures', 2)
+
+
+doc.add_paragraph("""From Aviation (Cummings), Medical Devices (FDA), Industrial Control (NTSB):""")
+
+
+# Create table for failure modes
+table = doc.add_table(rows=7, cols=3)
+table.style = 'Light Grid Accent 1'
+
+
+# Header row
+hdr_cells = table.rows[0].cells
+hdr_cells[0].text = 'Failure Mode'
+hdr_cells[1].text = 'Manifestation in Semantic Governance'
+hdr_cells[2].text = 'Consequence'
+
+
+# Make header bold
+for cell in hdr_cells:
+    for paragraph in cell.paragraphs:
+        for run in paragraph.runs:
+            run.font.bold = True
+
+
+# Data rows
+failure_data = [
+    ('Automation Complacency', 'Accepting high-confidence mappings without verification', 'Bad ontology mappings propagate to 30,000+ assets'),
+    ('Alert Fatigue', 'Ignoring "flag_for_manual_review" after seeing 100/day', 'Critical conflicts auto-accepted inappropriately'),
+    ('Mode Confusion', 'Not knowing which domain agent is active', 'Query returns incomplete results, user unaware'),
+    ('Skill Degradation', 'Loss of manual mapping ability after 6 months of AI automation', 'Cannot intervene effectively when AI fails'),
+    ('Trust Miscalibration', 'Treating confidence=0.85 as "reliable" when actual accuracy=0.62', 'Systematic acceptance of incorrect mappings'),
+    ('Out-of-Loop Performance', 'Cognitive inability to take over after long monitoring periods', 'Cannot resolve complex conflicts when flagged')
+]
+
+
+for i, (mode, manifestation, consequence) in enumerate(failure_data, start=1):
+    row_cells = table.rows[i].cells
+    row_cells[0].text = mode
+    row_cells[1].text = manifestation
+    row_cells[2].text = consequence
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('1.3 Design Principles for Human-AI Teaming', 2)
+
+
+principles = [
+    ("Human as Active Participant, Not Passive Monitor",
+     "❌ Wrong: Human reviews AI outputs when flagged",
+     "✅ Right: Human periodically performs tasks manually to maintain skill"),
+    
+    ("Transparency Over Autonomy",
+     "❌ Wrong: AI confidence score: 0.87 (opaque)",
+     "✅ Right: High confidence because: exact string match + 15 validated precedents + active schema (explainable)"),
+    
+    ("Calibrated Trust Through Feedback",
+     "❌ Wrong: AI accuracy: 89% (system-level metric)",
+     "✅ Right: Your acceptance rate for 0.85 confidence: 94% | Actual accuracy at 0.85: 71% | You are over-trusting (personalized feedback)"),
+    
+    ("Graded Autonomy, Not Binary",
+     "❌ Wrong: Auto-accept >0.80 confidence OR Manual review everything",
+     "✅ Right: Autonomy adjusts based on: domain complexity, recent accuracy, human workload, stake level"),
+    
+    ("Organizational Safety Culture",
+     "❌ Wrong: Production pressure to accept 100 mappings/day",
+     "✅ Right: Quality metrics trump throughput metrics | Authority to halt for safety concerns")
+]
+
+
+for title, wrong, right in principles:
+    doc.add_heading(f'Principle: {title}', 3)
+    doc.add_paragraph(wrong)
+    doc.add_paragraph(right)
+    doc.add_paragraph()
+
+
+doc.add_page_break()
+
+
+# Part 2: Human Performance Monitoring System
+doc.add_heading('Part 2: Human Performance Monitoring System', 1)
+
+
+doc.add_heading('2.1 Architecture Overview', 2)
+
+
+doc.add_paragraph("""The Human Performance Monitoring System consists of five integrated services:""")
+
+
+services = [
+    "Validation Quality Tracker - Monitors quality of validation decisions over time",
+    "Trust Calibration Monitor - Detects over-trust and under-trust patterns",
+    "Cognitive Workload Manager - Balances task complexity with human capacity",
+    "Competency Maintenance Scheduler - Ensures skills don't degrade",
+    "Performance Database - Stores all human performance metrics"
+]
+
+
+for service in services:
+    doc.add_paragraph(service, style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("""These services feed into three downstream systems:""")
+
+
+downstream = [
+    "Alert System - Provides real-time warnings to engineers",
+    "Adaptive Autonomy Controller - Adjusts AI autonomy based on human state",
+    "Competency Maintenance Scheduler - Schedules training and exercises"
+]
+
+
+for item in downstream:
+    doc.add_paragraph(item, style='List Bullet')
+
+
+doc.add_heading('2.2 Human Performance Metrics Schema', 2)
+
+
+doc.add_paragraph("""The system tracks performance using three core database tables:""")
+
+
+doc.add_heading('Human_Performance_Metrics Table', 3)
+
+
+doc.add_paragraph("""Tracks individual validation decisions:""")
+
+
+metrics_fields = [
+    "Decision Context: type, complexity, AI confidence",
+    "Decision Outcome: action taken, time to decision, correctness",
+    "Human State: session duration, decisions made, fatigue score",
+    "Calculated Metrics: rolling accuracy, trust calibration, cognitive load"
+]
+
+
+for field in metrics_fields:
+    doc.add_paragraph(field, style='List Bullet')
+
+
+doc.add_heading('Work_Sessions Table', 3)
+
+
+doc.add_paragraph("""Tracks session-level metrics:""")
+
+
+session_fields = [
+    "Session duration and decision count",
+    "Session-level accuracy and average decision time",
+    "Alerts triggered: fatigue, over-trust, under-trust, quality degradation",
+    "Interventions: breaks taken, exercises completed"
+]
+
+
+for field in session_fields:
+    doc.add_paragraph(field, style='List Bullet')
+
+
+doc.add_heading('Trust_Calibration_Events Table', 3)
+
+
+doc.add_paragraph("""Tracks trust alignment:""")
+
+
+trust_fields = [
+    "AI prediction: confidence and recommendation",
+    "Human decision: action and confidence estimate",
+    "Ground truth: actual correctness (determined later)",
+    "Calibration analysis: trust alignment score, over/under-trust indicators"
+]
+
+
+for field in trust_fields:
+    doc.add_paragraph(field, style='List Bullet')
+
+
+doc.add_page_break()
+
+
+doc.add_heading('2.3 Validation Quality Tracker Service', 2)
+
+
+doc.add_paragraph("""The Validation Quality Tracker monitors decision quality in real-time and detects four types of degradation:""")
+
+
+doc.add_heading('Alert Type 1: Accuracy Degradation', 3)
+
+
+doc.add_paragraph("""Triggered when: Validation accuracy drops >15% below baseline""")
+doc.add_paragraph("""Example: Engineer's baseline accuracy: 91%, Current: 78%""")
+doc.add_paragraph("""Action: Alert engineer and recommend break or peer review""")
+
+
+doc.add_heading('Alert Type 2: Rushing Detected', 3)
+
+
+doc.add_paragraph("""Triggered when: Decision time <50% of baseline (2x faster)""")
+doc.add_paragraph("""Example: Baseline: 4.5 min/decision, Current: 2.1 min/decision""")
+doc.add_paragraph("""Action: Warn engineer to slow down and use checklist""")
+
+
+doc.add_heading('Alert Type 3: Fatigue Detected', 3)
+
+
+doc.add_paragraph("""Triggered when: Fatigue score >0.7 (on 0-1 scale)""")
+doc.add_paragraph("""Fatigue factors:""")
+
+
+fatigue_factors = [
+    "Session duration (6 hours = 1.0)",
+    "Time since last break (90 minutes = 1.0)",
+    "Accuracy degradation (20% drop = 1.0)",
+    "Decision speed increase (2x faster = 1.0)"
+]
+
+
+for factor in fatigue_factors:
+    doc.add_paragraph(factor, style='List Bullet')
+
+
+doc.add_paragraph("""Action: Mandatory 15-minute break before continuing""")
+
+
+doc.add_heading('Alert Type 4: Session Duration Exceeded', 3)
+
+
+doc.add_paragraph("""Triggered when: Session >6 hours continuous work""")
+doc.add_paragraph("""Action: Critical alert to end session immediately""")
+
+
+doc.add_page_break()
+
+
+doc.add_heading('2.4 Trust Calibration Monitor Service', 2)
+
+
+doc.add_paragraph("""The Trust Calibration Monitor detects when engineers' trust in AI is misaligned with actual reliability.""")
+
+
+doc.add_heading('How Calibration Works', 3)
+
+
+doc.add_paragraph("""For each confidence bucket (e.g., 0.80-0.85):""")
+
+
+calibration_steps = [
+    "Measure actual AI accuracy in that bucket",
+    "Measure engineer's acceptance rate in that bucket",
+    "Calculate calibration delta: acceptance_rate - actual_accuracy",
+    "Classify trust state based on delta"
+]
+
+
+for i, step in enumerate(calibration_steps, 1):
+    doc.add_paragraph(f"{i}. {step}")
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Trust States', 3)
+
+
+# Create trust states table
+trust_table = doc.add_table(rows=4, cols=3)
+trust_table.style = 'Light Grid Accent 1'
+
+
+hdr_cells = trust_table.rows[0].cells
+hdr_cells[0].text = 'Trust State'
+hdr_cells[1].text = 'Condition'
+hdr_cells[2].text = 'Severity'
+
+
+for cell in hdr_cells:
+    for paragraph in cell.paragraphs:
+        for run in paragraph.runs:
+            run.font.bold = True
+
+
+trust_states = [
+    ('WELL_CALIBRATED', 'Delta < 5%', 'None'),
+    ('OVER_TRUST', 'Delta > 15%', 'High'),
+    ('UNDER_TRUST', 'Delta < -15%', 'Medium')
+]
+
+
+for i, (state, condition, severity) in enumerate(trust_states, start=1):
+    row_cells = trust_table.rows[i].cells
+    row_cells[0].text = state
+    row_cells[1].text = condition
+    row_cells[2].text = severity
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Example: Over-Trust Detection', 3)
+
+
+example = doc.add_paragraph()
+example.add_run("Scenario: ").bold = True
+example.add_run("Engineer working with AI suggestions in 0.80-0.85 confidence range")
+
+
+doc.add_paragraph("AI actual accuracy in this range: 71%", style='List Bullet')
+doc.add_paragraph("Engineer's acceptance rate: 94%", style='List Bullet')
+doc.add_paragraph("Calibration delta: +23% (OVER-TRUST)", style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+action = doc.add_paragraph()
+action.add_run("Action: ").bold = True
+action.add_run("Before engineer makes next decision in this range, display warning:")
+
+
+warning = doc.add_paragraph(style='Intense Quote')
+warning.add_run("""⚠️ CALIBRATION WARNING: You tend to over-trust AI suggestions in the 0.82 confidence range.
+Historical: You accept 94% but actual accuracy is 71%
+Recommendation: Please review this suggestion carefully using the validation checklist.""")
+
+
+doc.add_page_break()
+
+
+doc.add_heading('2.5 Cognitive Workload Manager Service', 2)
+
+
+doc.add_paragraph("""The Cognitive Workload Manager intelligently assigns tasks based on engineer's current cognitive state.""")
+
+
+doc.add_heading('Engineer State Assessment', 3)
+
+
+doc.add_paragraph("""The system continuously assesses:""")
+
+
+state_factors = [
+    "Session duration (how long working)",
+    "Time since last break",
+    "Number of decisions made",
+    "Recent accuracy trend",
+    "Recent decision speed trend"
+]
+
+
+for factor in state_factors:
+    doc.add_paragraph(factor, style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("""These factors combine into:""")
+
+
+doc.add_paragraph("Fatigue Score (0-1): Higher = more fatigued", style='List Bullet')
+doc.add_paragraph("Cognitive Capacity (0-1): Inverse of fatigue, represents available capacity", style='List Bullet')
+
+
+doc.add_heading('Task Assignment Logic', 3)
+
+
+doc.add_paragraph("""When assigning next task:""")
+
+
+assignment_logic = [
+    "If engineer needs break → Don't assign task, require break first",
+    "Filter tasks by cognitive capacity (only show tasks within capacity)",
+    "Prioritize by: business priority, deadline, cognitive load matching",
+    "Assign highest priority task within capacity"
+]
+
+
+for i, logic in enumerate(assignment_logic, 1):
+    doc.add_paragraph(f"{i}. {logic}")
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Cognitive Load Matching', 3)
+
+
+doc.add_paragraph("""Task complexity is matched to cognitive state:""")
+
+
+# Create matching table
+matching_table = doc.add_table(rows=4, cols=3)
+matching_table.style = 'Light Grid Accent 1'
+
+
+hdr_cells = matching_table.rows[0].cells
+hdr_cells[0].text = 'Cognitive State'
+hdr_cells[1].text = 'Task Preference'
+hdr_cells[2].text = 'Rationale'
+
+
+for cell in hdr_cells:
+    for paragraph in cell.paragraphs:
+        for run in paragraph.runs:
+            run.font.bold = True
+
+
+matching_data = [
+    ('Fresh (>0.8)', 'Challenging (>0.7)', 'Maintain engagement, provide learning'),
+    ('Moderate (0.5-0.8)', 'Matching complexity', 'Balance challenge and capacity'),
+    ('Fatigued (<0.5)', 'Simple (<0.4)', 'Prevent errors, maintain safety')
+]
+
+
+for i, (state, preference, rationale) in enumerate(matching_data, start=1):
+    row_cells = matching_table.rows[i].cells
+    row_cells[0].text = state
+    row_cells[1].text = preference
+    row_cells[2].text = rationale
+
+
+doc.add_page_break()
+
+
+# Part 3: Enhanced AI Interfaces
+doc.add_heading('Part 3: Enhanced AI Interfaces with Human Factors', 1)
+
+
+doc.add_heading('3.1 Confidence Score Explainability Service', 2)
+
+
+doc.add_paragraph("""The Confidence Explainability Service transforms opaque AI confidence scores into actionable human-understandable information.""")
+
+
+doc.add_heading('What Gets Explained', 3)
+
+
+explanation_components = [
+    "Score Interpretation - Relative meaning in domain context (e.g., 'High - Top 25% of scores')",
+    "Confidence Breakdown - What factors contribute to the score",
+    "Supporting Evidence - Specific facts supporting the mapping",
+    "Potential Concerns - Red flags or issues to verify",
+    "Historical Calibration - How accurate has this confidence level been?",
+    "Personal Context - Engineer's own track record at this confidence level",
+    "Validation Checklist - Specific items to verify before accepting"
+]
+
+
+for component in explanation_components:
+    doc.add_paragraph(component, style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Example: Confidence Breakdown', 3)
+
+
+doc.add_paragraph("""For a mapping with 0.82 confidence:""")
+
+
+# Create breakdown table
+breakdown_table = doc.add_table(rows=6, cols=4)
+breakdown_table.style = 'Light Grid Accent 1'
+
+
+hdr_cells = breakdown_table.rows[0].cells
+hdr_cells[0].text = 'Factor'
+hdr_cells[1].text = 'Score'
+hdr_cells[2].text = 'Weight'
+hdr_cells[3].text = 'Details'
+
+
+for cell in hdr_cells:
+    for paragraph in cell.paragraphs:
+        for run in paragraph.runs:
+            run.font.bold = True
+
+
+breakdown_data = [
+    ('String Similarity', '0.91', '25%', 'Exact match on "AccountID"'),
+    ('Semantic Similarity', '0.79', '30%', 'Cosine similarity: 0.79'),
+    ('Structural Alignment', '0.88', '20%', '8/9 properties aligned'),
+    ('Historical Precedent', '0.92', '15%', '15 similar mappings, 92% accurate'),
+    ('Domain Usage', '0.75', '10%', 'Last modified: 2 days ago')
+]
+
+
+for i, (factor, score, weight, details) in enumerate(breakdown_data, start=1):
+    row_cells = breakdown_table.rows[i].cells
+    row_cells[0].text = factor
+    row_cells[1].text = score
+    row_cells[2].text = weight
+    row_cells[3].text = details
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Example: Historical Calibration Warning', 3)
+
+
+calibration_example = doc.add_paragraph(style='Intense Quote')
+calibration_example.add_run("""⚠️ CALIBRATION WARNING
+
+
+AI Confidence: 82%
+Historical Accuracy at 82%: 71%
+Calibration Error: +11%
+
+
+Interpretation: AI is overconfident by 11%. Treat as ~70% confidence, not 82%.
+Action: Exercise extra caution. Use validation checklist thoroughly.""")
+
+
+doc.add_page_break()
+
+
+doc.add_heading('Supporting Evidence', 3)
+
+
+doc.add_paragraph("""Evidence is categorized by strength:""")
+
+
+doc.add_paragraph("STRONG: Exact string matches, known synonyms, high-accuracy precedents", style='List Bullet')
+doc.add_paragraph("MODERATE: Data type alignment, usage pattern matches, structural similarity", style='List Bullet')
+doc.add_paragraph("WEAK: Partial matches, low-confidence precedents", style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Potential Concerns', 3)
+
+
+doc.add_paragraph("""System automatically identifies red flags:""")
+
+
+concerns = [
+    "TEST_SCHEMA - Table name contains 'test', may not be production",
+    "STALE_SCHEMA - Not modified in >1 year, may be deprecated",
+    "NO_RELATIONSHIPS - No foreign keys found",
+    "MULTIPLE_CANDIDATES - Many similar schemas exist (ambiguity)",
+    "DATA_TYPE_MISMATCH - Source and target data types don't align",
+    "CONFIDENCE_DRIFT - AI overconfident based on recent history"
+]
+
+
+for concern in concerns:
+    doc.add_paragraph(concern, style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Validation Checklist', 3)
+
+
+doc.add_paragraph("""Based on mapping and concerns, system generates specific checklist:""")
+
+
+checklist_example = doc.add_paragraph()
+checklist_example.add_run("Basic Validation:").bold = True
+
+
+basic_checks = [
+    "Verify 'CRM_ACCOUNT_TBL' is production (not test)",
+    "Confirm data types are compatible",
+    "Check concept meaning aligns with schema purpose"
+]
+
+
+for check in basic_checks:
+    doc.add_paragraph(f"☐ {check}", style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+concern_checks_para = doc.add_paragraph()
+concern_checks_para.add_run("Concern Resolution:").bold = True
+
+
+concern_checks = [
+    "⚠️ CRITICAL: Review alternative 'CUST_ACCT_TBL' - Is it better match?",
+    "Investigate missing FK relationship",
+    "⚠️ Extra scrutiny - AI confidence may be inflated"
+]
+
+
+for check in concern_checks:
+    doc.add_paragraph(f"☐ {check}", style='List Bullet')
+
+
+doc.add_page_break()
+
+
+# Part 4: Enhanced User Interfaces
+doc.add_heading('Part 4: Enhanced User Interfaces', 1)
+
+
+doc.add_heading('4.1 Mapping Validation Interface', 2)
+
+
+doc.add_paragraph("""The enhanced mapping validation interface integrates all human factors services into a single cohesive experience.""")
+
+
+doc.add_heading('Interface Components', 3)
+
+
+doc.add_paragraph("1. Trust Calibration Warning Banner (if applicable)", style='List Number')
+doc.add_paragraph("Shows when engineer has history of over/under-trusting at this confidence level", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("2. Mapping Header", style='List Number')
+doc.add_paragraph("Clear display: SourceConcept → TargetSchema", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("3. Confidence Score Section", style='List Number')
+doc.add_paragraph("Visual badge with color coding (green/blue/yellow/orange/red)", style='List Bullet 2')
+doc.add_paragraph("Category label: 'Very High', 'High', 'Moderate', 'Low', 'Very Low'", style='List Bullet 2')
+doc.add_paragraph("Percentile context: 'Top 25% of scores for this domain pair'", style='List Bullet 2')
+doc.add_paragraph("Expandable confidence breakdown", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("4. Historical Calibration Warning", style='List Number')
+doc.add_paragraph("Shows if AI confidence doesn't match historical accuracy", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("5. Personal Context Warning", style='List Number')
+doc.add_paragraph("Shows engineer's personal history with this confidence level", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("6. Evidence Section", style='List Number')
+doc.add_paragraph("Lists supporting evidence with strength indicators", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("7. Concerns Section", style='List Number')
+doc.add_paragraph("Highlights potential red flags with severity levels", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("8. Validation Checklist", style='List Number')
+doc.add_paragraph("Interactive checklist with progress tracking", style='List Bullet 2')
+doc.add_paragraph("Critical checks must be completed before accepting", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("9. Reasoning Field", style='List Number')
+doc.add_paragraph("Optional but encouraged documentation of decision rationale", style='List Bullet 2')
+doc.add_paragraph()
+
+
+doc.add_paragraph("10. Action Buttons", style='List Number')
+doc.add_paragraph("Accept, Modify, Reject, Defer", style='List Bullet 2')
+doc.add_paragraph("Accept disabled until critical checks complete", style='List Bullet 2')
+
+
+doc.add_page_break()
+
+
+doc.add_heading('Example Interface Flow', 3)
+
+
+flow_para = doc.add_paragraph()
+flow_para.add_run("Scenario: ").bold = True
+flow_para.add_run("Engineer reviews mapping with 0.85 confidence, has history of over-trusting")
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("Step 1: Interface loads", style='List Number')
+doc.add_paragraph("Trust warning banner appears at top:", style='List Bullet 2')
+
+
+warning_text = doc.add_paragraph(style='Intense Quote')
+warning_text.add_run("""⚠️ CALIBRATION WARNING
+You tend to over-trust AI suggestions in the 0.85 confidence range.
+Historical: You accept 94% but actual accuracy is 71%
+Recommendation: Please review carefully using validation checklist.""")
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("Step 2: Engineer clicks 'Why 85%?'", style='List Number')
+doc.add_paragraph("Confidence breakdown table expands", style='List Bullet 2')
+doc.add_paragraph("Shows each factor's contribution to score", style='List Bullet 2')
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("Step 3: Engineer reviews evidence and concerns", style='List Number')
+doc.add_paragraph("Sees STRONG evidence: exact string match, 15 precedents", style='List Bullet 2')
+doc.add_paragraph("Sees CONCERN: Multiple candidates exist (ambiguity)", style='List Bullet 2')
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("Step 4: Engineer works through checklist", style='List Number')
+doc.add_paragraph("Checks each item, discovers alternative schema is actually better match", style='List Bullet 2')
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("Step 5: Engineer clicks 'Modify & Accept'", style='List Number')
+doc.add_paragraph("Updates mapping to better target, adds reasoning", style='List Bullet 2')
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("Step 6: System records decision", style='List Number')
+doc.add_paragraph("Trust calibration improves: Engineer correctly rejected AI suggestion", style='List Bullet 2')
+doc.add_paragraph("Validation quality maintained: Thorough review despite fatigue", style='List Bullet 2')
+
+
+doc.add_page_break()
+
+
+doc.add_heading('4.2 Tom Sawyer Enhanced Workbench Views', 2)
+
+
+doc.add_paragraph("""Tom Sawyer Perspectives is enhanced with human-centered dashboards and visualizations.""")
+
+
+doc.add_heading('Enhanced Knowledge Engineer Dashboard', 3)
+
+
+doc.add_paragraph("""The main dashboard now shows:""")
+
+
+dashboard_sections = [
+    ("Human Performance Panel", [
+        "Session time and decisions made",
+        "Current fatigue level with visual indicator",
+        "Validation accuracy trend vs. baseline",
+        "Trust calibration status",
+        "Link to detailed metrics"
+    ]),
+    ("Pending Work Panel", [
+        "High/Medium/Low priority counts",
+        "Estimated review time vs. available time",
+        "Workload recommendation based on cognitive state"
+    ]),
+    ("Active Context Panel", [
+        "Domain agents currently active",
+        "Subdomain filters applied",
+        "Persona mode",
+        "Ontology version in use",
+        "Quick context switching"
+    ]),
+    ("Next Recommended Task Panel", [
+        "Task description and complexity rating",
+        "Priority and business impact",
+        "Cognitive load warning if task exceeds capacity",
+        "Action buttons: Start, Defer, Take Break"
+    ]),
+    ("Quick Actions Panel", [
+        "Competency self-test",
+        "View performance trends",
+        "Access training modules"
+    ])
+]
+
+
+for section_name, items in dashboard_sections:
+    doc.add_heading(section_name, 4)
+    for item in items:
+        doc.add_paragraph(item, style='List Bullet')
+    doc.add_paragraph()
+
+
+doc.add_heading('Enhanced Mapping Detail View', 3)
+
+
+doc.add_paragraph("""When viewing a specific mapping, Tom Sawyer now displays:""")
+
+
+mapping_view_sections = [
+    ("Confidence Analysis Panel", [
+        "AI confidence with category and percentile",
+        "Calibration warnings if applicable",
+        "Expandable breakdown and historical trends"
+    ]),
+    ("Graph Visualization Panel", [
+        "Interactive relationship graph",
+        "Color-coded edges: green (strong), yellow (moderate), red (conflict)",
+        "Dotted lines for proposed mappings, solid for validated",
+        "Impact analysis showing downstream effects"
+    ]),
+    ("Evidence & Concerns Panel", [
+        "Supporting evidence with strength indicators",
+        "Potential concerns with severity levels",
+        "Link to full evidence report"
+    ]),
+    ("Validation Checklist Panel", [
+        "Interactive checklist grouped by category",
+        "Progress bar showing completion",
+        "Critical checks highlighted"
+    ])
+]
+
+
+for section_name, items in mapping_view_sections:
+    doc.add_heading(section_name, 4)
+    for item in items:
+        doc.add_paragraph(item, style='List Bullet')
+    doc.add_paragraph()
+
+
+doc.add_page_break()
+
+
+# Part 5: Competency Maintenance
+doc.add_heading('Part 5: Competency Maintenance & Training', 1)
+
+
+doc.add_heading('5.1 Skill Maintenance Scheduler', 2)
+
+
+doc.add_paragraph("""The Skill Maintenance Scheduler ensures engineers maintain their skills despite automation handling most routine tasks.""")
+
+
+doc.add_heading('Maintenance Activities', 3)
+
+
+# Create activities table
+activities_table = doc.add_table(rows=5, cols=4)
+activities_table.style = 'Light Grid Accent 1'
+
+
+hdr_cells = activities_table.rows[0].cells
+hdr_cells[0].text = 'Activity Type'
+hdr_cells[1].text = 'Frequency'
+hdr_cells[2].text = 'Duration'
+hdr_cells[3].text = 'Purpose'
+
+
+for cell in hdr_cells:
+    for paragraph in cell.paragraphs:
+        for run in paragraph.runs:
+            run.font.bold = True
+
+
+activities_data = [
+    ('Manual Mapping Exercise', 'Every 14 days', '30 min', 'Maintain manual mapping skills'),
+    ('Knowledge Assessment', 'Every 30 days', '15 min', 'Verify domain knowledge retention'),
+    ('Conflict Simulation', 'Every 21 days', '20 min', 'Practice complex conflict resolution'),
+    ('Calibration Review', 'Every 7 days', '10 min', 'Review and adjust trust calibration')
+]
+
+
+for i, (activity, freq, duration, purpose) in enumerate(activities_data, start=1):
+    row_cells = activities_table.rows[i].cells
+    row_cells[0].text = activity
+    row_cells[1].text = freq
+    row_cells[2].text = duration
+    row_cells[3].text = purpose
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Manual Mapping Exercise', 3)
+
+
+doc.add_paragraph("""Purpose: Prevent skill degradation from over-reliance on AI""")
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("Exercise Format:", style='Heading 4')
+
+
+exercise_steps = [
+    "System selects unmapped concept of moderate difficulty",
+    "Engineer creates mapping without AI assistance",
+    "Engineer documents reasoning and assigns confidence",
+    "System compares to AI suggestion and expert validation",
+    "Engineer receives detailed feedback on performance"
+]
+
+
+for i, step in enumerate(exercise_steps, 1):
+    doc.add_paragraph(f"{i}. {step}")
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("Evaluation Criteria:", style='Heading 4')
+
+
+criteria = [
+    "Correctness: Did engineer select the right schema?",
+    "Reasoning Quality: Is the rationale thorough and well-documented?",
+    "Confidence Calibration: Does confidence match correctness?",
+    "Alternative Consideration: Did engineer evaluate other options?"
+]
+
+
+for criterion in criteria:
+    doc.add_paragraph(criterion, style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+example_para = doc.add_paragraph()
+example_para.add_run("Example Feedback:").bold = True
+
+
+feedback_example = doc.add_paragraph(style='Intense Quote')
+feedback_example.add_run("""✓ Correct! 'CRM_ACCOUNT_TBL' is the expert-validated mapping.
+✓ Excellent reasoning documentation. Clear evidence, alternatives, and concerns.
+ℹ️ You agreed with AI suggestion (0.91 confidence)
+
+
+Overall Score: 0.94 (Excellent)
+Your manual mapping skills are well-maintained.""")
+
+
+doc.add_page_break()
+
+
+doc.add_heading('5.2 Knowledge Assessment Quiz Generator', 2)
+
+
+doc.add_paragraph("""The system generates domain knowledge quizzes to ensure conceptual understanding remains strong.""")
+
+
+doc.add_heading('Question Types', 3)
+
+
+question_types = [
+    ("Concept Definitions", "Multiple choice questions testing understanding of domain concepts"),
+    ("Relationship Understanding", "Questions about how concepts relate to each other"),
+    ("Mapping Scenarios", "Situation-based questions requiring mapping decisions"),
+    ("Error Detection", "Identify problems in proposed mappings")
+]
+
+
+for qtype, description in question_types:
+    doc.add_paragraph(f"{qtype}: {description}", style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Example Scenario Question', 3)
+
+
+scenario_example = doc.add_paragraph()
+scenario_example.add_run("Context: ").bold = True
+scenario_example.add_run("""You're mapping 'OrderTotal' to a schema. You find two candidates: 'ORDER_SUMMARY' (confidence: 0.85) with 'total_amount' field, and 'ORDER_DETAILS' (confidence: 0.82) with 'line_item_total' field.""")
+
+
+doc.add_paragraph()
+
+
+question = doc.add_paragraph()
+question.add_run("Question: ").bold = True
+question.add_run("Which schema should you select and why?")
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("A. ORDER_SUMMARY because 'total_amount' directly represents order total, while 'line_item_total' requires aggregation. Semantic fit is deciding factor. ✓ CORRECT", style='List Bullet')
+
+
+doc.add_paragraph("B. ORDER_DETAILS because lower confidence is safer", style='List Bullet')
+
+
+doc.add_paragraph("C. Both are equally valid", style='List Bullet')
+
+
+doc.add_paragraph("D. Neither - confidence gap too small", style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+explanation = doc.add_paragraph()
+explanation.add_run("Explanation: ").bold = True
+explanation.add_run("When confidence scores are close (within 3-5%), semantic fit becomes the primary decision factor. 'total_amount' is a direct representation of OrderTotal, while 'line_item_total' is a component that would require aggregation logic. The correct choice is the schema that best matches the concept's semantic meaning.")
+
+
+doc.add_page_break()
+
+
+# Part 6: Organizational Safeguards
+doc.add_heading('Part 6: Organizational Safeguards', 1)
+
+
+doc.add_heading('6.1 Production Pressure Monitoring', 2)
+
+
+doc.add_paragraph("""The Production Pressure Monitor detects when organizational pressure is compromising quality and safety.""")
+
+
+doc.add_heading('Pressure Indicators', 3)
+
+
+doc.add_paragraph("""The system monitors for seven key indicators of unhealthy production pressure:""")
+
+
+# Create indicators table
+pressure_table = doc.add_table(rows=8, cols=3)
+pressure_table.style = 'Light Grid Accent 1'
+
+
+hdr_cells = pressure_table.rows[0].cells
+hdr_cells[0].text = 'Indicator'
+hdr_cells[1].text = 'Detection Threshold'
+hdr_cells[2].text = 'Interpretation'
+
+
+for cell in hdr_cells:
+    for paragraph in cell.paragraphs:
+        for run in paragraph.runs:
+            run.font.bold = True
+
+
+pressure_indicators = [
+    ('Rushing Detected', 'Decision speed >2.5x baseline', 'Engineer making decisions too quickly'),
+    ('Accuracy Decline', 'Accuracy drops >10% from baseline', 'Quality compromised for speed'),
+    ('Excessive Overrides', '>20% of safety alerts overridden', 'Pushing through warnings'),
+    ('Burnout Risk', '3+ consecutive sessions >6 hours', 'Unsustainable work schedule'),
+    ('Off-Hours Work', '>30% of sessions evenings/weekends', 'Work-life balance issues'),
+    ('Systemic Rushing', '>50% of team showing rushing', 'Team-wide workload problem'),
+    ('Uneven Workload', 'High variance in team distribution', 'Some overloaded, others idle')
+]
+
+
+for i, (indicator, threshold, interpretation) in enumerate(pressure_indicators, start=1):
+    row_cells = pressure_table.rows[i].cells
+    row_cells[0].text = indicator
+    row_cells[1].text = threshold
+    row_cells[2].text = interpretation
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('Pressure Levels', 3)
+
+
+# Create pressure levels table
+levels_table = doc.add_table(rows=5, cols=3)
+levels_table.style = 'Light Grid Accent 1'
+
+
+hdr_cells = levels_table.rows[0].cells
+hdr_cells[0].text = 'Pressure Level'
+hdr_cells[1].text = 'Score Range'
+hdr_cells[2].text = 'Management Action Required'
+
+
+for cell in hdr_cells:
+    for paragraph in cell.paragraphs:
+        for run in paragraph.runs:
+            run.font.bold = True
+
+
+levels_data = [
+    ('NORMAL', '0.0 - 0.3', 'None - continue monitoring'),
+    ('MODERATE', '0.3 - 0.5', 'Review workload distribution'),
+    ('HIGH', '0.5 - 0.7', 'Immediate workload reduction'),
+    ('CRITICAL', '>0.7', 'Emergency intervention required')
+]
+
+
+for i, (level, score_range, action) in enumerate(levels_data, start=1):
+    row_cells = levels_table.rows[i].cells
+    row_cells[0].text = level
+    row_cells[1].text = score_range
+    row_cells[2].text = action
+
+
+doc.add_page_break()
+
+
+doc.add_heading('Recommended Interventions', 3)
+
+
+doc.add_paragraph("""Based on detected pressure level and specific indicators, system recommends:""")
+
+
+interventions = [
+    ("CRITICAL Level", [
+        "Halt all non-critical validation work immediately",
+        "Focus only on high-priority items",
+        "Mandatory time off for burned-out engineers (minimum 3 days)",
+        "Emergency staffing assessment"
+    ]),
+    ("HIGH Level", [
+        "Reduce daily validation targets by 30-50%",
+        "Hire additional resources (permanent or contractors)",
+        "Implement mandatory peer review for all validations",
+        "Reinforce that quality takes precedence over throughput"
+    ]),
+    ("MODERATE Level", [
+        "Review workload distribution across team",
+        "Implement peer review for complex validations",
+        "Increase monitoring frequency",
+        "Schedule team meeting to discuss workload concerns"
+    ])
+]
+
+
+for level_name, actions in interventions:
+    doc.add_heading(level_name, 4)
+    for action in actions:
+        doc.add_paragraph(action, style='List Bullet')
+    doc.add_paragraph()
+
+
+doc.add_heading('Management Dashboard', 3)
+
+
+doc.add_paragraph("""Executives and managers receive a dedicated dashboard showing:""")
+
+
+dashboard_items = [
+    "Team pressure score and trend over time",
+    "Individual engineer pressure indicators",
+    "Quality vs. throughput metrics",
+    "Burnout risk assessment by team member",
+    "Recommended interventions with required authority level",
+    "Historical pattern analysis (Is this recurring?)"
+]
+
+
+for item in dashboard_items:
+    doc.add_paragraph(item, style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+critical_note = doc.add_paragraph()
+critical_note.add_run("Critical Principle: ").bold = True
+critical_note.add_run("The system does not simply alert management to problems. It provides specific, actionable recommendations with clear authority requirements (Team Lead, Management, Executive). This ensures rapid response when safety is compromised.")
+
+
+doc.add_page_break()
+
+
+# Part 7: Implementation Roadmap
+doc.add_heading('Part 7: Implementation Roadmap', 1)
+
+
+doc.add_heading('7.1 Phased Implementation', 2)
+
+
+doc.add_paragraph("""Implementation is structured in six phases over 8 months:""")
+
+
+phases = [
+    ("Phase 1: Foundation", "Months 1-2", [
+        "Implement Human_Performance_Metrics database schema",
+        "Deploy ValidationQualityTracker service",
+        "Add basic fatigue detection to existing workflows",
+        "Integrate performance alerts into Tom Sawyer Workbench"
+    ], [
+        "Performance monitoring database operational",
+        "Engineers receive alerts when fatigue/rushing detected",
+        "Baseline metrics established for all knowledge engineers"
+    ]),
+    
+    ("Phase 2: Trust Calibration", "Months 2-3", [
+        "Deploy TrustCalibrationMonitor service",
+        "Implement confidence explainability service",
+        "Enhanced mapping validation interface with confidence breakdown",
+        "Personal trust calibration dashboards"
+    ], [
+        "Engineers see confidence explanations for all AI suggestions",
+        "Trust calibration warnings displayed when over/under-trusting",
+        "Historical calibration data tracked"
+    ]),
+    
+    ("Phase 3: Cognitive Support", "Months 3-4", [
+        "Deploy CognitiveWorkloadManager service",
+        "Implement intelligent task assignment",
+        "Break recommendations and enforcement",
+        "Enhanced Tom Sawyer dashboards with human metrics"
+    ], [
+        "Workload balanced across team based on cognitive capacity",
+        "Automated break recommendations",
+        "Real-time cognitive load indicators"
+    ]),
+    
+    ("Phase 4: Competency Maintenance", "Months 4-6", [
+        "Deploy CompetencyMaintenanceScheduler",
+        "Implement manual mapping exercises",
+        "Knowledge assessment quizzes",
+        "Skill tracking and degradation alerts"
+    ], [
+        "Periodic competency exercises for all engineers",
+        "Skill degradation detected and remediated",
+        "Training automatically scheduled when needed"
+    ]),
+    
+    ("Phase 5: Organizational Safeguards", "Months 6-7", [
+        "Deploy ProductionPressureMonitor",
+        "Management dashboards for team health",
+        "Safety culture metrics",
+        "Override pattern analysis"
+    ], [
+        "Management visibility into quality vs. pressure tradeoffs",
+        "Early warning system for burnout",
+        "Safety culture reinforcement mechanisms"
+    ]),
+    
+    ("Phase 6: Full Integration & Optimization", "Months 7-8", [
+        "Integration testing across all services",
+        "Performance optimization",
+        "User training and change management",
+        "Continuous improvement framework"
+    ], [
+        "Fully integrated Human-AI Teaming system",
+        "Comprehensive training for all users",
+        "Ongoing monitoring and optimization process"
+    ])
+]
+
+
+for phase_name, timeline, tasks, deliverables in phases:
+    doc.add_heading(f"{phase_name} ({timeline})", 3)
+    
+    doc.add_paragraph("Tasks:", style='Heading 4')
+    for task in tasks:
+        doc.add_paragraph(task, style='List Bullet')
+    
+    doc.add_paragraph()
+    doc.add_paragraph("Deliverables:", style='Heading 4')
+    for deliverable in deliverables:
+        doc.add_paragraph(deliverable, style='List Bullet')
+    
+    doc.add_paragraph()
+
+
+doc.add_page_break()
+
+
+doc.add_heading('7.2 Success Metrics', 2)
+
+
+doc.add_paragraph("""Success is measured across four dimensions:""")
+
+
+metrics_categories = [
+    ("Human Performance Metrics", [
+        "Validation accuracy maintained above 90% across all sessions",
+        "Decision quality does not degrade over session duration",
+        "Zero critical safety overrides due to production pressure",
+        "Engineer burnout indicators below 0.3 threshold",
+        "Session fatigue score remains below 0.7 throughout day"
+    ]),
+    
+    ("Trust Calibration Metrics", [
+        "Trust miscalibration reduced to <5% delta from accuracy",
+        "Over-trust incidents reduced by 80% from baseline",
+        "Engineers adjust behavior based on calibration feedback",
+        "Personal calibration dashboards accessed weekly by 100% of engineers",
+        "Acceptance rate aligns with actual accuracy within 10%"
+    ]),
+    
+    ("System Effectiveness Metrics", [
+        "AI Circuit Breaker prevents 100% of high-risk actions",
+        "Manual intervention success rate >95% (when breaker trips)",
+        "Competency scores maintained within 10% of baseline despite automation",
+        "Manual mapping exercise scores >80% accuracy",
+        "Knowledge assessment pass rate >85%"
+    ]),
+    
+    ("Organizational Metrics", [
+        "Production pressure indicators remain in NORMAL range (< 0.3)",
+        "Team burnout risk <10% of members",
+        "Safety culture scores >4.0/5.0 on surveys",
+        "Zero instances of management pressure to override safety alerts",
+        "Workload variance across team <0.3"
+    ])
+]
+
+
+for category, metrics in metrics_categories:
+    doc.add_heading(category, 3)
+    for metric in metrics:
+        doc.add_paragraph(metric, style='List Bullet')
+    doc.add_paragraph()
+
+
+doc.add_page_break()
+
+
+# Part 8: Conclusion
+doc.add_heading('Part 8: Conclusion', 1)
+
+
+doc.add_heading('The Human-AI Partnership Imperative', 2)
+
+
+doc.add_paragraph("""This framework addresses the fundamental gap in AI governance: maintaining effective human oversight as automation improves.""")
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("The Semantic Governance architecture now has:", style='Heading 3')
+
+
+doc.add_paragraph("✅ Technical Excellence (Documents 1-6)", style='Heading 4')
+technical = [
+    "World-class semantic infrastructure",
+    "Sophisticated AI agents",
+    "Comprehensive process governance",
+    "Advanced visualization tools"
+]
+for item in technical:
+    doc.add_paragraph(item, style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("✅ Human Factors Engineering (Document 7 - This Framework)", style='Heading 4')
+human_factors = [
+    "Performance monitoring that detects degradation",
+    "Trust calibration that prevents complacency",
+    "Cognitive support that maintains effectiveness",
+    "Competency maintenance that preserves skills",
+    "Organizational safeguards that protect safety culture"
+]
+for item in human_factors:
+    doc.add_paragraph(item, style='List Bullet')
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('The Difference This Makes', 2)
+
+
+without = doc.add_paragraph()
+without.add_run("Without Human Factors Framework:").bold = True
+
+
+doc.add_paragraph("Week 1: AI 65% accurate, Humans 95% oversight → System 95% reliable", style='List Bullet')
+doc.add_paragraph("Week 52: AI 92% accurate, Humans 70% oversight → System 85% reliable", style='List Bullet')
+doc.add_paragraph()
+result1 = doc.add_paragraph()
+result1.add_run("Result: ").bold = True
+result1.add_run("Better AI → Worse overall system")
+
+
+doc.add_paragraph()
+
+
+with_framework = doc.add_paragraph()
+with_framework.add_run("With Human Factors Framework:").bold = True
+
+
+doc.add_paragraph("Week 1: AI 65% accurate, Humans 95% oversight → System 95% reliable", style='List Bullet')
+doc.add_paragraph("Week 52: AI 92% accurate, Humans 94% oversight → System 99% reliable", style='List Bullet')
+doc.add_paragraph()
+result2 = doc.add_paragraph()
+result2.add_run("Result: ").bold = True
+result2.add_run("Better AI + Sustained human performance → Better system")
+
+
+doc.add_paragraph()
+
+
+doc.add_heading('This Is Not Optional', 2)
+
+
+doc.add_paragraph("""Dr. Cummings' research across aviation, healthcare, and industrial control demonstrates: Every sophisticated automation system that neglected human factors eventually failed catastrophically.""")
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("""Your semantic governance infrastructure is too important to your enterprise to risk this failure mode.""")
+
+
+doc.add_paragraph()
+
+
+doc.add_paragraph("""This framework ensures that as your AI agents become more capable, your knowledge engineers remain equally capable of supervising them.""")
+
+
+doc.add_paragraph()
+
+
+conclusion = doc.add_paragraph()
+conclusion.add_run("That's the only path to trustworthy AI governance at scale.").bold = True
+conclusion.add_run("").font.size = Pt(14)
+
+
+# Save the document
+doc.save(output_path)
+
+
+print(f"Document created successfully at: {output_path}")

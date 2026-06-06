@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Systems Ontology Graph</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js" integrity="sha512-M7nHCiNUOwFt6Us3r8alutZLm9qMt4s9951uo8jqO4UwJ1hziseL6O3ndFyigx6+LREfZqnhHxYjKRJ8ZQ69DQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-width: 320px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        #controls h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input[type="range"] {
+            padding: 0;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #333;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            background: #e0e0e0;
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-width: 350px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        #info-panel h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        #info-panel .info-section {
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #info-panel .info-section:last-child {
+            border-bottom: none;
+        }
+
+        #info-panel .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        #info-panel .value {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #667eea;
+        }
+
+        #stats {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            font-size: 12px;
+            color: #555;
+            backdrop-filter: blur(10px);
+        }
+
+        #stats div {
+            margin-bottom: 4px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        svg:active {
+            cursor: grabbing;
+        }
+
+        .node circle {
+            stroke: white;
+            stroke-width: 2.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .node:hover circle {
+            stroke-width: 4px;
+            filter: brightness(1.1);
+        }
+
+        .node text {
+            font-size: 11px;
+            pointer-events: none;
+            user-select: none;
+            fill: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            font-weight: 500;
+        }
+
+        .link {
+            stroke: rgba(255, 255, 255, 0.4);
+            stroke-width: 1.5px;
+            fill: none;
+        }
+
+        .link.highlighted {
+            stroke: #ffd700;
+            stroke-width: 3px;
+        }
+
+        .link-label {
+            font-size: 9px;
+            fill: rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        #legend h4 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #555;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h2>🔍 Graph Controls</h2>
+        
+        <div class="control-group">
+            <label>Node Size</label>
+            <input type="range" id="nodeSize" min="3" max="15" value="8" step="0.5">
+        </div>
+
+        <div class="control-group">
+            <label>Link Distance</label>
+            <input type="range" id="linkDistance" min="30" max="200" value="100" step="10">
+        </div>
+
+        <div class="control-group">
+            <label>Charge Strength</label>
+            <input type="range" id="chargeStrength" min="-500" max="-50" value="-200" step="10">
+        </div>
+
+        <div class="control-group">
+            <label>Filter by Category</label>
+            <div class="filter-buttons" id="categoryFilters"></div>
+        </div>
+
+        <div class="control-group">
+            <label>Show Labels</label>
+            <select id="labelMode">
+                <option value="all">All Nodes</option>
+                <option value="selected">Selected Only</option>
+                <option value="none">None</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="info-panel">
+        <button class="close-btn" onclick="closeInfo()">×</button>
+        <div id="info-content"></div>
+    </div>
+
+    <div id="stats">
+        <div><strong>Nodes:</strong> <span id="nodeCount">0</span></div>
+        <div><strong>Edges:</strong> <span id="edgeCount">0</span></div>
+        <div><strong>Zoom:</strong> <span id="zoomLevel">100%</span></div>
+    </div>
+
+    <div id="legend">
+        <h4>Node Categories</h4>
+        <div id="legendContent"></div>
+    </div>
+
+    <svg id="graph"></svg>
+
+    <script>
+        // Wait for D3 to load
+        window.addEventListener('load', function() {
+            if (typeof d3 === 'undefined') {
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;"><div style="text-align:center;"><h2>Error Loading Visualization</h2><p>D3.js library failed to load. Please refresh the page.</p></div></div>';
+                return;
+            }
+            initializeGraph();
+        });
+
+        function initializeGraph() {
+        // Parse the TTL ontology data
+        const ontologyData = {
+            classes: [
+                // Upper Ontology
+                { id: 'KnowledgeEntity', label: 'Knowledge Entity', category: 'Foundation', description: 'Abstract base class for all knowledge constructs' },
+                { id: 'StructuralPattern', label: 'Structural Pattern', category: 'Foundation', parent: 'KnowledgeEntity', description: 'Recurring organizational or conceptual pattern' },
+                { id: 'DynamicBehavior', label: 'Dynamic Behavior', category: 'Foundation', parent: 'KnowledgeEntity', description: 'Time-dependent or evolutionary patterns' },
+                
+                // Minto Pyramid
+                { id: 'ArgumentStructure', label: 'Argument Structure', category: 'Minto', parent: 'StructuralPattern', description: 'Hierarchical organization following Minto Pyramid' },
+                { id: 'SCQA', label: 'SCQA Framework', category: 'Minto', parent: 'ArgumentStructure', description: 'Situation-Complication-Question-Answer structure' },
+                { id: 'Situation', label: 'Situation', category: 'Minto', parent: 'SCQA', description: 'Current state establishing common ground' },
+                { id: 'Complication', label: 'Complication', category: 'Minto', parent: 'SCQA', description: 'Problem requiring resolution' },
+                { id: 'Question', label: 'Question', category: 'Minto', parent: 'SCQA', description: 'Core question raised' },
+                { id: 'Answer', label: 'Answer', category: 'Minto', parent: 'SCQA', description: 'Main recommendation' },
+                { id: 'SupportingArgument', label: 'Supporting Argument', category: 'Minto', parent: 'ArgumentStructure', description: 'Sub-argument supporting main answer' },
+                { id: 'Evidence', label: 'Evidence', category: 'Minto', parent: 'KnowledgeEntity', description: 'Data supporting arguments' },
+                { id: 'MECEPrinciple', label: 'MECE Principle', category: 'Minto', parent: 'StructuralPattern', description: 'Mutually Exclusive, Collectively Exhaustive' },
+                
+                // Category Theory
+                { id: 'CategoryTheoreticStructure', label: 'Category Theoretic', category: 'Category Theory', parent: 'StructuralPattern', description: 'Mathematical structures from category theory' },
+                { id: 'Category', label: 'Category', category: 'Category Theory', parent: 'CategoryTheoreticStructure', description: 'Collection of objects and morphisms' },
+                { id: 'Object', label: 'Object', category: 'Category Theory', parent: 'CategoryTheoreticStructure', description: 'Entity in a category' },
+                { id: 'Morphism', label: 'Morphism', category: 'Category Theory', parent: 'CategoryTheoreticStructure', description: 'Structure-preserving map' },
+                { id: 'Functor', label: 'Functor', category: 'Category Theory', parent: 'CategoryTheoreticStructure', description: 'Map between categories' },
+                { id: 'NaturalTransformation', label: 'Natural Transform', category: 'Category Theory', parent: 'CategoryTheoreticStructure', description: 'Map between functors' },
+                { id: 'CommutativeDiagram', label: 'Commutative Diagram', category: 'Category Theory', parent: 'CategoryTheoreticStructure', description: 'Visual composition equivalence' },
+                { id: 'IntentionActualityFunctor', label: 'Intention→Actuality', category: 'Category Theory', parent: 'Functor', description: 'Maps intentions to outcomes' },
+                
+                // Chaos Theory
+                { id: 'ComplexSystemBehavior', label: 'Complex System', category: 'Chaos Theory', parent: 'DynamicBehavior', description: 'Nonlinear dynamics and emergence' },
+                { id: 'ChaoticDynamics', label: 'Chaotic Dynamics', category: 'Chaos Theory', parent: 'ComplexSystemBehavior', description: 'Sensitive to initial conditions' },
+                { id: 'Attractor', label: 'Attractor', category: 'Chaos Theory', parent: 'ComplexSystemBehavior', description: 'System evolution target' },
+                { id: 'StrangeAttractor', label: 'Strange Attractor', category: 'Chaos Theory', parent: 'Attractor', description: 'Fractal attractor in chaos' },
+                { id: 'AttractorBasin', label: 'Attractor Basin', category: 'Chaos Theory', parent: 'ComplexSystemBehavior', description: 'Attraction region' },
+                { id: 'BifurcationPoint', label: 'Bifurcation Point', category: 'Chaos Theory', parent: 'ComplexSystemBehavior', description: 'Critical threshold for change' },
+                { id: 'TippingPoint', label: 'Tipping Point', category: 'Chaos Theory', parent: 'BifurcationPoint', description: 'Irreversible change threshold' },
+                { id: 'EmergentBehavior', label: 'Emergent Behavior', category: 'Chaos Theory', parent: 'ComplexSystemBehavior', description: 'Unpredictable system properties' },
+                { id: 'FeedbackLoop', label: 'Feedback Loop', category: 'Chaos Theory', parent: 'ComplexSystemBehavior', description: 'Circular causal relationship' },
+                { id: 'PositiveFeedback', label: 'Positive Feedback', category: 'Chaos Theory', parent: 'FeedbackLoop', description: 'Self-reinforcing loop' },
+                { id: 'NegativeFeedback', label: 'Negative Feedback', category: 'Chaos Theory', parent: 'FeedbackLoop', description: 'Self-correcting loop' },
+                { id: 'SensitivityFactor', label: 'Sensitivity Factor', category: 'Chaos Theory', parent: 'ComplexSystemBehavior', description: 'Response to perturbations' },
+                
+                // Impact & Value
+                { id: 'Impact', label: 'Impact', category: 'Impact', parent: 'KnowledgeEntity', description: 'Effect of action or intervention' },
+                { id: 'PlannedImpact', label: 'Planned Impact', category: 'Impact', parent: 'Impact', description: 'Intended consequences' },
+                { id: 'UnplannedImpact', label: 'Unplanned Impact', category: 'Impact', parent: 'Impact', description: 'Unintended consequences' },
+                { id: 'FirstOrderEffect', label: '1st Order Effect', category: 'Impact', parent: 'Impact', description: 'Direct consequences' },
+                { id: 'SecondOrderEffect', label: '2nd Order Effect', category: 'Impact', parent: 'Impact', description: 'Indirect consequences' },
+                { id: 'SystemicEffect', label: 'Systemic Effect', category: 'Impact', parent: 'Impact', description: 'System-wide consequences' },
+                
+                // Knowledge Systems (INCOSE)
+                { id: 'KnowledgeSystem', label: 'Knowledge System', category: 'INCOSE', parent: 'KnowledgeEntity', description: 'INCOSE Knowledge Systems framework' },
+                { id: 'IntelligenceType', label: 'Intelligence Type', category: 'INCOSE', parent: 'KnowledgeSystem', description: 'Type of intelligence capability' },
+                { id: 'BusinessIntelligence', label: 'Business Intel', category: 'INCOSE', parent: 'IntelligenceType', description: 'BI & Analytics' },
+                { id: 'ArtificialIntelligence', label: 'AI/ML', category: 'INCOSE', parent: 'IntelligenceType', description: 'Artificial Intelligence' },
+                { id: 'SemanticIntelligence', label: 'Semantic Intel', category: 'INCOSE', parent: 'IntelligenceType', description: 'Semantic reasoning' },
+                { id: 'DecisionIntelligence', label: 'Decision Intel', category: 'INCOSE', parent: 'IntelligenceType', description: 'Causal decision-making' },
+                { id: 'KnowledgeValueStream', label: 'Value Stream', category: 'INCOSE', parent: 'KnowledgeSystem', description: 'Knowledge value delivery' },
+                { id: 'ValueCreation', label: 'Value Creation', category: 'INCOSE', parent: 'KnowledgeEntity', description: 'Stakeholder value' },
+                { id: 'CustomerValue', label: 'Customer Value', category: 'INCOSE', parent: 'ValueCreation', description: 'Value to customers' },
+                { id: 'InvestorValue', label: 'Investor Value', category: 'INCOSE', parent: 'ValueCreation', description: 'Value to investors' },
+                
+                // Governance
+                { id: 'SemanticGovernance', label: 'Semantic Governance', category: 'Governance', parent: 'StructuralPattern', description: 'Framework for semantic control' },
+                { id: 'DCFM', label: 'DCFM', category: 'Governance', parent: 'SemanticGovernance', description: 'Dynamic Causal Factor Model' },
+                { id: 'StakeholderImpactAssessment', label: 'Impact Assessment', category: 'Governance', parent: 'ArgumentStructure', description: 'Stakeholder impact evaluation' },
+                { id: 'KnowledgeDevelopmentCompetency', label: 'KD Competency', category: 'Governance', parent: 'KnowledgeEntity', description: 'Knowledge development capability' }
+            ],
+            
+            instances: [
+                // iManage Example
+                { id: 'iManagePositionArgument', label: 'iManage Position', category: 'Example', type: 'ArgumentStructure', description: 'iManage Director position argument structure' },
+                { id: 'iManage_Situation', label: 'iManage Situation', category: 'Example', type: 'Situation', description: 'Legal tech needs semantic infrastructure' },
+                { id: 'iManage_Complication', label: 'Gap in Expertise', category: 'Example', type: 'Complication', description: 'Semantic governance + NLP gap' },
+                { id: 'iManage_Question', label: 'Who Can Architect?', category: 'Example', type: 'Question', description: 'Who can architect semantic pipelines?' },
+                { id: 'iManage_Answer', label: 'Jeffrey Wallk', category: 'Example', type: 'Answer', description: 'Unique combination of skills at scale' },
+                { id: 'Support_SemanticGovernance', label: 'Semantic Governance', category: 'Example', type: 'SupportingArgument', description: 'Established at Fortune 15' },
+                { id: 'Support_RAG2', label: 'RAG 2.0 Pioneer', category: 'Example', type: 'SupportingArgument', description: 'Pioneered RAG 2.0 with KGs' },
+                { id: 'Support_Scale', label: 'Enterprise Scale', category: 'Example', type: 'SupportingArgument', description: '30K+ assets, 1000+ users' },
+                
+                // RAG Implementation Example
+                { id: 'RAGImplementation', label: 'RAG 2.0 Impl', category: 'Example', type: 'PlannedImpact', description: 'RAG 2.0 implementation' },
+                { id: 'HighPrecisionAnswers', label: 'High Precision', category: 'Example', type: 'Attractor', description: 'High-precision answer state' },
+                { id: 'HallucinationReduction', label: '↓ Hallucinations', category: 'Example', type: 'UnplannedImpact', description: 'Reduced AI hallucinations' },
+                { id: 'IncreasedComplexity', label: '↑ Complexity', category: 'Example', type: 'UnplannedImpact', description: 'Increased system complexity' },
+                
+                // Knowledge Value Stream
+                { id: 'VerizonKnowledgeValueStream', label: 'Verizon KVS', category: 'Example', type: 'KnowledgeValueStream', description: 'Verizon Data & Analytics stream' },
+                { id: 'EnterpriseKnowledgeSystem', label: 'Enterprise KS', category: 'Example', type: 'KnowledgeSystem', description: 'Integrated knowledge system' }
+            ]
+        };
+
+        // Create edges from parent relationships and explicit relationships
+        const edges = [];
+        
+        // Add inheritance edges
+        ontologyData.classes.forEach(node => {
+            if (node.parent) {
+                edges.push({
+                    source: node.parent,
+                    target: node.id,
+                    type: 'subClassOf',
+                    label: 'is-a'
+                });
+            }
+        });
+
+        // Add explicit relationship edges
+        const relationships = [
+            // Minto relationships
+            { source: 'iManage_Complication', target: 'iManage_Situation', type: 'occursIn', label: 'occurs in' },
+            { source: 'iManage_Question', target: 'iManage_Complication', type: 'raisedBy', label: 'raised by' },
+            { source: 'iManage_Answer', target: 'iManage_Question', type: 'addresses', label: 'addresses' },
+            { source: 'iManage_Answer', target: 'Support_SemanticGovernance', type: 'hasSubArgument', label: 'supported by' },
+            { source: 'iManage_Answer', target: 'Support_RAG2', type: 'hasSubArgument', label: 'supported by' },
+            { source: 'iManage_Answer', target: 'Support_Scale', type: 'hasSubArgument', label: 'supported by' },
+            
+            // RAG relationships
+            { source: 'RAGImplementation', target: 'HighPrecisionAnswers', type: 'hasAttractor', label: 'attracts to' },
+            { source: 'RAGImplementation', target: 'HallucinationReduction', type: 'triggersUnplanned', label: 'triggers' },
+            { source: 'RAGImplementation', target: 'IncreasedComplexity', type: 'triggersUnplanned', label: 'triggers' },
+            { source: 'HallucinationReduction', target: 'RAGImplementation', type: 'emergentFrom', label: 'emerges from' },
+            
+            // Knowledge System relationships
+            { source: 'EnterpriseKnowledgeSystem', target: 'BusinessIntelligence', type: 'integratesWith', label: 'integrates' },
+            { source: 'EnterpriseKnowledgeSystem', target: 'ArtificialIntelligence', type: 'integratesWith', label: 'integrates' },
+            { source: 'EnterpriseKnowledgeSystem', target: 'SemanticIntelligence', type: 'integratesWith', label: 'integrates' },
+            { source: 'EnterpriseKnowledgeSystem', target: 'DecisionIntelligence', type: 'integratesWith', label: 'integrates' }
+        ];
+
+        edges.push(...relationships);
+
+        // Combine all nodes
+        const allNodes = [...ontologyData.classes, ...ontologyData.instances];
+
+        // Color scheme by category
+        const colorScheme = {
+            'Foundation': '#667eea',
+            'Minto': '#f093fb',
+            'Category Theory': '#4facfe',
+            'Chaos Theory': '#43e97b',
+            'Impact': '#fa709a',
+            'INCOSE': '#feca57',
+            'Governance': '#ff6b6b',
+            'Example': '#ee5a6f'
+        };
+
+        // SVG setup
+        const svg = d3.select('#graph');
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        svg.attr('viewBox', [0, 0, width, height]);
+
+        const g = svg.append('g');
+
+        // Zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on('zoom', (event) => {
+                g.attr('transform', event.transform);
+                d3.select('#zoomLevel').text(Math.round(event.transform.k * 100) + '%');
+            });
+
+        svg.call(zoom);
+
+        // Force simulation
+        let simulation = d3.forceSimulation(allNodes)
+            .force('link', d3.forceLink(edges).id(d => d.id).distance(100))
+            .force('charge', d3.forceManyBody().strength(-200))
+            .force('center', d3.forceCenter(width / 2, height / 2))
+            .force('collision', d3.forceCollide().radius(25));
+
+        // Create links
+        const link = g.append('g')
+            .selectAll('path')
+            .data(edges)
+            .join('path')
+            .attr('class', 'link')
+            .attr('marker-end', 'url(#arrowhead)');
+
+        // Arrow marker
+        svg.append('defs').append('marker')
+            .attr('id', 'arrowhead')
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 20)
+            .attr('refY', 0)
+            .attr('markerWidth', 6)
+            .attr('markerHeight', 6)
+            .attr('orient', 'auto')
+            .append('path')
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', 'rgba(255,255,255,0.6)');
+
+        // Link labels
+        const linkLabel = g.append('g')
+            .selectAll('text')
+            .data(edges)
+            .join('text')
+            .attr('class', 'link-label')
+            .text(d => d.label);
+
+        // Create nodes
+        const node = g.append('g')
+            .selectAll('g')
+            .data(allNodes)
+            .join('g')
+            .attr('class', 'node')
+            .call(d3.drag()
+                .on('start', dragstarted)
+                .on('drag', dragged)
+                .on('end', dragended))
+            .on('click', showInfo);
+
+        node.append('circle')
+            .attr('r', 8)
+            .attr('fill', d => colorScheme[d.category] || '#999');
+
+        node.append('text')
+            .attr('x', 12)
+            .attr('y', 4)
+            .text(d => d.label);
+
+        // Update positions
+        simulation.on('tick', () => {
+            link.attr('d', d => {
+                const dx = d.target.x - d.source.x;
+                const dy = d.target.y - d.source.y;
+                const dr = Math.sqrt(dx * dx + dy * dy);
+                return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+            });
+
+            linkLabel
+                .attr('x', d => (d.source.x + d.target.x) / 2)
+                .attr('y', d => (d.source.y + d.target.y) / 2);
+
+            node.attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+
+        // Drag functions
+        function dragstarted(event) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            event.subject.fx = event.subject.x;
+            event.subject.fy = event.subject.y;
+        }
+
+        function dragged(event) {
+            event.subject.fx = event.x;
+            event.subject.fy = event.y;
+        }
+
+        function dragended(event) {
+            if (!event.active) simulation.alphaTarget(0);
+            event.subject.fx = null;
+            event.subject.fy = null;
+        }
+
+        // Show node info
+        function showInfo(event, d) {
+            const panel = document.getElementById('info-panel');
+            const content = document.getElementById('info-content');
+            
+            let html = `<h3>${d.label}</h3>`;
+            
+            html += `<div class="info-section">
+                <div class="label">Category</div>
+                <div class="value">${d.category}</div>
+            </div>`;
+            
+            if (d.description) {
+                html += `<div class="info-section">
+                    <div class="label">Description</div>
+                    <div class="value">${d.description}</div>
+                </div>`;
+            }
+            
+            if (d.parent) {
+                html += `<div class="info-section">
+                    <div class="label">Parent Class</div>
+                    <div class="value">${d.parent}</div>
+                </div>`;
+            }
+            
+            if (d.type) {
+                html += `<div class="info-section">
+                    <div class="label">Instance Of</div>
+                    <div class="value">${d.type}</div>
+                </div>`;
+            }
+            
+            // Find connections
+            const connections = edges.filter(e => e.source.id === d.id || e.target.id === d.id);
+            if (connections.length > 0) {
+                html += `<div class="info-section">
+                    <div class="label">Connections (${connections.length})</div>
+                    <div class="value">`;
+                connections.forEach(c => {
+                    const other = c.source.id === d.id ? c.target : c.source;
+                    const direction = c.source.id === d.id ? '→' : '←';
+                    html += `${direction} ${other.label} <em>(${c.label})</em><br>`;
+                });
+                html += `</div></div>`;
+            }
+            
+            content.innerHTML = html;
+            panel.style.display = 'block';
+            
+            // Highlight connected nodes
+            link.classed('highlighted', e => e.source.id === d.id || e.target.id === d.id);
+        }
+
+        function closeInfo() {
+            document.getElementById('info-panel').style.display = 'none';
+            link.classed('highlighted', false);
+        }
+
+        // Controls
+        document.getElementById('nodeSize').addEventListener('input', function() {
+            node.select('circle').attr('r', this.value);
+        });
+
+        document.getElementById('linkDistance').addEventListener('input', function() {
+            simulation.force('link').distance(this.value);
+            simulation.alpha(0.3).restart();
+        });
+
+        document.getElementById('chargeStrength').addEventListener('input', function() {
+            simulation.force('charge').strength(this.value);
+            simulation.alpha(0.3).restart();
+        });
+
+        document.getElementById('labelMode').addEventListener('change', function() {
+            const mode = this.value;
+            node.select('text').style('display', mode === 'none' ? 'none' : 'block');
+        });
+
+        // Category filters
+        const categories = [...new Set(allNodes.map(n => n.category))];
+        const activeCategories = new Set(categories);
+
+        const filterContainer = document.getElementById('categoryFilters');
+        categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'filter-btn active';
+            btn.textContent = cat;
+            btn.onclick = () => {
+                if (activeCategories.has(cat)) {
+                    activeCategories.delete(cat);
+                    btn.classList.remove('active');
+                } else {
+                    activeCategories.add(cat);
+                    btn.classList.add('active');
+                }
+                updateVisibility();
+            };
+            filterContainer.appendChild(btn);
+        });
+
+        function updateVisibility() {
+            node.style('opacity', d => activeCategories.has(d.category) ? 1 : 0.1);
+            link.style('opacity', d => {
+                return activeCategories.has(d.source.category) && activeCategories.has(d.target.category) ? 1 : 0.1;
+            });
+        }
+
+        // Legend
+        const legendContent = document.getElementById('legendContent');
+        Object.entries(colorScheme).forEach(([category, color]) => {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            item.innerHTML = `<div class="legend-color" style="background:${color}"></div>${category}`;
+            legendContent.appendChild(item);
+        });
+
+        // Stats
+        document.getElementById('nodeCount').textContent = allNodes.length;
+        document.getElementById('edgeCount').textContent = edges.length;
+
+        // Initial zoom to fit
+        setTimeout(() => {
+            const bounds = g.node().getBBox();
+            const fullWidth = bounds.width;
+            const fullHeight = bounds.height;
+            const midX = bounds.x + fullWidth / 2;
+            const midY = bounds.y + fullHeight / 2;
+            
+            const scale = 0.8 / Math.max(fullWidth / width, fullHeight / height);
+            const translate = [width / 2 - scale * midX, height / 2 - scale * midY];
+            
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+        }, 1000);
+        } // End initializeGraph
+    </script>
+</body>
+</html>

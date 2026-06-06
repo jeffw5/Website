@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Modeling Maturity Assessment — INCOSE DADM Team</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & variables ───────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;
+  --surface:#ffffff;
+  --surface2:#f0efe9;
+  --border:#dedad2;
+  --border-strong:#bfbbb0;
+  --text:#18181a;
+  --text2:#5a5650;
+  --text3:#948e86;
+  --amber:#c07c08;
+  --amber-bg:#fdf4e0;
+  --amber-border:#e8c46a;
+  --blue:#1962a8;
+  --blue-bg:#e8f0fb;
+  --blue-border:#7aaee0;
+  --teal:#0a7252;
+  --teal-bg:#e3f4ed;
+  --teal-border:#6ec4a0;
+  --purple:#5044b0;
+  --purple-bg:#eeecf9;
+  --purple-border:#a89ce0;
+  --coral:#b83f1a;
+  --coral-bg:#fceee8;
+  --coral-border:#e0967a;
+  --ready-bg:#e3f4ed; --ready-text:#0a7252; --ready-border:#6ec4a0;
+  --asst-bg:#fdf4e0;  --asst-text:#c07c08;  --asst-border:#e8c46a;
+  --excl-bg:#fce8e8;  --excl-text:#b02020;  --excl-border:#e09090;
+  --pend-bg:#f0efe9;  --pend-text:#948e86;  --pend-border:#dedad2;
+  --radius-sm:6px; --radius-md:8px; --radius-lg:12px;
+  --font:'Instrument Sans',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+
+/* ── Base ─────────────────────────────────────────────────────── */
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh}
+a{color:var(--blue)}
+
+/* ── Cover ────────────────────────────────────────────────────── */
+.cover{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:36px 40px 32px;
+}
+.cover-eyebrow{
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:10px;font-weight:500;
+}
+.cover-title{
+  font-size:26px;font-weight:600;color:var(--text);
+  line-height:1.25;margin-bottom:8px;
+}
+.cover-sub{
+  font-size:14px;color:var(--text2);margin-bottom:20px;
+}
+.cover-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{
+  display:inline-block;padding:3px 10px;
+  border-radius:20px;font-size:11px;font-weight:500;
+  border:1px solid;
+}
+.tag-amber{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-border)}
+.tag-blue{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-border)}
+.tag-teal{background:var(--teal-bg);color:var(--teal);border-color:var(--teal-border)}
+
+/* ── Instructions ─────────────────────────────────────────────── */
+.instr-wrap{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 40px;
+}
+.instr-toggle{
+  display:flex;align-items:center;gap:8px;
+  padding:14px 0;cursor:pointer;
+  font-size:13px;font-weight:500;color:var(--text2);
+  border:none;background:transparent;width:100%;text-align:left;
+}
+.instr-toggle::after{content:'▸';font-size:11px;transition:transform .2s}
+.instr-toggle.open::after{transform:rotate(90deg)}
+.instr-body{
+  display:none;padding-bottom:20px;
+  border-top:1px solid var(--border);padding-top:16px;
+}
+.instr-body.open{display:block}
+.instr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px}
+.instr-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:14px;
+}
+.instr-card h4{font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+.instr-card p{font-size:12.5px;color:var(--text2);line-height:1.5}
+.scale-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.scale-table th{text-align:left;padding:6px 12px;background:var(--surface2);color:var(--text2);font-weight:500;border:.5px solid var(--border)}
+.scale-table td{padding:6px 12px;border:.5px solid var(--border);color:var(--text2);vertical-align:top}
+.scale-table td:first-child{font-family:var(--mono);font-weight:500;color:var(--text);width:30px;text-align:center}
+.threshold-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px}
+.threshold-table th{text-align:left;padding:6px 12px;background:var(--surface2);color:var(--text2);font-weight:500;border:.5px solid var(--border)}
+.threshold-table td{padding:6px 12px;border:.5px solid var(--border);vertical-align:top}
+
+/* ── Sticky bar ───────────────────────────────────────────────── */
+.sticky{
+  position:sticky;top:0;z-index:100;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:10px 40px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.prog-label{font-size:11px;color:var(--text3);margin-right:4px;letter-spacing:.04em;text-transform:uppercase}
+.prog-bar{
+  flex:1;min-width:80px;max-width:120px;height:3px;
+  background:var(--surface2);border-radius:2px;overflow:hidden;
+}
+.prog-fill{height:100%;background:var(--teal);border-radius:2px;transition:width .4s}
+.prog-pct{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text2);margin-right:12px;min-width:30px}
+.score-chips{display:flex;gap:5px;flex-wrap:wrap}
+.sc{
+  display:flex;align-items:center;gap:5px;
+  border:1px solid var(--border);border-radius:20px;
+  padding:3px 10px;font-size:11.5px;background:var(--surface);
+}
+.sc-dot{width:5px;height:5px;border-radius:50%}
+.sc-l{color:var(--text3)}
+.sc-v{font-family:var(--mono);font-weight:500;color:var(--text);min-width:22px}
+.actions{margin-left:auto;display:flex;gap:6px}
+.btn{
+  padding:5px 12px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--surface);
+  font-family:var(--font);font-size:12px;font-weight:500;
+  color:var(--text2);cursor:pointer;transition:background .15s,border-color .15s;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--surface2);border-color:var(--border-strong)}
+.btn-primary{background:var(--text);color:var(--surface);border-color:var(--text)}
+.btn-primary:hover{background:#333;border-color:#333}
+
+/* ── Tabs ─────────────────────────────────────────────────────── */
+.tab-wrap{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 40px;overflow-x:auto;
+  display:flex;gap:0;
+}
+.t-btn{
+  background:transparent;border:none;
+  border-bottom:2.5px solid transparent;margin-bottom:-1px;
+  padding:10px 16px;font-family:var(--font);font-size:13px;
+  font-weight:400;color:var(--text3);cursor:pointer;
+  white-space:nowrap;transition:color .15s;
+}
+.t-btn:hover{color:var(--text2)}
+.t-btn.on{font-weight:500;color:var(--text)}
+
+/* ── Main content ─────────────────────────────────────────────── */
+.main{padding:28px 40px;max-width:960px;margin:0 auto}
+.panel{display:none}
+.panel.on{display:block}
+
+.sect-intro{
+  padding:12px 16px;
+  border-left:3px solid var(--border-strong);border-radius:0 var(--radius-md) var(--radius-md) 0;
+  background:var(--surface2);font-size:13px;color:var(--text2);
+  margin-bottom:20px;line-height:1.6;
+}
+.sect-intro strong{color:var(--text);font-weight:600}
+
+.scale-leg{
+  display:flex;gap:8px;flex-wrap:wrap;
+  margin-bottom:16px;align-items:center;
+  font-size:11.5px;color:var(--text3);
+}
+.sl-i{display:flex;align-items:center;gap:4px}
+.sl-n{
+  width:18px;height:18px;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10.5px;font-weight:500;font-family:var(--mono);
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+}
+.sl-sep{color:var(--border-strong);margin:0 1px}
+
+.g-head{display:flex;align-items:center;gap:8px;margin:24px 0 8px}
+.g-bar{width:3px;height:15px;border-radius:2px;flex-shrink:0}
+.g-name{font-size:13.5px;font-weight:600;color:var(--text);letter-spacing:.01em}
+.g-avg{margin-left:auto;font-size:11.5px;color:var(--text3);font-variant-numeric:tabular-nums}
+.g-avg b{font-weight:600;color:var(--text2)}
+
+/* ── Questions ────────────────────────────────────────────────── */
+.q-card{
+  padding:14px 16px;
+  border:1px solid var(--border);border-radius:var(--radius-md);
+  margin-bottom:6px;background:var(--surface);
+  transition:border-color .15s;
+}
+.q-card:has(input:checked){border-color:var(--border-strong)}
+.q-id{font-size:10.5px;color:var(--text3);margin-bottom:3px;font-family:var(--mono)}
+.q-txt{font-size:13.5px;line-height:1.5;color:var(--text);margin-bottom:10px}
+.q-scale{display:flex;gap:4px}
+.q-opt{flex:1;position:relative}
+.q-opt input{position:absolute;opacity:0;width:0;height:0}
+.q-opt label{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:7px 3px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);background:var(--surface2);
+  transition:border-color .12s,background .12s;
+}
+.q-opt label:hover{border-color:var(--border-strong);background:var(--bg)}
+.q-opt input:checked + label{background:var(--surface);border-color:var(--border-strong)}
+.q-opt input:checked + label .opt-n{color:var(--text)}
+.q-opt input:checked + label .opt-l{color:var(--text2)}
+.opt-n{font-size:13px;font-weight:500;color:var(--text2);font-family:var(--mono)}
+.opt-l{font-size:9px;color:var(--text3);text-align:center;line-height:1.2;letter-spacing:.01em}
+
+/* ── Readiness ────────────────────────────────────────────────── */
+.ready-sect{
+  margin-top:32px;padding-top:24px;
+  border-top:2px solid var(--border);
+}
+.ready-h{font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px}
+.ready-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+
+.d-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:20px}
+.d-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:16px;text-align:center;
+}
+.dc-n{font-size:10.5px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;font-weight:500}
+.dc-badge{
+  display:inline-block;padding:4px 12px;
+  border-radius:20px;font-size:12px;font-weight:600;
+  border:1px solid;margin-bottom:10px;
+}
+.b-r{background:var(--ready-bg);color:var(--ready-text);border-color:var(--ready-border)}
+.b-a{background:var(--asst-bg);color:var(--asst-text);border-color:var(--asst-border)}
+.b-x{background:var(--excl-bg);color:var(--excl-text);border-color:var(--excl-border)}
+.b-p{background:var(--pend-bg);color:var(--pend-text);border-color:var(--pend-border)}
+.dc-scores{display:flex;justify-content:center;gap:14px}
+.dc-s{font-size:11px;color:var(--text3)}
+.dc-s b{font-weight:500;color:var(--text2)}
+
+.gate-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.gb{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px}
+.gb-top{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:7px;align-items:baseline}
+.gb-top b{font-family:var(--mono);font-weight:500;font-size:14px;color:var(--text)}
+.gb-track{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.gb-fill{height:100%;border-radius:2px;transition:width .4s ease}
+.gb-sub{font-size:11px;color:var(--text3);margin-top:5px}
+
+.threshold-box{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:14px 16px;
+  font-size:12.5px;color:var(--text2);line-height:1.7;
+}
+.threshold-box b{font-weight:600;color:var(--text)}
+.threshold-box .t-row{display:flex;gap:6px;align-items:flex-start;margin-bottom:4px}
+.threshold-box .t-badge{font-size:11px;font-weight:600;border-radius:20px;padding:1px 8px;border:1px solid;white-space:nowrap;margin-top:2px}
+
+/* ── Print ────────────────────────────────────────────────────── */
+@media print{
+  .sticky,.tab-wrap,.instr-toggle,.actions,.t-btn,button{display:none!important}
+  .panel{display:block!important}
+  .cover{padding:20px 24px}
+  .main{padding:16px 24px}
+  .q-scale{display:none}
+  .q-card{page-break-inside:avoid;margin-bottom:4px;padding:8px 12px}
+  .q-card .q-txt{font-size:12px}
+  body{font-size:12px}
+  .g-head{margin:14px 0 5px}
+  .ready-sect{page-break-before:always}
+  .cover-title{font-size:20px}
+}
+
+/* ── Summary modal ────────────────────────────────────────────── */
+.modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.45);z-index:200;
+  align-items:center;justify-content:center;
+}
+.modal-bg.open{display:flex}
+.modal{
+  background:var(--surface);border-radius:var(--radius-lg);
+  border:1px solid var(--border);padding:24px;
+  max-width:600px;width:90%;max-height:80vh;overflow-y:auto;
+}
+.modal-h{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:12.5px;color:var(--text2);margin-bottom:16px}
+.modal-close{float:right;background:transparent;border:none;font-size:18px;cursor:pointer;color:var(--text3);margin-top:-4px}
+.summary-pre{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:14px;
+  font-family:var(--mono);font-size:12px;line-height:1.6;
+  color:var(--text2);white-space:pre-wrap;word-break:break-word;
+  margin-bottom:12px;
+}
+.copied-msg{font-size:12px;color:var(--teal);display:none;margin-left:8px}
+</style>
+</head>
+<body>
+
+<!-- ── Cover ────────────────────────────────────────────────────── -->
+<div class="cover">
+  <div class="cover-eyebrow">INCOSE · Decision Analysis &amp; Data Modeling Team</div>
+  <div class="cover-title">Decision Modeling Maturity Assessment</div>
+  <div class="cover-sub">
+    AI &amp; agentic AI readiness · Dual-gate scoring instrument across digital assets, services, and products
+  </div>
+  <div class="cover-tags">
+    <span class="tag tag-amber">Specification gate</span>
+    <span class="tag tag-blue">Execution gate</span>
+    <span class="tag tag-teal">Decision context (5D)</span>
+    <span class="tag tag-amber">Compositional structure</span>
+    <span class="tag tag-blue">Boundary context</span>
+  </div>
+</div>
+
+<!-- ── Instructions ─────────────────────────────────────────────── -->
+<div class="instr-wrap">
+  <button class="instr-toggle" id="instrToggle" onclick="toggleInstr()">
+    Instructions &amp; scoring guide
+  </button>
+  <div class="instr-body" id="instrBody">
+    <div class="instr-grid">
+      <div class="instr-card">
+        <h4>Purpose</h4>
+        <p>This instrument assesses the maturity of decision modeling practice across three object types (digital assets, services, products) using a dual-gate framework designed to distinguish AI-assistable domains from those ready for agentic delegation.</p>
+      </div>
+      <div class="instr-card">
+        <h4>Scope</h4>
+        <p>Score against a specific value stream segment or business domain — not the enterprise as a whole. Aggregate scores mask the variance between domains where agency is safe and domains where it is not yet warranted.</p>
+      </div>
+      <div class="instr-card">
+        <h4>How to score</h4>
+        <p>For each question, select the maturity level that most accurately describes the current state. When in doubt, score conservatively. A score of 2 (formalized) requires machine-readable artifacts, not just documentation.</p>
+      </div>
+      <div class="instr-card">
+        <h4>Readiness thresholds</h4>
+        <p>Both gates must reach ≥ 3.0 and decision context must reach ≥ 2.5 for a domain to qualify as agent-ready. High gate scores can be overridden by low context scores.</p>
+      </div>
+    </div>
+    <table class="scale-table">
+      <thead><tr><th>Score</th><th>Level</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td><b>Not present</b></td><td>No formal capture exists. Decision logic is implicit or undocumented.</td></tr>
+        <tr><td>1</td><td><b>Informal</b></td><td>Exists in prose documentation or tribal knowledge. Not machine-readable or consistently applied.</td></tr>
+        <tr><td>2</td><td><b>Formalized</b></td><td>Structured, machine-readable model exists (DMN, ontology, SHACL, policy spec). Not yet actively governed or monitored.</td></tr>
+        <tr><td>3</td><td><b>Governed</b></td><td>Formally governed with defined ownership, version control, review cadence, and monitoring. Observable at runtime.</td></tr>
+        <tr><td>4</td><td><b>Adaptive</b></td><td>Self-improving. Runtime feedback closes back to model update. Compositionally structured. Agent-delegable within defined bounds.</td></tr>
+      </tbody>
+    </table>
+    <table class="threshold-table" style="margin-top:12px">
+      <thead><tr><th>Classification</th><th>Specification gate</th><th>Execution gate</th><th>Decision context</th><th>Composition</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="dc-badge b-x" style="font-size:11px">AI-excluded</span></td>
+          <td>&lt; 1.5 <i>or</i></td><td>—</td>
+          <td>Context &lt; 1.5</td><td>—</td>
+        </tr>
+        <tr>
+          <td><span class="dc-badge b-a" style="font-size:11px">AI-assistable</span></td>
+          <td>≥ 2.0</td><td>&lt; 2.0</td>
+          <td>≥ 1.5</td><td>—</td>
+        </tr>
+        <tr>
+          <td><span class="dc-badge b-r" style="font-size:11px">Agent-ready</span></td>
+          <td>≥ 3.0</td><td>≥ 3.0</td>
+          <td>≥ 2.5</td><td>≥ 2.5</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Sticky score bar ──────────────────────────────────────────── -->
+<div class="sticky">
+  <span class="prog-label">Progress</span>
+  <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  <span class="prog-pct" id="progPct">0%</span>
+  <div class="score-chips" id="scoreChips"></div>
+  <div class="actions">
+    <button class="btn" onclick="window.print()">Print / save PDF</button>
+    <button class="btn btn-primary" onclick="openSummary()">Export summary</button>
+  </div>
+</div>
+
+<!-- ── Tab navigation ────────────────────────────────────────────── -->
+<div class="tab-wrap" id="tabWrap"></div>
+
+<!-- ── Survey panels ─────────────────────────────────────────────── -->
+<div class="main" id="panels"></div>
+
+<!-- ── Summary modal ─────────────────────────────────────────────── -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeSummary()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSummary()">×</button>
+    <div class="modal-h">Assessment summary</div>
+    <div class="modal-sub">Copy and paste into your team notes, email, or report.</div>
+    <div class="summary-pre" id="summaryText"></div>
+    <div style="display:flex;align-items:center">
+      <button class="btn btn-primary" onclick="copySummary()">Copy to clipboard</button>
+      <span class="copied-msg" id="copiedMsg">✓ Copied</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Data ──────────────────────────────────────────────────────── */
+const SC=['Not present','Informal','Formalized','Governed','Adaptive'];
+
+const SECTS=[
+{id:'spec',label:'Specification gate',color:'#c07c08',borderColor:'#e8c46a',
+ intro:'<strong>Specification gate</strong> measures whether decision logic is explicitly modeled, formalized, and machine-readable at design time. Clearing this gate is a prerequisite for AI assistance — it is necessary but insufficient for agentic delegation.',
+ groups:[
+  {id:'sa',label:'Digital assets',qs:[
+   'Are decision criteria for creating, versioning, or deprecating digital assets formally captured in a machine-readable format (decision model, policy ontology, or SHACL shape)?',
+   'Are quality thresholds and acceptance criteria for digital assets formally specified and linked to the decisions that depend on them?',
+   'Is provenance of digital assets (creator, source, constraints) captured in a structured, queryable form?',
+   'Are access, use, and transformation decision policies for data assets formally modeled and traceable to organizational requirements?',
+   'When digital asset decisions are made, is the rationale — not just the outcome — captured in a machine-accessible record?'
+  ]},
+  {id:'ss',label:'Services / business processes',qs:[
+   'Are decision points within business processes explicitly modeled using formal notation (DMN, BPMN decision tasks, or equivalent)?',
+   'Are input criteria, weights, and branching logic for process decision points formally specified and version-controlled?',
+   'Are authority levels and escalation thresholds for process decisions explicitly defined and machine-readable?',
+   'Are exception conditions and constraint violations for process decisions formally modeled — not just handled procedurally?',
+   'Are process decisions linked to the requirements and policies that constrain them in a traceable, queryable form?'
+  ]},
+  {id:'sp',label:'Products',qs:[
+   'Are configuration and behavioral decisions embedded in products formally specified and linked to design requirements?',
+   'Are constraint envelopes (parameter bounds, operational limits, safety margins) for product decisions machine-readable and version-controlled?',
+   'Are product decision models compositionally structured — can component-level decisions be understood and governed independently?',
+   'Are compliance and certification decisions for product configurations explicitly modeled with associated evidence requirements?',
+   'When product decisions are made during design, are alternatives considered and selection rationale captured in structured form?'
+  ]}
+]},
+{id:'exec',label:'Execution gate',color:'#1962a8',borderColor:'#7aaee0',
+ intro:'<strong>Execution gate</strong> measures whether decision execution can be monitored, measured, and intervened upon at runtime. Without this, agentic delegation is structurally unsafe — an agent operating without execution observability cannot detect when it should halt or escalate.',
+ groups:[
+  {id:'ea',label:'Digital assets',qs:[
+   'Can decision execution affecting digital assets (quality assessments, model selection, version promotion) be monitored in real time?',
+   'Are defined metrics and thresholds in place for detecting when digital asset decisions perform outside expected bounds?',
+   'When a digital asset decision deviates from specification, is there a detection and response protocol (escalation, automated halt, or circuit breaker)?',
+   'Is audit trail data for digital asset decisions captured in a form supporting post-hoc analysis and model improvement?',
+   'Can an external system or AI agent query the current state of a digital asset decision — its status, last update, and confidence — via a defined interface?'
+  ]},
+  {id:'es',label:'Services / business processes',qs:[
+   'Are process decision execution events observable through monitoring infrastructure (logs, dashboards, event streams)?',
+   'Are SPC-style control limits or equivalent thresholds defined for key process decisions, enabling automated detection of out-of-control conditions?',
+   'When a process decision fails to produce expected outcomes, is there a formal feedback mechanism to trigger model review or constraint adjustment?',
+   'Can human operators observe and intervene in process decision execution at a granular level — not just at process completion?',
+   'Is the authority to override or halt a process decision at runtime explicitly governed and auditable?'
+  ]},
+  {id:'ep',label:'Products',qs:[
+   'Can product behavioral decisions be monitored during operation — not just at manufacture or commissioning?',
+   'Are product decision outcomes measured against design-intent specifications on a continuous or event-driven basis?',
+   'When product decisions deviate from specification during operation, is there a defined response protocol (alert, constraint enforcement, safe state transition)?',
+   'Can the history of product decision execution be retrieved and analyzed to identify systemic drift or emerging failure modes?',
+   'Is there a defined interface through which an agent could query or influence product decision state within authorized bounds?'
+  ]}
+]},
+{id:'ctx',label:'Decision context (5D)',color:'#0a7252',borderColor:'#6ec4a0',
+ intro:'<strong>Decision context (5D)</strong> measures whether the WHO, WHAT, WHEN, WHERE, and WHY of each decision are formally captured. These five dimensions distinguish decisions that can be safely delegated to an agent from those that merely appear machine-readable. Low context scores override high gate scores.',
+ groups:[
+  {id:'cw1',label:'WHO — Authority & accountability',qs:[
+   'For each major decision domain, is decision authority (role, system, or agent) explicitly defined and machine-readable?',
+   'Are accountability chains formally modeled — including who is responsible when a delegated or automated decision produces unintended outcomes?',
+   'Are the conditions under which decision authority can be transferred (to a role, system, or AI agent) formally specified?',
+   'Is the current decision authority state observable at runtime — can you always determine who or what is currently authorized to make a given decision?',
+   'When an AI system participates in a decision, are the boundaries of its authority explicitly constrained and auditable?'
+  ]},
+  {id:'cw2',label:'WHAT — Decision type & content',qs:[
+   'Are decision types classified using a shared taxonomy or ontology consistently applied across domains?',
+   'Are the input types, output types, and side effects of each decision domain formally specified?',
+   'Is decision content — not just outcome — captured in a structured, machine-readable form?',
+   'Are decision models versioned and managed as first-class artifacts alongside the systems and processes they govern?',
+   'Is the scope of each decision — what it does and does not affect — explicitly bounded and documented?'
+  ]},
+  {id:'cw3',label:'WHEN — Temporal & triggering',qs:[
+   'Are the temporal triggers for decisions (event-driven, time-based, threshold-based) formally specified?',
+   'Are decision validity windows (how long a decision remains in effect) explicitly defined and enforced?',
+   'Are sequencing dependencies between decisions formally modeled — which decisions must precede or follow others?',
+   'Are time-sensitivity and urgency classifications for decisions captured, enabling an agent to prioritize appropriately?',
+   'When a decision expires or is superseded, is the transition governed by a defined protocol?'
+  ]},
+  {id:'cw4',label:'WHERE — Scope & boundary',qs:[
+   'Are the operational scope and jurisdictional boundaries of each decision domain explicitly defined?',
+   'Are value stream segment assignments for decisions formally captured — is it clear which part of the value stream each decision governs?',
+   'When decisions cross organizational or system boundaries, are authority and interoperability requirements explicitly specified?',
+   'Are the system or platform contexts in which decisions execute formally modeled — not just assumed from deployment context?',
+   'Is geographic, regulatory, or organizational jurisdiction relevant to a decision captured in the decision model?'
+  ]},
+  {id:'cw5',label:'WHY — Rationale & provenance',qs:[
+   'Is the rationale for each decision — goals, constraints, and trade-offs — captured in machine-accessible form?',
+   'Are decisions linked to the requirements, policies, or principles they implement in a traceable, queryable form?',
+   'When decisions change, is the reason for the change captured alongside the change itself?',
+   'Can an AI system retrieve the intent behind a decision model to evaluate whether a proposed action is consistent with it?',
+   'Are the values or principles (safety, compliance, sustainability) that constrain a decision formally encoded alongside the decision logic?'
+  ]}
+]},
+{id:'comp',label:'Compositional structure',color:'#5044b0',borderColor:'#a89ce0',
+ intro:'<strong>Compositional structure</strong> measures whether decision models are hierarchically decomposable — a hard prerequisite for safe agentic operation at scale. Monolithic decision models cannot be safely delegated to an agent regardless of how well-specified they appear on other dimensions.',
+ groups:[
+  {id:'ch',label:'Holonic decision architecture',qs:[
+   'Are decision models compositionally structured — can higher-level decisions be decomposed into sub-decisions, each independently governed?',
+   'When a component-level decision changes, is the impact on higher-level decisions formally traceable?',
+   'Are there defined interfaces between decision levels allowing an agent to operate at one level without needing to understand the full hierarchy?',
+   'Are recursive decision dependencies (decisions that affect inputs to other decisions) formally modeled and managed?',
+   'Can the maturity of a decision domain be assessed independently at each level of the hierarchy, or is it treated as an indivisible unit?'
+  ]}
+]},
+{id:'bnd',label:'Boundary context',color:'#b83f1a',borderColor:'#e0967a',
+ intro:'<strong>Boundary context</strong> distinguishes internal value stream decisions (where you control the instrumentation) from cross-organizational value chain decisions (where trust and interoperability are prerequisites for any form of agency). Different readiness thresholds apply.',
+ groups:[
+  {id:'bvs',label:'Value stream — internal governance',qs:[
+   'Have the major decision points in primary value streams been mapped and formally inventoried?',
+   'Is there a defined owner for each value stream decision point, responsible for its specification and governance?',
+   'Are value stream decision points instrumented for observability within existing operational infrastructure?',
+   'Is there a regular review cadence for value stream decision models to ensure they reflect current operational reality?',
+   'Are value stream decisions prioritized for AI/agent readiness based on their frequency, consequence, and reversibility profiles?'
+  ]},
+  {id:'bvc',label:'Value chain — cross-organizational',qs:[
+   'Have decision points that cross organizational boundaries in value chains been formally identified?',
+   'Are interoperability requirements for cross-boundary decisions (data formats, authority handoffs, audit trails) formally specified?',
+   'Do cross-boundary decision protocols include explicit circuit breaker conditions — where a party can unilaterally halt or escalate?',
+   'Are cross-boundary decisions governed by agreed ontologies or taxonomies that both parties can consume programmatically?',
+   'Are liability and accountability assignments for cross-boundary decision failures formally specified and machine-readable?'
+  ]}
+]}
+];
+
+/* ── State ─────────────────────────────────────────────────────── */
+const ANS={};
+
+/* ── Scoring ───────────────────────────────────────────────────── */
+function gScore(gid){
+  const g=SECTS.flatMap(s=>s.groups).find(x=>x.id===gid);
+  if(!g) return null;
+  const v=g.qs.map((_,i)=>ANS[gid+'_'+i]).filter(x=>x!==undefined);
+  return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;
+}
+function sScore(sid){
+  const s=SECTS.find(x=>x.id===sid);
+  if(!s) return null;
+  const v=s.groups.map(g=>gScore(g.id)).filter(x=>x!==null);
+  return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;
+}
+function domainReadiness(d){
+  const sg=gScore('s'+d), eg=gScore('e'+d);
+  const cs=sScore('ctx'), cp=sScore('comp');
+  if(sg===null) return 'p';
+  if(sg<1.5||(cs!==null&&cs<1.5)) return 'x';
+  if(sg>=3&&eg!==null&&eg>=3&&cs!==null&&cs>=2.5&&cp!==null&&cp>=2.5) return 'r';
+  if(sg>=2) return 'a';
+  return 'x';
+}
+function progress(){
+  const total=SECTS.flatMap(s=>s.groups.flatMap(g=>g.qs)).length;
+  const done=Object.keys(ANS).length;
+  return{done,total,pct:Math.round(done/total*100)};
+}
+function fmt(v,d=1){return v===null?'—':v.toFixed(d)}
+
+/* ── Render ────────────────────────────────────────────────────── */
+function init(){
+  renderTabs();
+  renderPanels();
+  renderSticky();
+}
+
+function renderTabs(){
+  const wrap=document.getElementById('tabWrap');
+  wrap.innerHTML=SECTS.map((s,i)=>`
+    <button class="t-btn${i===0?' on':''}" id="tab_${s.id}"
+      data-color="${s.color}"
+      onclick="switchTab('${s.id}')"
+      style="${i===0?'border-bottom-color:'+s.color+';color:'+s.color:''}"
+    >${s.label}</button>`).join('');
+}
+
+function renderPanels(){
+  const pc=document.getElementById('panels');
+  pc.innerHTML=SECTS.map((s,si)=>`
+    <div class="panel${si===0?' on':''}" id="panel_${s.id}">
+      <div class="sect-intro" style="border-left-color:${s.color}">${s.intro}</div>
+      <div class="scale-leg">
+        ${SC.map((l,i)=>`<div class="sl-i"><div class="sl-n">${i}</div><span>${l}</span></div>${i<4?'<span class="sl-sep">·</span>':''}`).join('')}
+      </div>
+      ${s.groups.map(g=>renderGroup(g,s.color)).join('')}
+    </div>`).join('');
+  renderReadiness();
+}
+
+function renderGroup(g,color){
+  return `<div>
+    <div class="g-head">
+      <div class="g-bar" style="background:${color}"></div>
+      <span class="g-name">${g.label}</span>
+      <span class="g-avg">avg <b id="ga_${g.id}">${fmt(gScore(g.id))}</b> / 4.0</span>
+    </div>
+    ${g.qs.map((q,i)=>renderQ(g.id,i,q,color)).join('')}
+  </div>`;
+}
+
+function renderQ(gid,idx,txt,color){
+  const key=`${gid}_${idx}`;
+  return `<div class="q-card" id="qc_${key}">
+    <div class="q-id">${gid.toUpperCase()}·Q${String(idx+1).padStart(2,'0')}</div>
+    <div class="q-txt">${txt}</div>
+    <div class="q-scale">
+      ${SC.map((l,v)=>`<div class="q-opt">
+        <input type="radio" name="${key}" id="${key}_${v}" value="${v}"
+               ${ANS[key]===v?'checked':''}
+               onchange="onAns('${key}',${v},'${color}','${gid}')">
+        <label for="${key}_${v}">
+          <span class="opt-n">${v}</span>
+          <span class="opt-l">${l}</span>
+        </label>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderReadiness(){
+  const rp=document.createElement('div');
+  rp.className='ready-sect';rp.id='readySect';
+  const doms=[['a','Digital assets'],['s','Services'],['p','Products']];
+  const bl={r:'b-r',a:'b-a',x:'b-x',p:'b-p'};
+  const lb={r:'Agent-ready',a:'AI-assistable',x:'AI-excluded',p:'Not yet scored'};
+  const dcards=doms.map(([d,name])=>`
+    <div class="d-card">
+      <div class="dc-n">${name}</div>
+      <div class="dc-badge ${bl[domainReadiness(d)]}" id="db_${d}">${lb[domainReadiness(d)]}</div>
+      <div class="dc-scores">
+        <div class="dc-s">Spec <b id="ds_${d}">${fmt(gScore('s'+d))}</b></div>
+        <div class="dc-s">Exec <b id="de_${d}">${fmt(gScore('e'+d))}</b></div>
+      </div>
+    </div>`).join('');
+  const gates=[
+    ['Specification gate','spec','#c07c08','Decision model coverage across assets, services, and products'],
+    ['Execution gate','exec','#1962a8','Runtime observability and intervention capability'],
+    ['Decision context (5D)','ctx','#0a7252','WHO / WHAT / WHEN / WHERE / WHY richness'],
+    ['Compositional structure','comp','#5044b0','Holonic decomposability and level-crossing interfaces'],
+    ['Boundary context','bnd','#b83f1a','Value stream and value chain decision governance']
+  ];
+  const gbars=gates.map(([l,sid,c,sub])=>`
+    <div class="gb">
+      <div class="gb-top"><span>${l}</span><b id="gbv_${sid}">${fmt(sScore(sid))}</b></div>
+      <div class="gb-track"><div class="gb-fill" id="gbf_${sid}" style="width:${sScore(sid)!==null?sScore(sid)/4*100:0}%;background:${c}"></div></div>
+      <div class="gb-sub">${sub}</div>
+    </div>`).join('');
+  rp.innerHTML=`
+    <div class="ready-h">Readiness assessment</div>
+    <div class="ready-sub">Updates live as you complete the survey. Scroll here to check domain classifications.</div>
+    <div class="d-grid">${dcards}</div>
+    <div class="gate-grid">${gbars}</div>
+    <div class="threshold-box">
+      <div class="t-row"><span class="t-badge b-r">Agent-ready</span><span>Both gates ≥ 3.0, decision context ≥ 2.5, and compositional structure ≥ 2.5. Safe for autonomous delegation within defined authority bounds.</span></div>
+      <div class="t-row"><span class="t-badge b-a">AI-assistable</span><span>Specification gate ≥ 2.0 and context ≥ 1.5. A human executes the decision with AI recommendation and support. Execution gate governs pace of progression to agent-ready.</span></div>
+      <div class="t-row" style="margin-bottom:0"><span class="t-badge b-x">AI-excluded</span><span>Specification gate &lt; 1.5 or context &lt; 1.5. Human-only governance required. AI tools may support information retrieval but must not influence decision logic.</span></div>
+    </div>`;
+  document.getElementById('panels').appendChild(rp);
+}
+
+function renderSticky(){
+  const chips=SECTS.map(s=>`
+    <div class="sc">
+      <div class="sc-dot" style="background:${s.color}"></div>
+      <span class="sc-l">${s.label.split(' ')[0]}</span>
+      <span class="sc-v" id="scsv_${s.id}">${fmt(sScore(s.id))}</span>
+    </div>`).join('');
+  document.getElementById('scoreChips').innerHTML=chips;
+  updateProgress();
+}
+
+/* ── Updates ───────────────────────────────────────────────────── */
+function onAns(key,val,color,gid){
+  ANS[key]=val;
+  const lab=document.querySelector(`label[for="${key}_${val}"]`);
+  if(lab) lab.closest('.q-card').style.borderColor=color;
+  updateGroupScore(gid);
+  updateReadinessLive();
+  updateProgress();
+}
+
+function updateGroupScore(gid){
+  const el=document.getElementById('ga_'+gid);
+  if(el) el.textContent=fmt(gScore(gid));
+}
+
+function updateReadinessLive(){
+  const doms=['a','s','p'];
+  const bl={r:'b-r',a:'b-a',x:'b-x',p:'b-p'};
+  const lb={r:'Agent-ready',a:'AI-assistable',x:'AI-excluded',p:'Not yet scored'};
+  doms.forEach(d=>{
+    const r=domainReadiness(d);
+    const be=document.getElementById('db_'+d);
+    if(be){be.className='dc-badge '+bl[r];be.textContent=lb[r];}
+    const se=document.getElementById('ds_'+d);
+    if(se) se.textContent=fmt(gScore('s'+d));
+    const ee=document.getElementById('de_'+d);
+    if(ee) ee.textContent=fmt(gScore('e'+d));
+  });
+  SECTS.forEach(s=>{
+    const sv=document.getElementById('scsv_'+s.id);
+    if(sv) sv.textContent=fmt(sScore(s.id));
+    const gv=document.getElementById('gbv_'+s.id);
+    const gf=document.getElementById('gbf_'+s.id);
+    const sc=sScore(s.id);
+    if(gv) gv.textContent=fmt(sc);
+    if(gf) gf.style.width=(sc!==null?sc/4*100:0)+'%';
+  });
+}
+
+function updateProgress(){
+  const{done,total,pct}=progress();
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=pct+'%';
+}
+
+function switchTab(sid){
+  document.querySelectorAll('.t-btn').forEach(b=>{
+    const on=b.id==='tab_'+sid;
+    b.classList.toggle('on',on);
+    b.style.borderBottomColor=on?b.dataset.color:'transparent';
+    b.style.color=on?b.dataset.color:'';
+  });
+  document.querySelectorAll('.panel').forEach(p=>{
+    p.classList.toggle('on',p.id==='panel_'+sid);
+  });
+}
+
+/* ── Instructions toggle ───────────────────────────────────────── */
+function toggleInstr(){
+  const t=document.getElementById('instrToggle');
+  const b=document.getElementById('instrBody');
+  t.classList.toggle('open');
+  b.classList.toggle('open');
+}
+
+/* ── Export / summary ──────────────────────────────────────────── */
+function openSummary(){
+  const{done,total,pct}=progress();
+  const doms=[['a','Digital assets'],['s','Services'],['p','Products']];
+  const bl={r:'AGENT-READY',a:'AI-ASSISTABLE',x:'AI-EXCLUDED',p:'Not scored'};
+  let txt='DECISION MODELING MATURITY — ASSESSMENT SUMMARY\n';
+  txt+='INCOSE DADM Team · '+new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})+'\n';
+  txt+='Progress: '+done+' / '+total+' questions answered ('+pct+'%)\n\n';
+  txt+='── DOMAIN READINESS ──────────────────────────────\n';
+  doms.forEach(([d,name])=>{
+    const r=domainReadiness(d);
+    txt+=name.padEnd(20)+bl[r]+'  (Spec: '+fmt(gScore('s'+d))+'  Exec: '+fmt(gScore('e'+d))+')\n';
+  });
+  txt+='\n── GATE & DIMENSION SCORES ───────────────────────\n';
+  SECTS.forEach(s=>{
+    const sc=sScore(s.id);
+    txt+=s.label.padEnd(28)+(sc!==null?sc.toFixed(2)+' / 4.00':'—')+'\n';
+    s.groups.forEach(g=>{
+      const gs=gScore(g.id);
+      txt+='  '+g.label.padEnd(26)+(gs!==null?gs.toFixed(2):'—')+'\n';
+    });
+    txt+='\n';
+  });
+  txt+='── THRESHOLDS ────────────────────────────────────\n';
+  txt+='Agent-ready:   Spec ≥ 3.0 · Exec ≥ 3.0 · Context ≥ 2.5 · Composition ≥ 2.5\n';
+  txt+='AI-assistable: Spec ≥ 2.0 · Context ≥ 1.5\n';
+  txt+='AI-excluded:   Spec < 1.5 or Context < 1.5\n';
+  document.getElementById('summaryText').textContent=txt;
+  document.getElementById('modalBg').classList.add('open');
+}
+function closeSummary(){
+  document.getElementById('modalBg').classList.remove('open');
+}
+function copySummary(){
+  const txt=document.getElementById('summaryText').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const m=document.getElementById('copiedMsg');
+    m.style.display='inline';
+    setTimeout(()=>m.style.display='none',2500);
+  });
+}
+
+/* ── Boot ──────────────────────────────────────────────────────── */
+init();
+</script>
+</body>
+</html>

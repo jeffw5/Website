@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RDSG Prototype · Three-Phase Acquisition Roadmap</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1B2A4A;--steel:#2E5B8A;--teal:#0E7490;
+  --green:#15803d;--amber:#b45309;--red:#b91c1c;--blue:#1d4ed8;
+  --gbg:#f0fdf4;--abg:#fffbeb;--rbg:#fef2f2;--bbg:#eff6ff;
+  --bg:#f3f2ee;--card:#ffffff;--bdr:#e2e0d5;--bdr2:#edece7;
+  --t1:#1a1916;--t2:#57564f;--t3:#8a8880;
+  --mono:'Courier New',monospace;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t1);font-size:14px;line-height:1.5}
+#app{max-width:1100px;margin:0 auto;padding:24px 20px}
+
+/* HEADER */
+.hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.hdr-l .eyebrow{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+.hdr-l .title{font-size:17px;font-weight:500}
+.hdr-r{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t3)}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--bdr);margin-bottom:20px}
+.tab{background:none;border:none;padding:8px 18px;font-size:13px;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s;font-family:inherit}
+.tab:hover{color:var(--t1)}
+.tab.on{color:var(--t1);font-weight:500;border-bottom-color:var(--blue)}
+
+/* PANELS */
+.panel{display:none;flex-direction:column;gap:14px}
+.panel.on{display:flex}
+
+/* CARDS */
+.card{background:var(--card);border:.5px solid var(--bdr);border-radius:12px;padding:16px 20px}
+.ctitle{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+
+/* METRICS */
+.met{background:#f8f7f3;border-radius:8px;padding:12px 16px}
+.met .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:6px}
+.met .val{font-family:var(--mono);font-size:22px;font-weight:500}
+.met .sub{font-size:11px;color:var(--t3);margin-top:4px}
+
+/* BADGES */
+.bdg{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:3px;font-family:var(--mono);color:#fff;white-space:nowrap}
+.b-nominal,.b-validated,.b-closed,.b-complete{background:var(--green)}
+.b-caution,.b-pending,.b-halfopen{background:var(--amber)}
+.b-breach,.b-flagged,.b-open{background:var(--red)}
+.b-active,.b-running{background:var(--blue)}
+
+/* STATUS DOT */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dg{background:var(--green);animation:pg 1.6s infinite}
+.da{background:var(--amber);animation:pg 1.6s infinite}
+.dr{background:var(--red);animation:pg 1.0s infinite}
+@keyframes pg{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* PROGRESS */
+.pb-wrap{height:5px;background:#edece8;border-radius:3px;overflow:hidden}
+.pb-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.pb-row{display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:3px}
+
+/* TABLE */
+.dtbl{width:100%;border-collapse:collapse;font-size:12px}
+.dtbl th{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);text-align:left;padding:4px 8px 8px 0;border-bottom:1px solid var(--bdr)}
+.dtbl td{padding:7px 8px 7px 0;border-bottom:.5px solid var(--bdr2);color:var(--t2);vertical-align:middle}
+.dtbl td.mono-id{color:var(--t3);font-family:var(--mono);font-size:10px}
+
+/* ALT CARDS */
+.altc{background:#f8f7f3;border:1.5px solid var(--bdr);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all .18s}
+.altc:hover{border-color:var(--blue)}
+.altc.on{background:var(--bbg);border-color:var(--blue);border-width:2px}
+
+/* DRIFT BANNER */
+.dbanner{border-radius:8px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border:1px solid}
+.dn{background:var(--gbg);border-color:var(--green)}
+.da2{background:var(--abg);border-color:var(--amber)}
+.dr2{background:var(--rbg);border-color:var(--red)}
+
+/* TELEM */
+.trow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:.5px solid var(--bdr2)}
+.tlbl{font-size:12px;color:var(--t2);flex:1}
+.tval{font-family:var(--mono);font-size:14px;font-weight:500}
+.tunit{font-size:11px;color:var(--t3);min-width:24px}
+.tbase{font-size:10px;color:var(--t3);min-width:80px}
+
+/* CHECKLIST */
+.crow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:.5px solid var(--bdr2);font-size:12px}
+
+/* CHART WRAPPERS */
+.cw{position:relative;width:100%}
+
+/* CB CARD */
+.cbcard{border-radius:12px;padding:16px 20px;border:.5px solid}
+
+/* PHASE ITEMS */
+.pitem{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--t2);margin-bottom:4px}
+
+@media(max-width:700px){.g2,.g3,.g4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="eyebrow">Value Enablement Group · RDSG Prototype · April 2026</div>
+    <div class="title">Three-Phase Acquisition Roadmap &nbsp;·&nbsp; Scope Drift Detection &nbsp;·&nbsp; ITRA Milestone B Readiness</div>
+  </div>
+  <div class="hdr-r">
+    <span>System drift</span>
+    <span id="hdr-bdg" class="bdg b-nominal">NOMINAL</span>
+    <span id="hdr-dot" class="dot dg"></span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab on" data-tab="overview">Overview</button>
+  <button class="tab" data-tab="phase1">Phase 1 — DAST</button>
+  <button class="tab" data-tab="phase2">Phase 2 — VIS</button>
+  <button class="tab" data-tab="phase3">Phase 3 — HiL / SDD</button>
+</div>
+
+<!-- OVERVIEW -->
+<div id="panel-overview" class="panel on">
+  <div class="g4">
+    <div class="met">
+      <div class="lbl">ITRA Milestone B Readiness</div>
+      <div class="val" id="ov-ready" style="color:var(--amber)">67%</div>
+      <div style="margin-top:8px"><div class="pb-wrap"><div class="pb-fill" id="ov-ready-bar" style="width:67%;background:var(--amber)"></div></div></div>
+      <div class="sub">8 of 12 criteria met</div>
+    </div>
+    <div class="met">
+      <div class="lbl">Scope Drift Status</div>
+      <div class="val" id="ov-drift" style="font-size:18px;font-family:var(--mono)">NOMINAL</div>
+      <div class="sub">L1–L4 SDD layers active</div>
+    </div>
+    <div class="met">
+      <div class="lbl">Mean Time Between Hallucinations</div>
+      <div class="val" id="ov-mtbh" style="color:var(--green)">8.40h</div>
+      <div class="sub" id="ov-cb">CB: closed</div>
+    </div>
+    <div class="met">
+      <div class="lbl">Brier Score (AI Calibration)</div>
+      <div class="val" id="ov-brier" style="color:var(--green)">0.112</div>
+      <div class="sub">lower = better calibration</div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <div class="ctitle">Phase 1 <span class="bdg b-complete">COMPLETE</span></div>
+      <div style="font-size:13px;font-weight:500;margin:0 0 10px">Digital Authoritative Source of Truth</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>SysML v2 repository (KerML core)</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>RDSG SHACL / SWRL governance</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>Info-data baseline (8 artifacts)</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>Requirements specification layer</div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Phase 2 <span class="bdg b-active">ACTIVE</span></div>
+      <div style="font-size:13px;font-weight:500;margin:0 0 10px">Virtual Integrated System</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>MOVOI design alternative analysis</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>FMI 3.0 co-simulation (MiL)</div>
+      <div class="pitem"><span style="color:var(--amber);margin-top:1px">⊘</span>STPA UCA coverage at 71% (gap)</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>Modelica + Simulink coupling</div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Phase 3 <span class="bdg b-active">ACTIVE</span></div>
+      <div style="font-size:13px;font-weight:500;margin:0 0 10px">Physical HiL Anchor</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>L1 operational telemetry</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>L2–L3 semantic dist. / MTBH / Brier</div>
+      <div class="pitem"><span style="color:var(--green);margin-top:1px">✓</span>L3 Circuit Breaker operational</div>
+      <div class="pitem"><span style="color:var(--amber);margin-top:1px">⊘</span>L4 HiL physical anchor (pending)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">ITRA Milestone B Checklist</div>
+    <div id="itra-list"></div>
+  </div>
+</div>
+
+<!-- PHASE 1 -->
+<div id="panel-phase1" class="panel">
+  <div class="g3">
+    <div class="met"><div class="lbl">Repository Artifacts</div><div class="val" style="color:var(--blue)">8</div><div class="sub">info-data items</div></div>
+    <div class="met"><div class="lbl">Validated</div><div class="val" style="color:var(--green)">5 / 8</div></div>
+    <div class="met"><div class="lbl">Baseline Currency</div><div class="val" style="color:var(--amber)">79%</div><div class="sub">weighted average</div></div>
+  </div>
+  <div class="card">
+    <div class="ctitle">SysML v2 Repository — Info-Data Baseline</div>
+    <table class="dtbl">
+      <thead><tr><th>ID</th><th>Type</th><th>Artifact</th><th>Status</th><th style="min-width:110px">Coverage</th></tr></thead>
+      <tbody id="art-tbody"></tbody>
+    </table>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">RDSG — SHACL Violation Rate <span class="bdg b-running">RUNNING</span></div>
+      <div class="cw" style="height:130px"><canvas id="shaclChart" role="img" aria-label="SHACL violation rate over time"></canvas></div>
+      <div style="font-size:11px;color:var(--t2);margin-top:8px">
+        Live rate: <span id="shacl-rate" style="font-family:var(--mono);color:var(--green)">1.80%</span>
+        — <span id="shacl-status">within bounds</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Constraint Category Coverage</div>
+      <div id="shacl-cats"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 2 -->
+<div id="panel-phase2" class="panel">
+  <div class="g4" id="alt-cards"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Design Alternative Comparison — Objective Scores</div>
+      <div class="cw" style="height:200px"><canvas id="altChart" role="img" aria-label="Bar chart comparing four design alternatives across Cost, Schedule, Performance and Risk objectives"></canvas></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px">
+        <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)"><span style="width:10px;height:10px;border-radius:2px;background:#15803d;display:inline-block"></span>Cost</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)"><span style="width:10px;height:10px;border-radius:2px;background:#1d4ed8;display:inline-block"></span>Schedule</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)"><span style="width:10px;height:10px;border-radius:2px;background:#0e7490;display:inline-block"></span>Performance</span>
+        <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)"><span style="width:10px;height:10px;border-radius:2px;background:#b45309;display:inline-block"></span>Risk</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">MOVOI Analysis — Commitment Threshold</div>
+      <div id="movoi-bars"></div>
+      <div style="font-size:11px;color:var(--t3);margin-top:12px;padding-top:10px;border-top:.5px solid var(--bdr2)">
+        Threshold 0.65 — above = epistemically justified to commit · below = maintain set
+      </div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Co-Simulation — FMI Integration <span class="bdg b-running">RUNNING</span></div>
+      <div id="cosim-rows"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">STPA — Unsafe Control Action Coverage</div>
+      <div class="g2" style="gap:8px;margin-bottom:12px">
+        <div class="met"><div class="lbl">UCA Coverage</div><div class="val" style="font-size:18px;color:var(--amber)">71%</div></div>
+        <div class="met"><div class="lbl">UCAs Identified</div><div class="val" style="font-size:18px;color:var(--blue)">7</div></div>
+      </div>
+      <div id="uca-rows"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PHASE 3 -->
+<div id="panel-phase3" class="panel">
+  <div id="drift-banner" class="dbanner dn">
+    <div>
+      <div style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:4px">Scope Drift Status — L1–L4 Integrated</div>
+      <div id="drift-txt" style="font-family:var(--mono);font-size:22px;font-weight:500;color:var(--green)">NOMINAL</div>
+    </div>
+    <div style="display:flex;gap:20px;font-size:11px;color:var(--t3);text-align:right">
+      <div>MTBH<br><span id="p3-mtbh" style="font-family:var(--mono);font-size:14px;color:var(--green)">8.40h</span></div>
+      <div>Brier<br><span id="p3-brier" style="font-family:var(--mono);font-size:14px;color:var(--green)">0.112</span></div>
+      <div>Sem dist<br><span id="p3-l2" style="font-family:var(--mono);font-size:14px;color:var(--green)">0.042</span></div>
+      <div>CB<br><span id="p3-cb" style="font-family:var(--mono);font-size:14px;color:var(--green)">CLOSED</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">L1 — Operational Telemetry <span class="bdg b-running">RUNNING</span></div>
+    <div id="telem-rows"></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">L2 — Info-Data Currency (Semantic Distance)</div>
+      <div class="cw" style="height:130px"><canvas id="l2Chart" role="img" aria-label="Semantic distance from authoritative baseline over time"></canvas></div>
+      <div style="font-size:11px;color:var(--t2);margin-top:8px">
+        Baseline divergence: <span id="l2-val" style="font-family:var(--mono);color:var(--green)">0.042</span>
+        <span id="l2-status"> — within acceptable range</span>
+      </div>
+    </div>
+    <div class="cbcard" id="cb-card" style="background:var(--card);border-color:var(--green)">
+      <div class="ctitle">L3 — Circuit Breaker State <span id="cb-bdg" class="bdg b-closed">CB CLOSED</span></div>
+      <div class="g2" style="gap:8px;margin-bottom:10px">
+        <div class="met"><div class="lbl">MTBH (rolling 4h)</div><div class="val" id="cb-mtbh" style="color:var(--green)">8.40h</div></div>
+        <div class="met"><div class="lbl">Brier Score</div><div class="val" id="cb-brier" style="color:var(--green)">0.112</div></div>
+      </div>
+      <div class="cw" style="height:100px"><canvas id="mtbhChart" role="img" aria-label="MTBH rolling window trend line with 4.0h breach threshold"></canvas></div>
+      <div style="font-size:11px;color:var(--t2);margin-top:8px" id="cb-desc">AI outputs propagating to authoritative baseline · monitoring MTBH</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">L3 — Brier Score Trend (AI Probabilistic Calibration)</div>
+    <div class="cw" style="height:100px"><canvas id="brierChart" role="img" aria-label="Brier score trend with caution and breach reference lines"></canvas></div>
+    <div style="font-size:11px;color:var(--t2);margin-top:8px">
+      Rising Brier = AI entering unvalidated territory · first observable scope drift signal · typically precedes a formal change request by days to weeks
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">L4 — Knowledge Gap Surface (MOVOI Re-evaluation) <span id="l4-bdg" class="bdg b-nominal">NOMINAL</span></div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:12px" id="l4-desc">Knowledge state stable — no re-evaluation required · all design decisions within epistemic justification bounds</div>
+    <div class="g4" id="l4-cards"></div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const ITRA = [
+  {id:"TRL-01",  t:"TRL ≥ 6 for all critical subsystems",                     ok:true },
+  {id:"MRL-01",  t:"MRL ≥ 4 demonstrated in co-simulation",                   ok:true },
+  {id:"SYSML-01",t:"SysML v2 authoritative baseline established (KerML core)", ok:true },
+  {id:"RDSG-01", t:"RDSG machine-enforceable requirements governance active",  ok:true },
+  {id:"SHACL-01",t:"SHACL/SWRL constraint layer — violation rate < 5%",       ok:true },
+  {id:"COSIM-01",t:"Virtual Integrated System co-simulation (MiL) validated",  ok:true },
+  {id:"STPA-01", t:"STPA UCA coverage > 80% (currently 71% — gap)",           ok:false},
+  {id:"MTBH-01", t:"MTBH baseline established and threshold calibrated",       ok:true },
+  {id:"SDD-01",  t:"Scope Drift Detection L1–L4 layers operational",          ok:true },
+  {id:"HiL-01",  t:"Hardware-in-the-Loop physical anchor integration",         ok:false},
+  {id:"IP-01",   t:"IP strategy and Government data rights documented",        ok:false},
+  {id:"WORK-01", t:"DOD 8140 workforce alignment documented in SEP",          ok:false},
+];
+
+const ARTIFACTS = [
+  {id:"REQ-001",  tp:"Req Spec",    nm:"System Requirements Specification",        st:"validated", cv:94},
+  {id:"AD-001",   tp:"Arch Desc",   nm:"System Architecture Description",          st:"validated", cv:88},
+  {id:"DD-001",   tp:"Design Desc", nm:"Subsystem Design Desc — Propulsion",       st:"pending",   cv:71},
+  {id:"ICD-001",  tp:"Interface",   nm:"Interface Control Doc — AI / Control Sys", st:"validated", cv:96},
+  {id:"DD-002",   tp:"Design Desc", nm:"Subsystem Design Desc — Guidance",         st:"pending",   cv:62},
+  {id:"SHACL-01", tp:"Constraint",  nm:"SHACL Shape Set — Requirements Layer",     st:"validated", cv:100},
+  {id:"SWRL-01",  tp:"Rule Set",    nm:"SWRL Temporal Rule Set v2.1",              st:"validated", cv:100},
+  {id:"ICD-002",  tp:"Interface",   nm:"Interface Control Doc — Sensor Fusion",    st:"flagged",   cv:44},
+];
+
+const SHACL_CATS = [
+  {nm:"Requirements completeness",  v:94},
+  {nm:"Architecture consistency",   v:88},
+  {nm:"Interface contract validity",v:71},
+  {nm:"Temporal constraint coverage",v:97},
+  {nm:"Cross-reference integrity",  v:83},
+];
+
+const ALTS = [
+  {id:"Alpha",label:"Alpha — Balanced",      cost:78,sched:82,perf:86,risk:84,movoi:0.71},
+  {id:"Beta", label:"Beta — Performance",    cost:61,sched:67,perf:95,risk:72,movoi:0.58},
+  {id:"Gamma",label:"Gamma — Cost-Optimized",cost:92,sched:88,perf:71,risk:79,movoi:0.64},
+  {id:"Delta",label:"Delta — Risk-Minimized",cost:74,sched:79,perf:82,risk:94,movoi:0.68},
+];
+
+const UCAS = [
+  {id:"UCA-01",ac:"Thrust command",         tp:"Too early",                ok:true },
+  {id:"UCA-02",ac:"Thrust command",         tp:"Too late / absent",        ok:true },
+  {id:"UCA-03",ac:"AI steering input",      tp:"Wrong magnitude",          ok:true },
+  {id:"UCA-04",ac:"AI steering input",      tp:"Applied too long",         ok:false},
+  {id:"UCA-05",ac:"Sensor fusion override", tp:"Incorrect context",        ok:true },
+  {id:"UCA-06",ac:"Circuit breaker trip",   tp:"Missed trip (false neg.)", ok:false},
+  {id:"UCA-07",ac:"Emergency shutdown",     tp:"Too early",                ok:true },
+];
+
+const COSIM = [
+  {nm:"Modelica physics model (Dymola)",coupling:"FMI 3.0",  fi:"High"},
+  {nm:"Simulink control logic",          coupling:"FMI 3.0",  fi:"High"},
+  {nm:"SysML v2 REST sync layer",        coupling:"REST API", fi:"Authoritative"},
+  {nm:"AI inference module (ONNX)",      coupling:"gRPC",     fi:"Medium"},
+];
+
+const L1D = [
+  {key:"thrustEff",   lbl:"Thrust efficiency",      unit:"%",  nom:94.2, lo:92,  hi:90,  inv:false, fmt:v=>v.toFixed(1)},
+  {key:"controlLat",  lbl:"Control loop latency",   unit:"ms", nom:12.1, lo:16,  hi:20,  inv:true,  fmt:v=>v.toFixed(1)},
+  {key:"sensorFusion",lbl:"Sensor fusion accuracy", unit:"%",  nom:98.7, lo:94,  hi:90,  inv:false, fmt:v=>v.toFixed(2)},
+  {key:"aiConf",      lbl:"AI decision confidence", unit:"",   nom:0.87, lo:0.70,hi:0.60,inv:false, fmt:v=>v.toFixed(3)},
+  {key:"engTemp",     lbl:"Engine temperature",     unit:"K",  nom:342,  lo:380, hi:410, inv:true,  fmt:v=>v.toFixed(1)},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const N=20;
+const ir = (b,n)=>Array.from({length:N},()=>+(b+(Math.random()-.5)*n*2).toFixed(4));
+
+const S = {
+  t:N, mtbh:8.4, brier:0.112, cbState:"closed", drift:"nominal",
+  shacl:0.018, l2:0.042,
+  l1:{
+    thrustEff:   {v:94.2, st:"nominal"},
+    controlLat:  {v:12.1, st:"nominal"},
+    sensorFusion:{v:98.7, st:"nominal"},
+    aiConf:      {v:0.87, st:"nominal"},
+    engTemp:     {v:342,  st:"nominal"},
+  },
+  l4r:false,
+  mtbhH: ir(8.4,  0.6),
+  brierH:ir(0.112,0.006),
+  shaclH:ir(0.018,0.003),
+  l2H:   ir(0.042,0.008),
+  labs:  Array.from({length:N},(_,i)=>i),
+  selAlt:"Alpha",
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const sc = s => s==="nominal"||s==="closed" ? "var(--green)"
+              : s==="caution"||s==="half-open" ? "var(--amber)"
+              : "var(--red)";
+const bc = s => ({
+  nominal:"b-nominal",validated:"b-validated",complete:"b-complete",closed:"b-closed",
+  caution:"b-caution",pending:"b-pending","half-open":"b-halfopen",
+  breach:"b-breach",flagged:"b-flagged",open:"b-open",
+  active:"b-active",running:"b-running",
+}[s]||"b-active");
+const bt = s => ({
+  nominal:"NOMINAL",caution:"CAUTION",breach:"BREACH",
+  closed:"CB CLOSED",open:"CB OPEN","half-open":"CB HALF-OPEN",
+  complete:"COMPLETE",active:"ACTIVE",validated:"VALIDATED",
+  pending:"PENDING",flagged:"FLAGGED",running:"RUNNING",
+}[s]||s.toUpperCase());
+const bdg = s => `<span class="bdg ${bc(s)}">${bt(s)}</span>`;
+const push = (a,v) => {a.push(v); if(a.length>N) a.shift()};
+const stfor = (v,lo,hi,inv) => inv ? (v>=hi?"breach":v>=lo?"caution":"nominal")
+                                    : (v<=hi?"breach":v<=lo?"caution":"nominal");
+const upP = (p,nom,d,lo,hi,inv) => {
+  const v=+Math.max(nom*.70,Math.min(nom*1.30,p.v+(Math.random()-.48)*d)).toFixed(3);
+  return {v, st:stfor(v,lo,hi,inv)};
+};
+const el = id => document.getElementById(id);
+const setc = (id,txt,col) => { const e=el(id); if(!e)return; e.textContent=txt; if(col)e.style.color=col; };
+
+// ── RENDER STATIC ─────────────────────────────────────────────────────────────
+function renderITRA(){
+  el("itra-list").innerHTML = ITRA.map(x=>`
+    <div class="crow">
+      <span style="font-size:14px;color:${x.ok?"var(--green)":"var(--red)"};min-width:16px">${x.ok?"✓":"✗"}</span>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--t3);min-width:64px">${x.id}</span>
+      <span style="color:${x.ok?"var(--t1)":"var(--t2)"}">${x.t}</span>
+    </div>`).join("");
+}
+
+function renderArtifacts(){
+  el("art-tbody").innerHTML = ARTIFACTS.map(a=>{
+    const col=a.cv>85?"var(--green)":a.cv>60?"var(--amber)":"var(--red)";
+    return `<tr>
+      <td class="mono-id">${a.id}</td>
+      <td style="color:var(--t3);font-size:11px">${a.tp}</td>
+      <td style="color:var(--t1)">${a.nm}</td>
+      <td>${bdg(a.st)}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="pb-wrap" style="flex:1"><div class="pb-fill" style="width:${a.cv}%;background:${col}"></div></div>
+        <span style="font-family:var(--mono);font-size:11px;min-width:28px;text-align:right">${a.cv}%</span>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+function renderShaclCats(){
+  el("shacl-cats").innerHTML = SHACL_CATS.map(c=>{
+    const col=c.v>90?"var(--green)":c.v>70?"var(--amber)":"var(--red)";
+    return `<div style="margin-bottom:10px">
+      <div class="pb-row"><span>${c.nm}</span><span style="font-family:var(--mono)">${c.v}%</span></div>
+      <div class="pb-wrap"><div class="pb-fill" style="width:${c.v}%;background:${col}"></div></div>
+    </div>`;
+  }).join("");
+}
+
+function renderAltCards(){
+  el("alt-cards").innerHTML = ALTS.map(a=>`
+    <div class="altc${a.id===S.selAlt?" on":""}" onclick="selAlt('${a.id}')">
+      <div style="font-size:11px;font-weight:500;margin-bottom:6px">${a.label}</div>
+      <div style="font-size:11px;color:var(--t3)">MOVOI: <span style="font-family:var(--mono);color:${a.movoi>.70?"var(--green)":a.movoi>.62?"var(--amber)":"var(--red)"}">${a.movoi.toFixed(2)}</span></div>
+    </div>`).join("");
+}
+
+function selAlt(id){S.selAlt=id; renderAltCards(); renderMovoi();}
+
+function renderMovoi(){
+  el("movoi-bars").innerHTML = ALTS.map(a=>{
+    const sc2=a.id===S.selAlt?"var(--blue)":"var(--t3)";
+    const fw=a.id===S.selAlt?500:400;
+    const score=S.l4r?Math.min(.99,a.movoi+.07):a.movoi;
+    const col=score>.70?"var(--green)":score>.62?"var(--amber)":"var(--red)";
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span style="font-size:11px;min-width:46px;color:${sc2};font-weight:${fw}">${a.id}</span>
+      <div class="pb-wrap" style="flex:1"><div class="pb-fill" style="width:${score*100}%;background:${col}"></div></div>
+      <span style="font-family:var(--mono);font-size:12px;color:${col}">${score.toFixed(2)}</span>
+      ${S.l4r?'<span style="font-size:10px;color:var(--amber)">▲</span>':''}
+    </div>`;
+  }).join("");
+}
+
+function renderCosim(){
+  el("cosim-rows").innerHTML = COSIM.map(c=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:.5px solid var(--bdr2)">
+      ${bdg("running")}
+      <div>
+        <div style="font-size:12px;color:var(--t1)">${c.nm}</div>
+        <div style="font-size:11px;color:var(--t3)">${c.coupling} · ${c.fi} fidelity</div>
+      </div>
+    </div>`).join("");
+}
+
+function renderUCAs(){
+  el("uca-rows").innerHTML = UCAS.map(u=>`
+    <div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:4px 0;border-bottom:.5px solid var(--bdr2)">
+      <span style="color:${u.ok?"var(--green)":"var(--red)"};font-size:14px;min-width:14px">${u.ok?"✓":"✗"}</span>
+      <span style="font-family:var(--mono);color:var(--t3);min-width:56px">${u.id}</span>
+      <span style="color:var(--t2);flex:1">${u.ac}</span>
+      <span style="color:var(--t3)">${u.tp}</span>
+    </div>`).join("");
+}
+
+function renderTelem(){
+  el("telem-rows").innerHTML = L1D.map(p=>{
+    const pm=S.l1[p.key]; const col=sc(pm.st);
+    return `<div class="trow" id="tr-${p.key}">
+      <span class="dot" id="td-${p.key}" style="background:${col};box-shadow:0 0 5px ${col}"></span>
+      <span class="tlbl">${p.lbl}</span>
+      <span class="tval" id="tv-${p.key}" style="color:${col}">${p.fmt(pm.v)}</span>
+      <span class="tunit">${p.unit}</span>
+      <span class="tbase">nom: ${p.fmt(p.nom)}</span>
+      <span id="tb-${p.key}" class="bdg ${bc(pm.st)}">${bt(pm.st)}</span>
+    </div>`;
+  }).join("");
+}
+
+function renderL4(){
+  el("l4-cards").innerHTML = ALTS.map(a=>{
+    const score=S.l4r?Math.min(.99,a.movoi+.06):a.movoi;
+    const col=score>.70?"var(--green)":score>.62?"var(--amber)":"var(--red)";
+    return `<div style="background:#f8f7f3;border-radius:8px;padding:10px 12px">
+      <div style="font-size:11px;font-weight:500;color:${S.l4r?"var(--amber)":"var(--t1)"}">${a.id}</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:4px">MOVOI</div>
+      <span style="font-family:var(--mono);font-size:16px;color:${col}">${score.toFixed(2)}</span>
+      ${S.l4r?'<div style="font-size:10px;color:var(--amber);margin-top:2px">▲ re-eval</div>':''}
+    </div>`;
+  }).join("");
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+const charts={};
+function mkChart(id,data,color,ymin,ymax,thresholds){
+  if(charts[id]){charts[id].destroy();delete charts[id];}
+  const ctx=el(id); if(!ctx)return;
+  charts[id]=new Chart(ctx,{
+    type:"line",
+    data:{labels:[...S.labs],datasets:[{data:[...data],borderColor:color,backgroundColor:color+"20",
+      borderWidth:1.5,fill:true,tension:0.35,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>+c.raw.toFixed(4)}}},
+      scales:{
+        x:{ticks:{font:{size:9},maxTicksLimit:10},grid:{color:"rgba(0,0,0,0.04)"}},
+        y:{min:ymin,max:ymax,ticks:{font:{size:9},maxTicksLimit:5},grid:{color:"rgba(0,0,0,0.04)"}},
+      },
+      plugins:{annotation:{annotations:Object.fromEntries(
+        thresholds.map((th,i)=>[`t${i}`,{
+          type:"line",yMin:th.v,yMax:th.v,borderColor:th.c,borderWidth:1,borderDash:[4,3]
+        }])
+      )}}
+    }
+  });
+}
+
+const chartInited={};
+function ensureCharts(tab){
+  if(chartInited[tab])return; chartInited[tab]=true;
+  if(tab==="phase1") mkChart("shaclChart",S.shaclH,"#0e7490",0,.09,[{v:.05,c:"#b45309"}]);
+  if(tab==="phase2"){
+    if(charts.altChart)charts.altChart.destroy();
+    const ctx=el("altChart"); if(!ctx)return;
+    charts.altChart=new Chart(ctx,{
+      type:"bar",
+      data:{labels:ALTS.map(a=>a.id),datasets:[
+        {label:"Cost",       data:ALTS.map(a=>a.cost), backgroundColor:"#15803d99"},
+        {label:"Schedule",   data:ALTS.map(a=>a.sched),backgroundColor:"#1d4ed899"},
+        {label:"Performance",data:ALTS.map(a=>a.perf), backgroundColor:"#0e749099"},
+        {label:"Risk",       data:ALTS.map(a=>a.risk), backgroundColor:"#b4530999"},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{ticks:{font:{size:10}},grid:{color:"rgba(0,0,0,0.04)"}},
+                y:{min:0,max:100,ticks:{font:{size:10}},grid:{color:"rgba(0,0,0,0.04)"}}}}
+    });
+  }
+  if(tab==="phase3"){
+    mkChart("l2Chart",   S.l2H,   "#1d4ed8",0,.35,[{v:.20,c:"#b45309"},{v:.28,c:"#b91c1c"}]);
+    mkChart("mtbhChart", S.mtbhH, "#15803d",0,12,  [{v:4.0,c:"#b91c1c"}]);
+    mkChart("brierChart",S.brierH,"#b45309",0,.35,  [{v:.16,c:"#b45309"},{v:.25,c:"#b91c1c"}]);
+  }
+}
+
+function updCharts(){
+  const labs=[...S.labs];
+  const up=(id,d)=>{if(!charts[id])return; charts[id].data.labels=labs; charts[id].data.datasets[0].data=[...d]; charts[id].update("none");};
+  up("shaclChart",S.shaclH); up("l2Chart",S.l2H); up("mtbhChart",S.mtbhH); up("brierChart",S.brierH);
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".tab").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const tab=btn.dataset.tab;
+    document.querySelectorAll(".panel").forEach(p=>p.classList.remove("on"));
+    document.querySelectorAll(".tab").forEach(b=>b.classList.remove("on"));
+    el("panel-"+tab).classList.add("on");
+    btn.classList.add("on");
+    ensureCharts(tab);
+  });
+});
+
+// ── SIMULATION ────────────────────────────────────────────────────────────────
+function tick(){
+  const t=++S.t;
+  let{mtbh,brier,cbState}=S;
+
+  if(cbState==="closed"){
+    mtbh=Math.max(2.0, mtbh-(Math.random()*.10-.02));
+    if(mtbh<4.0)cbState="open";
+  }else if(cbState==="open"){
+    mtbh=Math.min(10.0,mtbh+(Math.random()*.18+.04));
+    if(mtbh>6.8)cbState="half-open";
+  }else{
+    mtbh=Math.min(10.0,mtbh+(Math.random()*.08+.01));
+    if(mtbh>8.0)cbState="closed";
+  }
+  mtbh=+mtbh.toFixed(2);
+  brier=cbState==="closed"
+    ?+Math.min(.30,brier+(Math.random()*.003-.0004)).toFixed(4)
+    :+Math.max(.08,brier-(Math.random()*.004+.001)).toFixed(4);
+
+  const shacl=+Math.max(0,S.shacl+(Math.random()-.52)*.004).toFixed(4);
+  const l2=+Math.max(.01,Math.min(.35,S.l2+(Math.random()-.5)*.012)).toFixed(3);
+
+  const l1={
+    thrustEff:   upP(S.l1.thrustEff,   94.2,1.2, 92,  90,  false),
+    controlLat:  upP(S.l1.controlLat,  12.1,0.8, 16,  20,  true),
+    sensorFusion:upP(S.l1.sensorFusion,98.7,0.4, 94,  90,  false),
+    aiConf:      upP(S.l1.aiConf,      0.87,0.02,0.70,0.60,false),
+    engTemp:     upP(S.l1.engTemp,      342, 5.0, 380, 410, true),
+  };
+
+  const hb=Object.values(l1).some(p=>p.st==="breach");
+  const hc=Object.values(l1).some(p=>p.st==="caution");
+  const drift=hb||mtbh<4.0?"breach":hc||brier>.22||l2>.20?"caution":"nominal";
+
+  Object.assign(S,{t,mtbh,brier,cbState,drift,shacl,l2,l1,l4r:drift!=="nominal"});
+  push(S.mtbhH,mtbh); push(S.brierH,brier); push(S.shaclH,shacl); push(S.l2H,l2);
+  S.labs.push(t); if(S.labs.length>N)S.labs.shift();
+
+  updateDOM();
+}
+
+function updateDOM(){
+  const{mtbh,brier,cbState,drift,shacl,l2,l1,l4r}=S;
+  const mc=v=>{
+    const col=v<4?"var(--red)":v<6?"var(--amber)":"var(--green)";
+    return [v+"h",col];
+  };
+  const brc=v=>{
+    const col=v>.22?"var(--red)":v>.16?"var(--amber)":"var(--green)";
+    return [v.toFixed(3),col];
+  };
+  const dc=sc(drift);
+
+  // Header
+  const hb=el("hdr-bdg");
+  if(hb){hb.className=`bdg ${bc(drift)}`;hb.textContent=bt(drift);}
+  const hd=el("hdr-dot");
+  if(hd)hd.className=`dot d${drift==="nominal"?"g":drift==="caution"?"a":"r"}`;
+
+  // Overview
+  const [mv,mc2]=mc(mtbh); setc("ov-mtbh",mv,mc2);
+  setc("ov-cb","CB: "+cbState);
+  const [bv,bc2]=brc(brier); setc("ov-brier",bv,bc2);
+  const od=el("ov-drift"); if(od){od.textContent=drift.toUpperCase();od.style.color=dc;}
+
+  // Phase 1
+  const sr=el("shacl-rate"); if(sr){sr.textContent=(shacl*100).toFixed(2)+"%";sr.style.color=shacl>.05?"var(--red)":shacl>.03?"var(--amber)":"var(--green)";}
+  setc("shacl-status",shacl<.03?"within bounds":shacl<.05?"elevated · monitor":"threshold exceeded · review");
+
+  // Phase 3 banner
+  const db=el("drift-banner");
+  if(db)db.className=`dbanner ${drift==="nominal"?"dn":drift==="caution"?"da2":"dr2"}`;
+  const dt=el("drift-txt"); if(dt){dt.textContent=drift.toUpperCase();dt.style.color=dc;}
+  const[mv2,mc3]=mc(mtbh); setc("p3-mtbh",mv2,mc3);
+  const[bv2,bc3]=brc(brier); setc("p3-brier",bv2,bc3);
+  setc("p3-l2",l2.toFixed(3),l2>.20?"var(--amber)":"var(--green)");
+  const p3cb=el("p3-cb"); if(p3cb){p3cb.textContent=cbState.toUpperCase();p3cb.style.color=sc(cbState);}
+
+  // CB card
+  const cbc=el("cb-card"); if(cbc)cbc.style.borderColor=sc(cbState);
+  const cbb=el("cb-bdg"); if(cbb){cbb.className=`bdg ${bc(cbState)}`;cbb.textContent=bt(cbState);}
+  const[mv3,mc4]=mc(mtbh); setc("cb-mtbh",mv3,mc4);
+  const[bv3,bc4]=brc(brier); setc("cb-brier",bv3,bc4);
+  setc("cb-desc",cbState==="closed"
+    ?"AI outputs propagating to authoritative baseline · monitoring MTBH"
+    :cbState==="open"
+    ?"⚠ AI outputs quarantined · recovery in progress · RDSG baseline protected"
+    :"Half-open · supervised re-entry · MTBH threshold 8.0h");
+
+  // L2
+  const l2v=el("l2-val"); if(l2v){l2v.textContent=l2.toFixed(3);l2v.style.color=l2>.20?"var(--amber)":"var(--green)";}
+  setc("l2-status",l2>.20?" — elevated · RDSG update recommended":" — within acceptable range");
+
+  // L1 telem
+  L1D.forEach(p=>{
+    const pm=l1[p.key]; const col=sc(pm.st);
+    const dot=el("td-"+p.key); if(dot){dot.style.background=col;dot.style.boxShadow=`0 0 5px ${col}`;}
+    const tv=el("tv-"+p.key); if(tv){tv.textContent=p.fmt(pm.v);tv.style.color=col;}
+    const tb=el("tb-"+p.key); if(tb){tb.className=`bdg ${bc(pm.st)}`;tb.textContent=bt(pm.st);}
+  });
+
+  // L4
+  const l4b=el("l4-bdg"); if(l4b){l4b.className=`bdg ${bc(l4r?"caution":"nominal")}`;l4b.textContent=bt(l4r?"caution":"nominal");}
+  setc("l4-desc",l4r
+    ?"⚠ Sustained L1/L2/L3 signals — MOVOI re-evaluation triggered on previously closed design decisions"
+    :"Knowledge state stable — no re-evaluation required · all design decisions within epistemic justification bounds");
+  renderL4(); renderMovoi();
+  updCharts();
+}
+
+// ── BOOT ─────────────────────────────────────────────────────────────────────
+renderITRA(); renderArtifacts(); renderShaclCats();
+renderAltCards(); renderMovoi(); renderCosim(); renderUCAs(); renderTelem(); renderL4();
+setInterval(tick, 2200);
+</script>
+</body>
+</html>

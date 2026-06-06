@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Camping World — Agentic AI Operating Model Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#102A43; --navy-dk:#071B2D;
+    --forest:#1F4D2C; --moss:#6E8B4F;
+    --fire:#C1441E; --ember:#E6834A;
+    --sand:#F1E6CB; --cream:#F8F3E8;
+    --slate:#36454F; --gray:#6E7780;
+    --light:#ECE6D7; --white:#FFFFFF;
+    --green:#2E7D4F; --amber:#D88A1B; --red:#B83A2A;
+    --bg:#F4EFE3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:var(--navy);background:var(--bg);font-size:14px;line-height:1.4}
+
+  /* ---------- header ---------- */
+  header{background:var(--navy-dk);color:var(--white);padding:14px 22px;border-bottom:3px solid var(--fire);display:flex;align-items:center;justify-content:space-between;gap:18px}
+  header .brand{display:flex;align-items:center;gap:14px}
+  header .logo{width:42px;height:42px;background:var(--fire);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px}
+  header h1{font-size:18px;font-weight:600;letter-spacing:0.2px}
+  header .sub{color:var(--sand);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;font-weight:600;margin-top:2px}
+  header .meta{display:flex;gap:24px;align-items:center;font-size:12px;color:var(--sand)}
+  header .pill{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--navy);border-radius:14px;border:1px solid #1d3a5a}
+  header .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(46,125,79,.7);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,125,79,.6)}70%{box-shadow:0 0 0 8px rgba(46,125,79,0)}100%{box-shadow:0 0 0 0 rgba(46,125,79,0)}}
+  header .clock{font-variant-numeric:tabular-nums;color:#fff;font-weight:600}
+
+  /* ---------- tabs ---------- */
+  nav.tabs{display:flex;gap:0;background:var(--white);border-bottom:1px solid #d8d2c2;padding:0 22px;overflow-x:auto}
+  nav.tabs button{background:none;border:none;padding:14px 18px;font-size:13px;font-weight:600;color:var(--slate);cursor:pointer;border-bottom:3px solid transparent;letter-spacing:.3px;display:flex;align-items:center;gap:8px;white-space:nowrap;font-family:inherit}
+  nav.tabs button:hover{color:var(--navy);background:var(--cream)}
+  nav.tabs button.active{color:var(--fire);border-bottom-color:var(--fire)}
+  nav.tabs .badge{background:var(--fire);color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700}
+
+  /* ---------- main layout ---------- */
+  main{padding:22px;max-width:1500px;margin:0 auto}
+  section.view{display:none;animation:fade .25s ease}
+  section.view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ---------- grids ---------- */
+  .grid{display:grid;gap:16px}
+  .g-2{grid-template-columns:1fr 1fr}
+  .g-3{grid-template-columns:repeat(3,1fr)}
+  .g-4{grid-template-columns:repeat(4,1fr)}
+  .g-5{grid-template-columns:repeat(5,1fr)}
+  .g-6{grid-template-columns:repeat(6,1fr)}
+  @media(max-width:980px){.g-2,.g-3,.g-4,.g-5,.g-6{grid-template-columns:1fr 1fr}}
+
+  /* ---------- card ---------- */
+  .card{background:var(--white);border-radius:8px;padding:16px;box-shadow:0 1px 3px rgba(16,42,67,0.08);position:relative;overflow:hidden}
+  .card .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .card .head .title{font-size:13px;font-weight:700;color:var(--navy);letter-spacing:.3px;text-transform:uppercase}
+  .card .head .sub{font-size:11px;color:var(--gray)}
+  .card.accent-fire{border-left:4px solid var(--fire)}
+  .card.accent-forest{border-left:4px solid var(--forest)}
+  .card.accent-ember{border-left:4px solid var(--ember)}
+  .card.accent-moss{border-left:4px solid var(--moss)}
+  .card.accent-navy{border-left:4px solid var(--navy)}
+  .card.accent-slate{border-left:4px solid var(--slate)}
+
+  /* ---------- stat ---------- */
+  .stat{display:flex;flex-direction:column;gap:6px}
+  .stat .lbl{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gray);font-weight:700}
+  .stat .val{font-size:28px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+  .stat .delta{font-size:11px;color:var(--green);font-weight:700}
+  .stat .delta.warn{color:var(--amber)}
+  .stat .delta.bad{color:var(--red)}
+
+  /* ---------- governance grid ---------- */
+  .gov-body{padding:10px 12px;border-left:3px solid;background:var(--cream);border-radius:0 6px 6px 0;margin-bottom:8px}
+  .gov-body .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .gov-body .nm{font-weight:700;color:var(--navy);font-size:13px}
+  .gov-body .cd{font-size:11px;color:var(--gray);font-style:italic}
+  .gov-body .last{font-size:11px;color:var(--slate);margin-top:4px}
+  .gov-body .last b{color:var(--fire)}
+
+  /* ---------- principles strip ---------- */
+  .principles{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+  .p-chip{background:var(--navy);color:var(--sand);padding:8px 6px;border-radius:6px;text-align:center;font-size:10px;cursor:pointer;transition:transform .15s}
+  .p-chip:hover{transform:translateY(-2px);background:var(--fire)}
+  .p-chip .num{font-weight:800;display:block;font-size:14px;color:var(--ember);margin-bottom:2px}
+  @media(max-width:980px){.principles{grid-template-columns:repeat(5,1fr)}}
+
+  /* ---------- HUB & SPOKE ---------- */
+  .hub-stage{position:relative;height:480px;background:linear-gradient(180deg,#fff,var(--cream));border-radius:10px;overflow:hidden;border:1px solid #e0d8c5}
+  .hub-stage .hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,var(--fire),var(--ember));display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;box-shadow:0 0 0 8px rgba(193,68,30,0.18),0 0 0 22px rgba(193,68,30,0.08)}
+  .hub-stage .hub .h-title{font-weight:800;font-size:18px;letter-spacing:1px}
+  .hub-stage .hub .h-sub{font-size:11px;color:var(--sand);margin-top:6px;text-align:center;line-height:1.3}
+  .hub-stage .hub .h-rev{font-size:22px;font-weight:800;margin-top:8px;color:#fff}
+  .spoke{position:absolute;width:170px;cursor:pointer;transition:all .2s;padding:12px;border-radius:8px;background:var(--white);box-shadow:0 2px 6px rgba(16,42,67,0.12);text-align:left}
+  .spoke:hover{transform:scale(1.05);z-index:5}
+  .spoke .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .spoke .nm{font-weight:700;font-size:12px;color:var(--navy)}
+  .spoke .badge-st{font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;text-transform:uppercase;letter-spacing:.5px}
+  .badge-st.live{background:#e0f0e5;color:var(--green)}
+  .badge-st.lighting{background:#fde9d6;color:var(--ember);animation:glow 1.2s infinite alternate}
+  @keyframes glow{from{box-shadow:0 0 0 rgba(230,131,74,0)}to{box-shadow:0 0 0 6px rgba(230,131,74,.35)}}
+  .badge-st.pilot{background:#e6e0f0;color:#6d4c9a}
+  .badge-st.planned{background:#eee;color:var(--gray)}
+  .spoke .val-mini{font-size:18px;font-weight:800;color:var(--fire);font-variant-numeric:tabular-nums;margin-top:4px}
+  .spoke .lbl-mini{font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.8px}
+  .spoke .agents-c{font-size:10px;color:var(--slate);margin-top:6px}
+
+  /* connector lines */
+  .conn{position:absolute;background:rgba(16,42,67,.15);height:2px;transform-origin:0 0;pointer-events:none}
+  .conn.lit{background:linear-gradient(90deg,var(--fire),var(--ember));animation:flow 2s linear infinite;height:3px}
+  @keyframes flow{0%{opacity:.4}50%{opacity:1}100%{opacity:.4}}
+
+  /* ---------- table ---------- */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  thead th{background:var(--navy);color:#fff;text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+  tbody td{padding:10px 12px;border-bottom:1px solid #efe8d6;color:var(--slate)}
+  tbody tr:hover{background:var(--cream)}
+  .risk-chip{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;border-radius:8px;letter-spacing:.4px}
+  .risk-L{background:#e0f0e5;color:var(--green)}
+  .risk-M{background:#fde9d6;color:var(--ember)}
+  .risk-H{background:#fbe1dd;color:var(--red)}
+  .status-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;font-size:10px;font-weight:700;border-radius:8px;text-transform:uppercase;letter-spacing:.4px}
+  .status-chip .dot{width:6px;height:6px;border-radius:50%}
+  .status-running{background:#e0f0e5;color:var(--green)}
+  .status-running .dot{background:var(--green)}
+  .status-hitl{background:#fde9d6;color:var(--ember)}
+  .status-hitl .dot{background:var(--ember)}
+  .status-paused{background:#eee;color:var(--gray)}
+  .status-paused .dot{background:var(--gray)}
+  .status-error{background:#fbe1dd;color:var(--red)}
+  .status-error .dot{background:var(--red)}
+
+  /* ---------- alerts feed ---------- */
+  .alert{display:flex;gap:12px;padding:12px 14px;background:var(--white);border-radius:8px;margin-bottom:10px;border-left:4px solid;box-shadow:0 1px 3px rgba(0,0,0,.05);align-items:flex-start}
+  .alert.sev-H{border-color:var(--red);background:#fff5f3}
+  .alert.sev-M{border-color:var(--amber);background:#fffaf1}
+  .alert.sev-L{border-color:var(--moss);background:#f7fbf5}
+  .alert .icon{width:32px;height:32px;border-radius:50%;background:var(--fire);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
+  .alert.sev-H .icon{background:var(--red)}
+  .alert.sev-M .icon{background:var(--amber)}
+  .alert.sev-L .icon{background:var(--moss)}
+  .alert .body{flex:1}
+  .alert .a-title{font-weight:700;color:var(--navy);font-size:13px}
+  .alert .a-meta{font-size:11px;color:var(--gray);margin:3px 0}
+  .alert .a-desc{font-size:12.5px;color:var(--slate);margin-top:4px}
+  .alert .a-act{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .btn{padding:6px 12px;font-size:11px;font-weight:700;border-radius:6px;border:none;cursor:pointer;letter-spacing:.3px;text-transform:uppercase;font-family:inherit;transition:all .15s}
+  .btn.approve{background:var(--green);color:#fff}
+  .btn.approve:hover{background:#246a40}
+  .btn.reject{background:var(--red);color:#fff}
+  .btn.reject:hover{background:#9a2f22}
+  .btn.cond{background:var(--amber);color:#fff}
+  .btn.cond:hover{background:#b5731a}
+  .btn.invest{background:var(--navy);color:#fff}
+  .btn.invest:hover{background:#1d3a5a}
+  .btn.escalate{background:var(--white);color:var(--fire);border:1px solid var(--fire)}
+  .btn.escalate:hover{background:var(--fire);color:#fff}
+
+  /* ---------- value chart ---------- */
+  .chart-host{height:260px;position:relative}
+
+  /* ---------- modal ---------- */
+  .modal-bg{position:fixed;inset:0;background:rgba(16,42,67,.6);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .modal-bg.open{display:flex;animation:fade .15s}
+  .modal{background:#fff;border-radius:12px;max-width:600px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  .modal h3{padding:18px 22px;background:var(--navy);color:#fff;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .modal .close{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1}
+  .modal .body{padding:22px;color:var(--slate);font-size:13px;line-height:1.55}
+  .modal .body h4{color:var(--navy);font-size:13px;margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+  .modal .body .kv{display:grid;grid-template-columns:160px 1fr;gap:6px;font-size:12.5px;margin:6px 0}
+  .modal .body .kv b{color:var(--fire)}
+  .modal .actions{padding:14px 22px;background:var(--cream);display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #e0d8c5;flex-wrap:wrap}
+
+  /* ---------- toasts ---------- */
+  .toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:200;max-width:380px}
+  .toast{background:var(--navy);color:#fff;padding:12px 16px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:12.5px;border-left:4px solid var(--green);animation:slideIn .3s ease}
+  .toast.warn{border-color:var(--amber)}
+  .toast.bad{border-color:var(--red)}
+  .toast b{color:var(--sand)}
+  @keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+  /* ---------- phase strip ---------- */
+  .phases{display:flex;gap:0;margin:8px 0 18px}
+  .phase{flex:1;padding:12px;border-radius:0;color:#fff;position:relative;text-align:left}
+  .phase:first-child{border-radius:6px 0 0 6px}
+  .phase:last-child{border-radius:0 6px 6px 0}
+  .phase .ph-num{font-size:11px;font-weight:700;letter-spacing:.6px;opacity:.85}
+  .phase .ph-nm{font-weight:800;font-size:14px;margin:4px 0}
+  .phase .ph-q{font-size:10.5px;font-style:italic;opacity:.8}
+  .phase .ph-st{font-size:10px;background:rgba(255,255,255,.18);padding:2px 6px;border-radius:8px;display:inline-block;margin-top:6px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+  .phase.current{box-shadow:inset 0 0 0 3px var(--sand)}
+
+  /* utility */
+  .row{display:flex;gap:12px;align-items:center}
+  .between{justify-content:space-between}
+  .small{font-size:11px;color:var(--gray)}
+  .pill-mini{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;background:var(--cream);color:var(--slate);font-weight:600}
+  .scroll{max-height:340px;overflow:auto}
+  .scroll::-webkit-scrollbar{width:6px}
+  .scroll::-webkit-scrollbar-thumb{background:#c9c2b0;border-radius:3px}
+  hr{border:none;border-top:1px solid #ece5d3;margin:10px 0}
+  .footer-strip{text-align:center;color:var(--gray);font-size:10px;padding:14px 0 4px;letter-spacing:.5px;text-transform:uppercase;font-weight:600}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">🏕️</div>
+    <div>
+      <div class="sub">Operating Model · Agentic AI Capability Platform</div>
+      <h1>Camping World — Architecture Governance Console</h1>
+    </div>
+  </div>
+  <div class="meta">
+    <div class="pill"><span class="dot"></span> Platform Health: <b id="health-label">Green</b></div>
+    <div class="pill">Live Agents: <b id="hdr-agents">—</b></div>
+    <div class="pill">HITL Queue: <b id="hdr-hitl">—</b></div>
+    <div class="clock" id="clock">—</div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="design">⚙️ Design-Time Operating Model</button>
+  <button class="tab-btn" data-tab="runtime">📊 Run-Time Operations</button>
+  <button class="tab-btn" data-tab="value">💰 Value Realization</button>
+  <button class="tab-btn" data-tab="hitl">⚠️ HITL Queue <span class="badge" id="hitl-badge">0</span></button>
+</nav>
+
+<main>
+
+<!-- =================== DESIGN-TIME =================== -->
+<section class="view active" id="design">
+
+  <div class="grid g-4" style="margin-bottom:16px">
+    <div class="card accent-fire stat">
+      <span class="lbl">Active TDRs</span>
+      <span class="val" id="m-tdrs">147</span>
+      <span class="delta">+ 8 this quarter</span>
+    </div>
+    <div class="card accent-forest stat">
+      <span class="lbl">Capability Map Coverage</span>
+      <span class="val">82%</span>
+      <span class="delta">+ 6 pp YoY</span>
+    </div>
+    <div class="card accent-ember stat">
+      <span class="lbl">APM Registered Apps</span>
+      <span class="val">214</span>
+      <span class="delta">12 in rationalization</span>
+    </div>
+    <div class="card accent-moss stat">
+      <span class="lbl">RAI Approvals (YTD)</span>
+      <span class="val">23 / 26</span>
+      <span class="delta">3 pending review</span>
+    </div>
+  </div>
+
+  <div class="grid g-2">
+
+    <div class="card">
+      <div class="head">
+        <div class="title">Governance Bodies & Cadence</div>
+        <div class="sub">Standing forums</div>
+      </div>
+
+      <div class="gov-body" style="border-color:var(--fire)">
+        <div class="row between">
+          <div><div class="nm">Architecture Review Board (ARB)</div>
+               <div class="cd">Weekly · Thu 10am CT</div></div>
+          <span class="pill-mini">Decisional</span>
+        </div>
+        <div class="last">Last: <b>TDR-2026-141</b> ratified — Multi-vendor LLM router as enterprise standard. 4 items pending.</div>
+      </div>
+
+      <div class="gov-body" style="border-color:var(--forest)">
+        <div class="row between">
+          <div><div class="nm">Software Governance Committee (SGC)</div>
+               <div class="cd">Bi-weekly · Tue 1pm CT</div></div>
+          <span class="pill-mini">Promotion Gates</span>
+        </div>
+        <div class="last">Gating: <b>Service Booking Agent v0.9 → GA</b> · eval pass 94.2% ≥ 92% threshold.</div>
+      </div>
+
+      <div class="gov-body" style="border-color:var(--ember)">
+        <div class="row between">
+          <div><div class="nm">Technology Strategy Panel (TSP)</div>
+               <div class="cd">Monthly · 1st Wed</div></div>
+          <span class="pill-mini">Strategy</span>
+        </div>
+        <div class="last">Open thread: <b>DevRev boundary TDR pack</b> — 9 TDRs queued for ratification.</div>
+      </div>
+
+      <div class="gov-body" style="border-color:var(--moss)">
+        <div class="row between">
+          <div><div class="nm">Technology Strategy Council (TSC)</div>
+               <div class="cd">Quarterly · CTO chair</div></div>
+          <span class="pill-mini">Executive</span>
+        </div>
+        <div class="last">Next: <b>Q3 2026</b> — Phase 1 exit criteria review · Vehicle 360 GA decision.</div>
+      </div>
+
+      <div class="gov-body" style="border-color:var(--navy)">
+        <div class="row between">
+          <div><div class="nm">Responsible AI Council</div>
+               <div class="cd">Bi-weekly + on-call</div></div>
+          <span class="pill-mini">Trust Gate</span>
+        </div>
+        <div class="last">Active red-team window: <b>Failure-Mode Agent v1.4</b> · scheduled completion Friday.</div>
+      </div>
+
+      <div class="gov-body" style="border-color:var(--slate)">
+        <div class="row between">
+          <div><div class="nm">CoP — Federated Architects</div>
+               <div class="cd">Bi-weekly · Office Hours</div></div>
+          <span class="pill-mini">Enablement</span>
+        </div>
+        <div class="last">This week: <b>Agent contract workshop</b> · 38 attendees registered.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head">
+        <div class="title">Design-Time Operating Components</div>
+        <div class="sub">What the EA function maintains</div>
+      </div>
+
+      <div class="grid g-2" style="gap:10px">
+        <div style="background:var(--cream);padding:12px;border-radius:6px;border-left:3px solid var(--fire)">
+          <div style="font-weight:800;color:var(--navy);font-size:13px">TDR Framework</div>
+          <div class="small">Single backlog of decisions · auto-bound to principles · ARB-ratified</div>
+          <div style="margin-top:6px"><span class="pill-mini">147 active</span> <span class="pill-mini">12 under review</span></div>
+        </div>
+
+        <div style="background:var(--cream);padding:12px;border-radius:6px;border-left:3px solid var(--forest)">
+          <div style="font-weight:800;color:var(--navy);font-size:13px">Agent Contract Registry</div>
+          <div class="small">Goal, tools, SLO, cost, risk, HITL, rollback for every agent</div>
+          <div style="margin-top:6px"><span class="pill-mini">18 agents</span> <span class="pill-mini">8 production</span></div>
+        </div>
+
+        <div style="background:var(--cream);padding:12px;border-radius:6px;border-left:3px solid var(--ember)">
+          <div style="font-weight:800;color:var(--navy);font-size:13px">MCP Tool Registry</div>
+          <div class="small">Signed manifests · per-agent ACL · rate limits</div>
+          <div style="margin-top:6px"><span class="pill-mini">64 tools</span> <span class="pill-mini">31 read-only</span></div>
+        </div>
+
+        <div style="background:var(--cream);padding:12px;border-radius:6px;border-left:3px solid var(--moss)">
+          <div style="font-weight:800;color:var(--navy);font-size:13px">Capability Map (L0–L4)</div>
+          <div class="small">5 domains · 78 capabilities · 312 processes</div>
+          <div style="margin-top:6px"><span class="pill-mini">82% mapped</span></div>
+        </div>
+
+        <div style="background:var(--cream);padding:12px;border-radius:6px;border-left:3px solid var(--navy)">
+          <div style="font-weight:800;color:var(--navy);font-size:13px">APM / TPM</div>
+          <div class="small">214 apps · 91 platforms · lifecycle & owner tracked</div>
+          <div style="margin-top:6px"><span class="pill-mini">12 rationalization</span></div>
+        </div>
+
+        <div style="background:var(--cream);padding:12px;border-radius:6px;border-left:3px solid var(--slate)">
+          <div style="font-weight:800;color:var(--navy);font-size:13px">KPI Tier Framework</div>
+          <div class="small">Outcome · Capability · Platform health</div>
+          <div style="margin-top:6px"><span class="pill-mini">3-tier scorecards</span></div>
+        </div>
+      </div>
+
+      <hr/>
+
+      <div class="title" style="font-size:12px;margin-bottom:8px">Architecture Principles (P1–P10)</div>
+      <div class="principles" id="principles-strip"></div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- =================== RUN-TIME =================== -->
+<section class="view" id="runtime">
+
+  <div class="grid g-5" style="margin-bottom:16px">
+    <div class="card accent-fire stat">
+      <span class="lbl">Agent Runs / hour</span>
+      <span class="val" id="rt-runs">—</span>
+      <span class="delta" id="rt-runs-delta">+ 0%</span>
+    </div>
+    <div class="card accent-forest stat">
+      <span class="lbl">p95 Latency (orchestrator)</span>
+      <span class="val" id="rt-lat">—</span>
+      <span class="delta" id="rt-lat-delta">target 1200ms</span>
+    </div>
+    <div class="card accent-ember stat">
+      <span class="lbl">Eval Pass Rate</span>
+      <span class="val" id="rt-eval">—</span>
+      <span class="delta" id="rt-eval-delta">threshold 92%</span>
+    </div>
+    <div class="card accent-moss stat">
+      <span class="lbl">Cost / 1k runs</span>
+      <span class="val" id="rt-cost">—</span>
+      <span class="delta">budget $14.50</span>
+    </div>
+    <div class="card accent-navy stat">
+      <span class="lbl">HITL Open</span>
+      <span class="val" id="rt-hitl">—</span>
+      <span class="delta warn">2 awaiting > SLA</span>
+    </div>
+  </div>
+
+  <div class="grid g-2">
+    <div class="card" style="grid-column:1 / -1">
+      <div class="head">
+        <div class="title">Production Agents — Live Status</div>
+        <div class="sub">Pulled from Run Store · 30s refresh</div>
+      </div>
+      <div class="scroll">
+        <table id="agent-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="head">
+      <div class="title">⚠️ Risk Alerts — Awaiting Human Decision</div>
+      <div class="sub" id="alerts-summary">— pending</div>
+    </div>
+    <div id="alerts-feed"></div>
+  </div>
+
+</section>
+
+<!-- =================== VALUE =================== -->
+<section class="view" id="value">
+
+  <div class="grid g-4" style="margin-bottom:16px">
+    <div class="card accent-fire stat">
+      <span class="lbl">Run-Rate Value Captured</span>
+      <span class="val">$<span id="v-cap">—</span>M</span>
+      <span class="delta">cumulative · annualized</span>
+    </div>
+    <div class="card accent-forest stat">
+      <span class="lbl">Spokes Lit</span>
+      <span class="val"><span id="v-lit">—</span> / 6</span>
+      <span class="delta">+ 1 this quarter</span>
+    </div>
+    <div class="card accent-ember stat">
+      <span class="lbl">Current Phase</span>
+      <span class="val">P3</span>
+      <span class="delta">Predictive Loop · '27 Q3–Q4</span>
+    </div>
+    <div class="card accent-moss stat">
+      <span class="lbl">Glide Path to 2028</span>
+      <span class="val">68%</span>
+      <span class="delta">of capability roadmap delivered</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head">
+      <div class="title">Progressive Capability Phases — 2026 → 2028</div>
+      <div class="sub">Each phase gated by exit criteria</div>
+    </div>
+    <div class="phases">
+      <div class="phase" style="background:var(--fire)">
+        <div class="ph-num">P1 · 2026 Q3–Q4</div>
+        <div class="ph-nm">Foundation</div>
+        <div class="ph-q">Trust the data, instrument the runtime</div>
+        <div class="ph-st">Complete</div>
+      </div>
+      <div class="phase" style="background:var(--ember)">
+        <div class="ph-num">P2 · 2027 Q1–Q2</div>
+        <div class="ph-nm">Augmentation</div>
+        <div class="ph-q">Co-pilots beside humans</div>
+        <div class="ph-st">Complete</div>
+      </div>
+      <div class="phase current" style="background:var(--moss)">
+        <div class="ph-num">P3 · 2027 Q3–Q4</div>
+        <div class="ph-nm">Predictive Loop</div>
+        <div class="ph-q">Sense + decide closed</div>
+        <div class="ph-st">In Flight</div>
+      </div>
+      <div class="phase" style="background:var(--forest)">
+        <div class="ph-num">P4 · 2028 Q1–Q2</div>
+        <div class="ph-nm">Autonomous</div>
+        <div class="ph-q">Decide + act, HITL gated</div>
+        <div class="ph-st">Planned</div>
+      </div>
+      <div class="phase" style="background:var(--navy)">
+        <div class="ph-num">P5 · 2028 Q3–Q4</div>
+        <div class="ph-nm">Self-Improving</div>
+        <div class="ph-q">Learn loop closed</div>
+        <div class="ph-st">Planned</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g-2" style="margin-top:16px">
+    <div class="card">
+      <div class="head">
+        <div class="title">Hub-and-Spoke Lifecycle — Click a Spoke for Detail</div>
+        <div class="sub">Glow = lighting / commissioning · Solid = live</div>
+      </div>
+      <div class="hub-stage" id="hub-stage"></div>
+    </div>
+
+    <div class="card">
+      <div class="head">
+        <div class="title">Cumulative Value — Phase by Phase</div>
+        <div class="sub">$M run-rate · target $120–160M by 2028</div>
+      </div>
+      <div class="chart-host"><canvas id="valueChart"></canvas></div>
+
+      <hr/>
+
+      <div class="head">
+        <div class="title">Capability → Outcome Trace</div>
+        <div class="sub">Outcome KPIs tied to phase capabilities</div>
+      </div>
+      <table style="font-size:11.5px">
+        <thead><tr><th>Outcome</th><th>Capabilities</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>ESP attach +18%</td><td>Failure-Mode · Booking · Membership</td><td><span class="status-chip status-running"><span class="dot"></span>+12pp</span></td></tr>
+          <tr><td>ROAS +22%</td><td>C360 · Personalization · Journey</td><td><span class="status-chip status-running"><span class="dot"></span>+15pp</span></td></tr>
+          <tr><td>Lead-to-close +9pp</td><td>Conv.AI · Sales Co-Pilot</td><td><span class="status-chip status-hitl"><span class="dot"></span>+6pp</span></td></tr>
+          <tr><td>Aged Inventory −25%</td><td>Metrology · Price · Rebalance</td><td><span class="status-chip status-running"><span class="dot"></span>−14%</span></td></tr>
+          <tr><td>SG&amp;A −$60M</td><td>AP · 3-way · HR · Close</td><td><span class="status-chip status-running"><span class="dot"></span>−$38M</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+
+<!-- =================== HITL =================== -->
+<section class="view" id="hitl">
+
+  <div class="grid g-4" style="margin-bottom:16px">
+    <div class="card accent-fire stat">
+      <span class="lbl">Open Decisions</span>
+      <span class="val" id="h-open">—</span>
+      <span class="delta warn" id="h-sla">— breaching SLA</span>
+    </div>
+    <div class="card accent-ember stat">
+      <span class="lbl">Avg Wait (mm:ss)</span>
+      <span class="val" id="h-wait">—</span>
+      <span class="delta">target &lt; 4:00</span>
+    </div>
+    <div class="card accent-moss stat">
+      <span class="lbl">Approved Today</span>
+      <span class="val" id="h-app">—</span>
+      <span class="delta">94.1% within-window</span>
+    </div>
+    <div class="card accent-navy stat">
+      <span class="lbl">Auto-routed by Risk Class</span>
+      <span class="val">8 / 23</span>
+      <span class="delta">policy-as-code</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="head">
+      <div class="title">Human-in-the-Loop Decision Queue</div>
+      <div class="sub">High-risk first · click any item to inspect & decide</div>
+    </div>
+    <div id="hitl-list"></div>
+  </div>
+
+</section>
+
+</main>
+
+<!-- modal -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal">
+    <h3 id="modal-title">Title <button class="close" onclick="closeModal()">×</button></h3>
+    <div class="body" id="modal-body"></div>
+    <div class="actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- toasts -->
+<div class="toasts" id="toasts"></div>
+
+<div class="footer-strip">Camping World · Agentic AI Operating Model · Prepared by Architecture Governance · Confidential</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const STATE = {
+  spokes: [
+    { id:'sales',     name:'Vehicle Sales',         status:'live',     value:18.5, agents:2, color:'moss',   pos:{x:0.16,y:0.18} },
+    { id:'service',   name:'Predictive Service',    status:'lighting', value:42.0, agents:4, color:'fire',   pos:{x:0.5,y:0.05} },
+    { id:'membership',name:'Membership · Good Sam', status:'live',     value:12.3, agents:2, color:'forest', pos:{x:0.84,y:0.18} },
+    { id:'inventory', name:'Inventory Metrology',   status:'pilot',    value:8.1,  agents:3, color:'ember',  pos:{x:0.16,y:0.78} },
+    { id:'marketing', name:'Personalization',       status:'live',     value:22.4, agents:4, color:'navy',   pos:{x:0.5,y:0.86} },
+    { id:'backoffice',name:'Back-Office Automation',status:'live',     value:14.7, agents:5, color:'slate',  pos:{x:0.84,y:0.78} },
+  ],
+  agents: [
+    { id:'failure-mode',     name:'Failure-Mode Agent v1.4',     domain:'Service',     risk:'M', status:'running',  slo:'OK',  runs:1247, evalPass:94.2, cost:0.018, hitl:0 },
+    { id:'service-booking',  name:'Service Booking Agent v0.9',  domain:'Service',     risk:'L', status:'running',  slo:'OK',  runs:842,  evalPass:96.1, cost:0.011, hitl:0 },
+    { id:'recall',           name:'Recall & Campaign Agent v1.0',domain:'Service',     risk:'L', status:'running',  slo:'OK',  runs:312,  evalPass:97.8, cost:0.009, hitl:0 },
+    { id:'tech-copilot',     name:'Tech Diagnostic Co-Pilot v2', domain:'Service',     risk:'L', status:'running',  slo:'OK',  runs:1903, evalPass:92.5, cost:0.014, hitl:1 },
+    { id:'leadgen',          name:'Lead-Gen Chatbot v3.2',       domain:'Sales',       risk:'L', status:'running',  slo:'OK',  runs:5421, evalPass:95.3, cost:0.006, hitl:0 },
+    { id:'sales-copilot',    name:'Sales Co-Pilot v1.8',         domain:'Sales',       risk:'M', status:'running',  slo:'OK',  runs:687,  evalPass:91.4, cost:0.022, hitl:2 },
+    { id:'journey',          name:'Journey Orchestrator v1.1',   domain:'Marketing',   risk:'M', status:'running',  slo:'OK',  runs:2104, evalPass:93.7, cost:0.013, hitl:0 },
+    { id:'audience',         name:'Audience Builder v1.5',       domain:'Marketing',   risk:'L', status:'running',  slo:'OK',  runs:418,  evalPass:96.9, cost:0.008, hitl:0 },
+    { id:'personalization',  name:'Personalization Render v2.0', domain:'Marketing',   risk:'L', status:'running',  slo:'OK',  runs:9821, evalPass:94.0, cost:0.004, hitl:0 },
+    { id:'forecast',         name:'Inventory Forecast Agent v0.7',domain:'Inventory',  risk:'L', status:'paused',   slo:'—',   runs:0,    evalPass:0,    cost:0,     hitl:0 },
+    { id:'aging',            name:'Aging Risk Scorer v0.6',      domain:'Inventory',   risk:'L', status:'running',  slo:'OK',  runs:124,  evalPass:90.1, cost:0.012, hitl:0 },
+    { id:'price',            name:'Price-Adjustment Agent v0.4', domain:'Inventory',   risk:'H', status:'hitl',     slo:'BLOCK',runs:42,   evalPass:89.5, cost:0.020, hitl:3 },
+    { id:'ap-intake',        name:'AP Intake Agent v2.3',        domain:'Back-Office', risk:'M', status:'running',  slo:'OK',  runs:432,  evalPass:97.2, cost:0.007, hitl:1 },
+    { id:'three-way',        name:'AP 3-Way Match v1.6',         domain:'Back-Office', risk:'M', status:'running',  slo:'OK',  runs:298,  evalPass:96.4, cost:0.008, hitl:1 },
+    { id:'hr-triage',        name:'HR Triage Agent v1.2',        domain:'Back-Office', risk:'L', status:'running',  slo:'OK',  runs:184,  evalPass:95.5, cost:0.005, hitl:0 },
+    { id:'concierge',        name:'Member Concierge Agent v0.2', domain:'Membership',  risk:'M', status:'error',    slo:'BREACH',runs:18,  evalPass:78.2, cost:0.024, hitl:0 },
+  ],
+  alerts: [
+    { id:'a1', sev:'H', icon:'!',
+      title:'Price-Adjustment Agent — proposed markdown exceeds ±3% policy floor',
+      meta:'Agent: price · Risk class H · Created 8 min ago · SLA: < 15 min',
+      desc:'Agent proposes 4.2% markdown on Class-A inventory in Region 7 (28 units). Aging score 0.78, competitor scrape supports markdown. Policy requires GM approval above ±3%. Reversible within 24h.',
+      ctx:{Agent:'price', Risk:'High', Unit:'Class-A R7 · 28 units', Proposed:'−4.2%', Justification:'Aging 0.78 · competitor median −3.9%', Reversible:'< 24h', Approver:'Regional GM (Region 7)'} },
+    { id:'a2', sev:'M', icon:'⚡',
+      title:'Service Booking Agent — bay capacity exceeded for predicted-failure window',
+      meta:'Agent: service-booking · Risk M · Created 14 min ago',
+      desc:'12 high-confidence predictions need bay slots Mon–Wed. Bay capacity at 94%. Agent proposes overflow to adjacent stores (Lincolnshire ↔ Vernon Hills) with member opt-in.',
+      ctx:{Agent:'service-booking', Risk:'Medium', Predictions:'12 high-conf · 7 medium', BayUtil:'94%', Proposed:'Offer alternate store with $50 credit', HITL:'Service Mgr', Reversible:'On member confirm'} },
+    { id:'a3', sev:'M', icon:'⚡',
+      title:'AP Intake — invoice coding confidence below threshold',
+      meta:'Agent: ap-intake · Risk M · Created 4 min ago',
+      desc:'17 invoices coded with confidence < 0.82. Vendor: new (first 30 days). Recommend reviewer queue with auto-prefill.',
+      ctx:{Agent:'ap-intake', Risk:'Medium', Invoices:'17', Confidence:'< 0.82', Action:'Route to AP Reviewer Queue', Total:'$18,420'} },
+    { id:'a4', sev:'L', icon:'i',
+      title:'Sales Co-Pilot — deal context exceeds personalization frequency cap',
+      meta:'Agent: sales-copilot · Risk L · Created 22 min ago',
+      desc:'Member already received 3 touches this week. Co-Pilot suggests advisor-led conversation instead of personalized SMS.',
+      ctx:{Agent:'sales-copilot', Risk:'Low', Cap:'3 touches / 7d', Status:'Cap reached', Proposed:'Advisor-led outreach'} },
+    { id:'a5', sev:'H', icon:'!',
+      title:'Member Concierge Agent — eval pass rate dropped to 78.2% (threshold 92%)',
+      meta:'Agent: concierge · Risk M · Auto-canary halted',
+      desc:'Drift detected in member satisfaction signals. Canary auto-halted. Run Store replay available. Owner notified.',
+      ctx:{Agent:'concierge', Risk:'Medium', EvalPass:'78.2% (was 94.1%)', Window:'24h', Action:'Auto-halt fired', Investigate:'Owner: Membership Eng'} },
+  ],
+};
+
+// ============================================================
+// HEADER & CLOCK
+// ============================================================
+function tickClock(){
+  const d = new Date();
+  const hh=String(d.getHours()).padStart(2,'0');
+  const mm=String(d.getMinutes()).padStart(2,'0');
+  const ss=String(d.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${d.toDateString()} · ${hh}:${mm}:${ss} CT`;
+}
+setInterval(tickClock,1000); tickClock();
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('section.view').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById(b.dataset.tab).classList.add('active');
+  });
+});
+
+// ============================================================
+// PRINCIPLES
+// ============================================================
+const PRINCIPLES = [
+  ['P1','Domain-Aligned'],['P2','Composable'],['P3','Golden Record'],['P4','Event-Driven'],
+  ['P5','HITL by Risk'],['P6','Observable First'],['P7','Consent as Code'],
+  ['P8','Cost-Aware'],['P9','Reversible'],['P10','Open at Edges']
+];
+function renderPrinciples(){
+  const host = document.getElementById('principles-strip');
+  host.innerHTML='';
+  PRINCIPLES.forEach(([n,t])=>{
+    const c = document.createElement('div'); c.className='p-chip';
+    c.innerHTML = `<span class="num">${n}</span>${t}`;
+    c.onclick = ()=>openModal('Principle '+n,
+      `<p><b>${t}</b></p><p style="margin-top:8px">${PRINCIPLE_DESC[n]}</p>
+       <div class="kv"><span>Enforcement</span><b>Bound to every TDR via principle_id</b></div>
+       <div class="kv"><span>Last violation</span><b>${PRINCIPLE_LAST[n] || 'None YTD'}</b></div>`,
+      [{label:'Acknowledge',cls:'invest',action:closeModal}]);
+    host.appendChild(c);
+  });
+}
+const PRINCIPLE_DESC = {
+  P1:'Agents are bounded by domain data products. No cross-domain god agents.',
+  P2:'Models, prompts, tools, retrievers, and policies are first-class swappable components.',
+  P3:'All agents resolve identity through Customer 360 — no private customer tables.',
+  P4:'Sense-decide-act loops fire on events. Batch is an optimization.',
+  P5:'Every action is classified Low/Medium/High. M and H require HITL or post-hoc audit.',
+  P6:'Agents ship only after trace, eval, and rollback hooks are in place.',
+  P7:'Customer consent is a typed input to every agent invocation.',
+  P8:'Every agent declares an SLO and a per-call cost budget; router optimizes.',
+  P9:'Actions staged before commit where possible; bulk actions require dual control.',
+  P10:'External integrations use open standards (OpenAPI, AsyncAPI, MCP); core stays in-house.',
+};
+const PRINCIPLE_LAST = {
+  P3:'2026-Q2 — Member Concierge attempted private cache (corrected by review)',
+  P8:'2026-Q4 — Sales Co-Pilot exceeded per-call budget (router patched)'
+};
+renderPrinciples();
+
+// ============================================================
+// HUB & SPOKE
+// ============================================================
+function renderHub(){
+  const stage = document.getElementById('hub-stage');
+  stage.innerHTML='';
+  const W = stage.clientWidth, H = stage.clientHeight;
+  // hub
+  const hubEl = document.createElement('div'); hubEl.className='hub';
+  const totalVal = STATE.spokes.reduce((s,x)=>s+x.value,0);
+  hubEl.innerHTML = `
+    <div class="h-title">GOOD SAM</div>
+    <div class="h-sub">Hub · Recurring Revenue<br/>ESP · Roadside · Insurance</div>
+    <div class="h-rev">$${totalVal.toFixed(1)}M</div>`;
+  stage.appendChild(hubEl);
+
+  const hubCx = W/2, hubCy = H/2;
+  // spokes + connectors
+  STATE.spokes.forEach(sp=>{
+    const sx = sp.pos.x * W - 85, sy = sp.pos.y * H - 35;
+    const el = document.createElement('div'); el.className='spoke';
+    el.style.left = sx+'px'; el.style.top = sy+'px';
+    el.innerHTML = `
+      <div class="top"><div class="nm">${sp.name}</div>
+        <div class="badge-st ${sp.status}">${sp.status==='lighting'?'lighting':sp.status}</div></div>
+      <div class="val-mini">$${sp.value.toFixed(1)}M</div>
+      <div class="lbl-mini">run-rate value</div>
+      <div class="agents-c">${sp.agents} agents · click for detail</div>`;
+    el.onclick = ()=>openSpokeModal(sp);
+    stage.appendChild(el);
+
+    // connector
+    const ex = sx + 85, ey = sy + 35;
+    const dx = hubCx - ex, dy = hubCy - ey;
+    const len = Math.sqrt(dx*dx+dy*dy) - 95;
+    const ang = Math.atan2(dy,dx) * 180/Math.PI;
+    const c = document.createElement('div');
+    c.className = 'conn' + (sp.status==='live' || sp.status==='lighting' ? ' lit' : '');
+    c.style.left = ex+'px'; c.style.top = ey+'px';
+    c.style.width = len+'px';
+    c.style.transform = `rotate(${ang}deg)`;
+    stage.appendChild(c);
+  });
+}
+function openSpokeModal(sp){
+  const stChip = `<span class="badge-st ${sp.status}">${sp.status}</span>`;
+  openModal(`${sp.name} ${stChip}`,
+    `<div class="kv"><span>Status</span><b>${sp.status.toUpperCase()}</b></div>
+     <div class="kv"><span>Run-rate value</span><b>$${sp.value.toFixed(1)}M</b></div>
+     <div class="kv"><span>Active agents</span><b>${sp.agents}</b></div>
+     <div class="kv"><span>Phase</span><b>P${sp.status==='pilot'?3:sp.status==='lighting'?3:2} delivered</b></div>
+     <h4>Value contribution</h4>
+     <p>This spoke contributes ${((sp.value/STATE.spokes.reduce((s,x)=>s+x.value,0))*100).toFixed(0)}% of current run-rate value. ${sp.status==='lighting'?'Currently in active commissioning — risk alerts may be elevated during this window.':'Operational with eval-gated rollouts.'}</p>
+     <h4>Governance posture</h4>
+     <p>${sp.agents} agent contracts ratified · Risk classes mapped · HITL policy active · Run Store evidence flowing.</p>`,
+    [{label:'View Agents',cls:'invest',action:()=>{closeModal();document.querySelector('[data-tab="runtime"]').click();}},
+     {label:'Close',cls:'escalate',action:closeModal}]);
+}
+window.addEventListener('resize',renderHub);
+setTimeout(renderHub,80);
+
+// ============================================================
+// AGENTS TABLE
+// ============================================================
+function renderAgents(){
+  const t = document.getElementById('agent-table');
+  let html = `<thead><tr>
+    <th>Agent</th><th>Domain</th><th>Risk</th><th>Status</th>
+    <th style="text-align:right">Runs (1h)</th><th style="text-align:right">Eval%</th>
+    <th style="text-align:right">$/call</th><th style="text-align:right">HITL</th></tr></thead><tbody>`;
+  STATE.agents.forEach(a=>{
+    html += `<tr>
+      <td><b style="color:var(--navy)">${a.name}</b></td>
+      <td>${a.domain}</td>
+      <td><span class="risk-chip risk-${a.risk}">${a.risk}</span></td>
+      <td><span class="status-chip status-${a.status}"><span class="dot"></span>${a.status}</span></td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums">${a.runs}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums">${a.evalPass>0?a.evalPass.toFixed(1):'—'}%</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums">${a.cost>0?'$'+a.cost.toFixed(3):'—'}</td>
+      <td style="text-align:right">${a.hitl>0?'<span class="risk-chip risk-M">'+a.hitl+'</span>':'—'}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  t.innerHTML = html;
+}
+renderAgents();
+
+// ============================================================
+// ALERTS / HITL
+// ============================================================
+let HITL_DECIDED = new Set();
+function renderAlerts(){
+  const feed = document.getElementById('alerts-feed');
+  feed.innerHTML='';
+  STATE.alerts.filter(a=>!HITL_DECIDED.has(a.id)).forEach(a=>{
+    const el = document.createElement('div'); el.className='alert sev-'+a.sev;
+    el.innerHTML = `
+      <div class="icon">${a.icon}</div>
+      <div class="body">
+        <div class="a-title">${a.title}</div>
+        <div class="a-meta">${a.meta}</div>
+        <div class="a-desc">${a.desc}</div>
+        <div class="a-act">
+          <button class="btn invest" onclick="openHITL('${a.id}')">Inspect & Decide</button>
+          <button class="btn approve" onclick="quickDecide('${a.id}','approved')">Approve</button>
+          <button class="btn cond" onclick="quickDecide('${a.id}','conditions')">Approve w/ Conditions</button>
+          <button class="btn reject" onclick="quickDecide('${a.id}','rejected')">Reject</button>
+          <button class="btn escalate" onclick="quickDecide('${a.id}','escalated')">Escalate</button>
+        </div>
+      </div>`;
+    feed.appendChild(el);
+  });
+  const remaining = STATE.alerts.filter(a=>!HITL_DECIDED.has(a.id)).length;
+  document.getElementById('alerts-summary').textContent = remaining + ' pending';
+  document.getElementById('hitl-badge').textContent = remaining;
+  document.getElementById('hdr-hitl').textContent = remaining;
+  document.getElementById('rt-hitl').textContent = remaining;
+  renderHITLQueue();
+}
+
+function renderHITLQueue(){
+  const host = document.getElementById('hitl-list');
+  host.innerHTML='';
+  const open = STATE.alerts.filter(a=>!HITL_DECIDED.has(a.id));
+  open.sort((a,b)=>({H:0,M:1,L:2})[a.sev]-({H:0,M:1,L:2})[b.sev]);
+  open.forEach(a=>{
+    const el = document.createElement('div'); el.className='alert sev-'+a.sev;
+    el.innerHTML = `
+      <div class="icon">${a.icon}</div>
+      <div class="body">
+        <div class="a-title">${a.title}</div>
+        <div class="a-meta">${a.meta}</div>
+        <div class="a-desc">${a.desc}</div>
+        <div class="a-act">
+          <button class="btn approve" onclick="quickDecide('${a.id}','approved')">Approve</button>
+          <button class="btn cond" onclick="quickDecide('${a.id}','conditions')">Approve w/ Conditions</button>
+          <button class="btn reject" onclick="quickDecide('${a.id}','rejected')">Reject</button>
+          <button class="btn escalate" onclick="quickDecide('${a.id}','escalated')">Escalate</button>
+          <button class="btn invest" onclick="openHITL('${a.id}')">Full Context</button>
+        </div>
+      </div>`;
+    host.appendChild(el);
+  });
+  document.getElementById('h-open').textContent = open.length;
+  document.getElementById('h-sla').textContent = (open.filter(a=>a.sev==='H').length) + ' breaching SLA';
+}
+
+function openHITL(id){
+  const a = STATE.alerts.find(x=>x.id===id);
+  const ctxRows = Object.entries(a.ctx).map(([k,v])=>`<div class="kv"><span>${k}</span><b>${v}</b></div>`).join('');
+  openModal('HITL Decision · ' + a.title,
+    `<p style="font-size:13px"><b>${a.desc}</b></p>
+     <h4>Decision Context</h4>${ctxRows}
+     <h4>Run Store</h4>
+     <p>Trace ID <b>tr_${a.id}_${Date.now().toString(36)}</b> · Replay available · Eval set: golden/v3 · Last 24h actions auditable.</p>
+     <h4>Reversibility</h4>
+     <p>Action is reversible within the agent's declared window. Run Store can replay the prior state if rejected.</p>`,
+    [
+      {label:'Approve',cls:'approve',action:()=>{quickDecide(a.id,'approved');closeModal();}},
+      {label:'Approve with Conditions',cls:'cond',action:()=>{quickDecide(a.id,'conditions');closeModal();}},
+      {label:'Reject & Rollback',cls:'reject',action:()=>{quickDecide(a.id,'rejected');closeModal();}},
+      {label:'Escalate to ARB',cls:'escalate',action:()=>{quickDecide(a.id,'escalated');closeModal();}},
+    ]);
+}
+
+function quickDecide(id, decision){
+  HITL_DECIDED.add(id);
+  const a = STATE.alerts.find(x=>x.id===id);
+  const phrases = {
+    approved:    ['Approved','✅', 'success'],
+    conditions:  ['Approved with conditions','⚠️', 'warn'],
+    rejected:    ['Rejected & rolled back','⛔', 'bad'],
+    escalated:   ['Escalated to ARB','📋', 'warn'],
+  };
+  const [phrase, emoji, cls] = phrases[decision];
+  toast(`${emoji} <b>${phrase}</b> — ${a.title.split('—')[0].trim()}<br/><span style="color:var(--sand)">${
+    decision==='approved'?'Agent will commit action; Run Store logs decision':'Run Store updated · audit trail captured'
+  }</span>`, cls);
+  renderAlerts();
+  // simulate new alert occasionally
+  if(Math.random() < 0.5) setTimeout(injectAlert, 5000 + Math.random()*5000);
+}
+
+function injectAlert(){
+  const candidates = [
+    { sev:'M', icon:'⚡',
+      title:'Tech Diagnostic Co-Pilot — citation confidence below threshold on Class-C diagnostic',
+      meta:'Agent: tech-copilot · Risk L · Just now',
+      desc:'Co-pilot returned a diagnostic with citation confidence 0.71 (threshold 0.80). Recommend technician verify against OEM TSB.',
+      ctx:{Agent:'tech-copilot',Confidence:'0.71',Action:'Show citation + TSB link in bay UI',Reversible:'Tech-driven'} },
+    { sev:'H', icon:'!',
+      title:'Journey Orchestrator — proposed campaign approaches frequency cap',
+      meta:'Agent: journey · Risk M · Just now',
+      desc:'Campaign would push 14,231 members to frequency cap. Marketing leader approval required.',
+      ctx:{Agent:'journey',Members:'14,231',Cap:'3 / 7d',Approver:'CMO designate',Status:'Awaiting'} },
+    { sev:'L', icon:'i',
+      title:'HR Triage Agent — sensitive ticket detected',
+      meta:'Agent: hr-triage · Risk L · Just now',
+      desc:'Detected ticket contains compensation-related keywords. Auto-routed to HRBP rather than self-service.',
+      ctx:{Agent:'hr-triage',Detection:'Compensation keywords',Action:'Routed to HRBP queue',Auto:'Yes'} },
+  ];
+  const next = candidates[Math.floor(Math.random()*candidates.length)];
+  next.id = 'inj_'+Date.now().toString(36);
+  STATE.alerts.unshift(next);
+  renderAlerts();
+  toast(`🔔 <b>New risk alert</b><br/><span style="color:var(--sand)">${next.title.substring(0,90)}…</span>`, next.sev==='H'?'bad':next.sev==='M'?'warn':'success');
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openModal(title, bodyHTML, actions){
+  document.getElementById('modal-title').innerHTML = title + ' <button class="close" onclick="closeModal()">×</button>';
+  document.getElementById('modal-body').innerHTML = bodyHTML;
+  const actHost = document.getElementById('modal-actions');
+  actHost.innerHTML='';
+  actions.forEach(a=>{
+    const b = document.createElement('button');
+    b.className='btn '+a.cls; b.textContent=a.label;
+    b.onclick = a.action;
+    actHost.appendChild(b);
+  });
+  document.getElementById('modal-bg').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-bg').classList.remove('open'); }
+document.getElementById('modal-bg').addEventListener('click',(e)=>{
+  if(e.target.id==='modal-bg') closeModal();
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(htmlMsg, cls='success'){
+  const host = document.getElementById('toasts');
+  const t = document.createElement('div'); t.className='toast '+(cls==='warn'?'warn':cls==='bad'?'bad':'');
+  t.innerHTML = htmlMsg;
+  host.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(400px)'; setTimeout(()=>t.remove(),300); }, 6000);
+}
+
+// ============================================================
+// LIVE RUN-TIME METRICS
+// ============================================================
+function fmtMs(n){ return n.toFixed(0)+'ms' }
+function liveTick(){
+  // Simulate live operational data with small jitter
+  const runs = 4200 + Math.round(Math.random()*800);
+  const lat = 950 + Math.round(Math.random()*250);
+  const evalRate = 93.5 + (Math.random()*1.5);
+  const cost = 13.6 + (Math.random()*1.2);
+  document.getElementById('rt-runs').textContent = runs.toLocaleString();
+  document.getElementById('rt-runs-delta').textContent = '+' + (3+Math.random()*4).toFixed(1) + '% vs yesterday';
+  document.getElementById('rt-lat').textContent = fmtMs(lat);
+  document.getElementById('rt-lat-delta').textContent = lat<1200?'✓ under target':'⚠ approaching target';
+  document.getElementById('rt-lat-delta').className = 'delta' + (lat>1100?' warn':'');
+  document.getElementById('rt-eval').textContent = evalRate.toFixed(1)+'%';
+  document.getElementById('rt-eval-delta').className = 'delta' + (evalRate<92?' bad':'');
+  document.getElementById('rt-cost').textContent = '$'+cost.toFixed(2);
+
+  document.getElementById('hdr-agents').textContent = STATE.agents.filter(a=>a.status==='running').length;
+  // HITL queue stats
+  document.getElementById('h-wait').textContent = '2:'+String(Math.floor(20+Math.random()*40)).padStart(2,'0');
+  document.getElementById('h-app').textContent = 14 + HITL_DECIDED.size;
+  // value
+  const tot = STATE.spokes.reduce((s,x)=>s+x.value,0);
+  document.getElementById('v-cap').textContent = tot.toFixed(1);
+  document.getElementById('v-lit').textContent = STATE.spokes.filter(s=>s.status==='live'||s.status==='lighting').length;
+  // active TDR slightly bumps
+  document.getElementById('m-tdrs').textContent = 147 + Math.floor(HITL_DECIDED.size/2);
+}
+liveTick(); setInterval(liveTick, 4000);
+
+// ============================================================
+// VALUE CHART
+// ============================================================
+const ctx = document.getElementById('valueChart');
+new Chart(ctx, {
+  type:'line',
+  data:{
+    labels:['2026 Q3','Q4','2027 Q1','Q2','Q3','Q4','2028 Q1','Q2','Q3','Q4'],
+    datasets:[{
+      label:'Cumulative run-rate value ($M)',
+      data:[3,12,22,38,58,78,98,122,145,160],
+      borderColor:'#C1441E',
+      backgroundColor:'rgba(193,68,30,0.12)',
+      tension:0.35,
+      fill:true,
+      pointRadius:4,
+      pointBackgroundColor:'#C1441E',
+      pointBorderColor:'#fff'
+    },{
+      label:'Conservative case',
+      data:[2,8,18,30,45,60,80,98,115,128],
+      borderColor:'#6E8B4F',
+      borderDash:[5,4],
+      backgroundColor:'transparent',
+      tension:0.35,
+      pointRadius:0
+    }]
+  },
+  options:{
+    maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom', labels:{font:{size:10}}}},
+    scales:{
+      x:{ticks:{font:{size:10}}, grid:{color:'#eee'}},
+      y:{ticks:{font:{size:10},callback:v=>'$'+v+'M'}, grid:{color:'#eee'}, beginAtZero:true}
+    }
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+renderAlerts();
+
+// Periodic alert injection — feels live
+setTimeout(()=>injectAlert(), 10000);
+setInterval(()=>{ if(Math.random()<0.35) injectAlert(); }, 18000);
+
+// Welcome toast
+setTimeout(()=>{
+  toast('🏕️ <b>Operating model loaded</b><br/><span style="color:var(--sand)">Live data is simulated. Try clicking a spoke or a HITL alert.</span>','success');
+},800);
+
+</script>
+
+</body>
+</html>

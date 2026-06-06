@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baxter R&D — Trusted Intelligence Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#070E1C;--s1:#0C1A2E;--s2:#102035;--s3:#162C47;--s4:#1E3A5A;
+--blue:#0066CC;--accent:#00AAFF;--thread:#00D4FF;--gold:#FFB347;
+--green:#00E08A;--red:#FF4A6E;--violet:#A78BFA;--teal:#06C9B0;
+--t1:#D0E8FF;--t2:#7AADD0;--t3:#4A7A9B;
+--f-head:'Exo 2',sans-serif;--f-body:'DM Sans',sans-serif;--f-mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f-body);overflow:hidden}
+body{display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+#hdr{
+  height:58px;background:var(--s1);border-bottom:1px solid rgba(0,170,255,.15);
+  display:flex;align-items:center;padding:0 24px;gap:20px;flex-shrink:0;
+  position:relative;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:32px;height:32px;border-radius:6px;background:var(--blue);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-head);font-weight:800;font-size:14px;color:#fff;letter-spacing:-.5px;
+}
+.logo-text{font-family:var(--f-head);font-weight:600;font-size:15px;color:var(--t1)}
+.logo-sub{font-size:11px;color:var(--t3);font-family:var(--f-body);margin-top:1px}
+.hdr-div{width:1px;height:28px;background:rgba(255,255,255,.1)}
+#tabs{display:flex;gap:2px}
+.tab{
+  padding:7px 16px;border-radius:6px;font-family:var(--f-head);font-size:12px;font-weight:500;
+  color:var(--t3);cursor:pointer;transition:all .2s;border:1px solid transparent;letter-spacing:.5px;
+  text-transform:uppercase;
+}
+.tab:hover{color:var(--t2);background:rgba(255,255,255,.04)}
+.tab.active{color:var(--accent);background:rgba(0,170,255,.1);border-color:rgba(0,170,255,.2)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.sys-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,224,138,.4)}50%{opacity:.8;box-shadow:0 0 0 5px rgba(0,224,138,0)}}
+.mtbh-badge{
+  font-family:var(--f-mono);font-size:11px;padding:3px 10px;border-radius:20px;
+  background:rgba(0,224,138,.12);color:var(--green);border:1px solid rgba(0,224,138,.25);
+}
+
+/* ── MAIN CONTENT ── */
+#main{flex:1;overflow:hidden;position:relative}
+.view{position:absolute;inset:0;display:none;flex-direction:column}
+.view.active{display:flex}
+
+/* ── JOURNEY VIEW ── */
+#journey-svg-wrap{flex:0 0 auto;padding:16px 24px 0;position:relative}
+#journey-svg-wrap svg{display:block;width:100%;cursor:default}
+
+/* flowing thread animation */
+@keyframes thread-flow{to{stroke-dashoffset:-52}}
+.thread-particles{stroke-dasharray:14 38;animation:thread-flow 2.2s linear infinite}
+.thread-particles2{stroke-dasharray:8 44;animation:thread-flow 3.1s linear infinite .8s}
+
+/* HITL pulse rings */
+@keyframes hitl-ring{0%{r:16;opacity:.7}100%{r:30;opacity:0}}
+.hitl-ring{animation:hitl-ring 1.8s ease-out infinite}
+.hitl-ring2{animation:hitl-ring 1.8s ease-out infinite .6s}
+
+/* stage hover */
+.stage-node{cursor:pointer;transition:opacity .15s}
+.stage-node:hover .stage-bg{filter:brightness(1.3)}
+.stage-node.selected .stage-bg{filter:brightness(1.4)}
+.stage-node.selected .stage-ring{stroke-width:2.5;opacity:1}
+
+/* ── DETAIL PANEL ── */
+#panel{
+  flex:1;overflow:hidden;display:flex;flex-direction:column;
+  border-top:1px solid rgba(0,170,255,.15);
+  background:linear-gradient(180deg,var(--s1) 0%,var(--bg) 100%);
+}
+#panel-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--t3);gap:12px;
+}
+.empty-icon{font-size:32px;opacity:.3}
+#panel-content{flex:1;display:none;overflow:hidden;flex-direction:column}
+#panel-content.visible{display:flex;animation:panel-in .3s ease-out}
+@keyframes panel-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+#panel-header{
+  display:flex;align-items:flex-start;padding:14px 24px 10px;
+  border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;gap:14px;
+}
+.panel-stage-icon{
+  width:38px;height:38px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.panel-stage-info{flex:1}
+.panel-stage-title{font-family:var(--f-head);font-size:16px;font-weight:600;color:var(--t1);margin-bottom:2px}
+.panel-stage-sub{font-size:11px;color:var(--t2);line-height:1.4}
+.panel-close{
+  width:26px;height:26px;border-radius:6px;background:rgba(255,255,255,.06);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:14px;
+  border:none;transition:background .2s;flex-shrink:0;
+}
+.panel-close:hover{background:rgba(255,255,255,.12);color:var(--t1)}
+
+#panel-body{flex:1;overflow-y:auto;padding:14px 24px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;align-content:start}
+#panel-body::-webkit-scrollbar{width:4px}
+#panel-body::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+
+.metric-card{
+  background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;
+  padding:12px 14px;
+}
+.metric-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.metric-value{font-family:var(--f-mono);font-size:20px;font-weight:500;line-height:1}
+.metric-unit{font-size:10px;color:var(--t2);margin-top:3px}
+.metric-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden}
+.metric-bar-fill{height:100%;border-radius:2px;transition:width 1s ease-out}
+
+.tools-card{
+  background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;
+  padding:12px 14px;grid-column:span 2;
+}
+.tools-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.tools-list{display:flex;flex-wrap:wrap;gap:6px}
+.tool-pill{
+  font-size:10px;padding:3px 9px;border-radius:20px;font-family:var(--f-mono);
+  background:rgba(0,170,255,.1);color:var(--accent);border:1px solid rgba(0,170,255,.2);
+}
+
+.hitl-card{
+  background:rgba(255,179,71,.06);border:1px solid rgba(255,179,71,.2);
+  border-radius:10px;padding:12px 14px;grid-column:span 2;
+}
+.hitl-label{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.hitl-text{font-size:11px;color:rgba(255,179,71,.85);line-height:1.5}
+
+.wymore-card{
+  background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);
+  border-radius:10px;padding:12px 14px;grid-column:span 4;
+}
+.wymore-label{font-size:10px;color:var(--violet);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.wymore-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.wymore-item{text-align:center}
+.wymore-sym{font-family:var(--f-mono);font-size:13px;font-weight:500;color:var(--violet)}
+.wymore-desc{font-size:9px;color:var(--t3);margin-top:3px;line-height:1.3}
+
+/* ── ARCHITECTURE VIEW ── */
+#arch-view{overflow-y:auto;padding:12px 10px}
+#arch-view::-webkit-scrollbar{width:4px}
+#arch-view::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+.arch-title{font-family:var(--f-head);font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+.arch-stack{display:flex;flex-direction:column;gap:4px}
+.arch-layer{
+  display:grid;grid-template-columns:80px 1fr auto;gap:16px;align-items:start;
+  background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;
+  padding:12px 16px;transition:all .2s;position:relative;
+}
+.arch-layer:hover{background:var(--s3);border-color:rgba(0,170,255,.25)}
+.arch-layer::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:10px 0 0 10px;
+}
+.arch-layer-num{font-family:var(--f-mono);font-size:22px;font-weight:500;color:rgba(255,255,255,.08)}
+.arch-layer-main{display:flex;flex-direction:column;gap:4px}
+.arch-layer-name{font-family:var(--f-head);font-size:14px;font-weight:600}
+.arch-layer-sub{font-size:11px;color:var(--t2)}
+.arch-layer-tools{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;max-width:280px}
+.arch-tool{font-size:9px;padding:2px 7px;border-radius:12px;font-family:var(--f-mono)}
+.arch-govband{
+  background:rgba(0,170,255,.05);border:1px solid rgba(0,170,255,.12);border-radius:8px;
+  padding:8px 16px;margin:6px 0;display:flex;align-items:center;gap:10px;font-size:10px;color:var(--t2);
+}
+.arch-govband-label{color:var(--accent);font-family:var(--f-head);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+.rdsg-badge{
+  position:absolute;right:16px;top:8px;font-size:9px;padding:2px 7px;border-radius:10px;
+  background:rgba(0,212,255,.1);color:var(--thread);border:1px solid rgba(0,212,255,.2);font-family:var(--f-mono);
+}
+
+/* ── GOVERNANCE VIEW ── */
+#gov-view{overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:10px}
+#gov-view::-webkit-scrollbar{width:4px}
+#gov-view::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+.gov-domain{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.gov-domain-hdr{display:flex;align-items:flex-start;gap:10px}
+.gov-domain-icon{
+  width:34px;height:34px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.gov-domain-title{font-family:var(--f-head);font-size:14px;font-weight:600;line-height:1.2}
+.gov-domain-sub{font-size:10px;color:var(--t3);margin-top:2px}
+.gov-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.gov-kpi{background:rgba(0,0,0,.2);border-radius:8px;padding:9px 11px}
+.gov-kpi-val{font-family:var(--f-mono);font-size:18px;font-weight:500;line-height:1}
+.gov-kpi-lbl{font-size:9px;color:var(--t3);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.gov-bars{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.gov-bar-row{display:flex;flex-direction:column;gap:3px}
+.gov-bar-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--t2)}
+.gov-bar-track{height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.gov-bar-fill{height:100%;border-radius:2px}
+
+/* ── HITL VIEW ── */
+#hitl-view{overflow-y:auto;padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-content:start}
+#hitl-view::-webkit-scrollbar{width:4px}
+#hitl-view::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+.hitl-timeline{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;grid-column:span 2}
+.hitl-tl-title{font-family:var(--f-head);font-size:13px;font-weight:600;margin-bottom:14px;color:var(--t1)}
+.hitl-points{display:flex;flex-direction:column;gap:2px}
+.hitl-pt{
+  display:grid;grid-template-columns:24px 3fr 2fr 1fr 1fr;gap:12px;align-items:center;
+  padding:8px 10px;border-radius:8px;font-size:11px;cursor:pointer;transition:background .2s;
+}
+.hitl-pt:hover{background:rgba(255,255,255,.04)}
+.hitl-pt-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;margin:0 auto;
+  position:relative;
+}
+.hitl-pt-dot.active::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:1px solid currentColor;opacity:.5;animation:ring-out 1.5s ease-out infinite;
+}
+@keyframes ring-out{0%{transform:scale(1);opacity:.5}100%{transform:scale(2);opacity:0}}
+.hitl-pt-stage{color:var(--t3);font-size:10px}
+.hitl-pt-action{color:var(--t1)}
+.hitl-pt-who{color:var(--t2)}
+.hitl-pt-status{
+  padding:2px 8px;border-radius:10px;font-size:9px;text-align:center;font-family:var(--f-mono);
+}
+.hitl-pt-time{font-family:var(--f-mono);font-size:10px;color:var(--t3);text-align:right}
+
+.hf-card{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
+.hf-title{font-family:var(--f-head);font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.hf-meter{position:relative;height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden;margin-bottom:4px}
+.hf-fill{position:absolute;left:0;top:0;height:100%;border-radius:4px;transition:width 1s ease-out}
+.hf-label-row{display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:10px}
+.trust-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}
+.trust-bucket{
+  background:rgba(0,0,0,.2);border-radius:6px;padding:6px 4px;text-align:center;
+  cursor:pointer;transition:background .2s;
+}
+.trust-bucket:hover{background:rgba(255,255,255,.06)}
+.tb-range{font-size:9px;color:var(--t3);font-family:var(--f-mono)}
+.tb-acc{font-size:13px;font-weight:500;font-family:var(--f-mono)}
+.tb-bar{height:3px;border-radius:2px;margin-top:4px}
+.perf-ring-wrap{display:flex;justify-content:space-around;padding:8px 0}
+.perf-ring{display:flex;flex-direction:column;align-items:center;gap:4px}
+.perf-ring svg{width:70px;height:70px}
+.perf-ring-lbl{font-size:9px;color:var(--t3);text-align:center}
+
+/* ── SREG BANNER ── */
+.sreg-banner{
+  background:linear-gradient(90deg,rgba(10,21,40,.9),rgba(10,21,40,.4));
+  border-bottom:1px solid rgba(0,170,255,.12);padding:6px 24px;
+  display:flex;align-items:center;gap:12px;font-size:10px;color:var(--t3);flex-shrink:0;
+}
+.sreg-source{
+  display:flex;align-items:center;gap:6px;
+  padding:3px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);
+}
+.sreg-dot{width:5px;height:5px;border-radius:50%}
+.sreg-arrow{color:var(--t3);font-size:12px}
+
+/* ── EXPAND/COLLAPSE ── */
+@keyframes expand-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.arch-layer{cursor:pointer}
+.arch-layer:hover{background:var(--s3);border-color:rgba(0,170,255,.25)}
+.arch-layer.expanded{background:var(--s3);border-color:rgba(0,170,255,.35)}
+.arch-layer-chevron{
+  font-size:10px;color:var(--t3);transition:transform .25s;flex-shrink:0;
+  width:18px;height:18px;display:flex;align-items:center;justify-content:center;
+}
+.arch-layer.expanded .arch-layer-chevron{transform:rotate(180deg);color:var(--accent)}
+.arch-detail{
+  display:none;padding:14px 0 4px;border-top:1px solid rgba(255,255,255,.06);
+  animation:expand-in .2s ease-out;grid-column:1 / -1;
+}
+.arch-detail.open{display:block}
+.comp-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;table-layout:fixed}
+.comp-table th{
+  text-align:left;padding:7px 12px;font-family:var(--f-head);font-size:9px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.6px;color:var(--t3);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.comp-table td{
+  padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);
+  vertical-align:top;line-height:1.5;color:var(--t2);word-wrap:break-word;
+}
+.comp-table tr:last-child td{border-bottom:none}
+.comp-table tr:hover td{background:rgba(255,255,255,.02)}
+.comp-table col.c-name{width:20%}
+.comp-table col.c-type{width:10%}
+.comp-table col.c-purpose{width:42%}
+.comp-table col.c-int{width:28%}
+.comp-name{color:var(--t1);font-weight:500;font-family:var(--f-head);font-size:10px}
+.comp-type{
+  padding:2px 7px;border-radius:10px;font-family:var(--f-mono);font-size:9px;
+  white-space:nowrap;display:inline-block;
+}
+.type-siemens{background:rgba(0,150,255,.12);color:#4DB8FF;border:1px solid rgba(0,150,255,.2)}
+.type-ootb{background:rgba(0,224,138,.1);color:#00C87A;border:1px solid rgba(0,224,138,.2)}
+.type-custom{background:rgba(255,179,71,.1);color:#FFB347;border:1px solid rgba(255,179,71,.2)}
+.type-open{background:rgba(167,139,250,.1);color:#A78BFA;border:1px solid rgba(167,139,250,.2)}
+.type-physical{background:rgba(255,74,110,.1);color:#FF6B8A;border:1px solid rgba(255,74,110,.2)}
+.wymore-inline{
+  margin-top:12px;padding:9px 12px;border-radius:8px;
+  background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.15);
+  font-size:10px;color:rgba(167,139,250,.9);font-family:var(--f-mono);line-height:1.5;width:100%;
+}
+.rdsg-stages{margin-top:12px;display:flex;flex-direction:column;gap:3px;width:100%}
+.rdsg-stage-row{
+  display:grid;grid-template-columns:64px 1fr;gap:12px;
+  padding:6px 12px;border-radius:6px;background:rgba(0,170,255,.04);
+  font-size:11px;align-items:start;
+}
+.rdsg-stage-label{font-family:var(--f-mono);color:var(--accent);font-size:9px;font-weight:500;padding-top:1px}
+.rdsg-stage-desc{color:var(--t2);line-height:1.4}
+/* Gov domain expand */
+.gov-domain{cursor:pointer;transition:border-color .2s}
+.gov-domain:hover{border-color:rgba(255,255,255,.14)}
+.gov-domain.expanded{border-color:rgba(0,170,255,.25)}
+.gov-domain-chevron{
+  font-size:10px;color:var(--t3);transition:transform .25s;margin-left:auto;flex-shrink:0;
+}
+.gov-domain.expanded .gov-domain-chevron{transform:rotate(180deg)}
+.gov-detail{display:none;margin-top:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:12px;animation:expand-in .2s ease-out}
+.gov-detail.open{display:block}
+.gov-cap-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.gov-cap-item{
+  display:grid;grid-template-columns:20px 1fr;gap:8px;
+  padding:6px 10px;border-radius:7px;background:rgba(0,0,0,.2);align-items:start;
+}
+.gov-cap-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.gov-cap-title{font-size:11px;font-weight:500;color:var(--t1);font-family:var(--f-head);margin-bottom:2px}
+.gov-cap-desc{font-size:10px;color:var(--t3);line-height:1.45}
+.gov-tools-detail{
+  display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;
+  border-top:1px solid rgba(255,255,255,.05);margin-top:4px;
+}
+.gov-tool-chip{
+  font-size:9px;padding:3px 9px;border-radius:12px;font-family:var(--f-mono);
+}
+.gov-phase-row{
+  display:grid;grid-template-columns:60px 1fr;gap:10px;
+  padding:5px 10px;background:rgba(0,0,0,.15);border-radius:6px;margin-top:4px;font-size:10px;
+}
+.gov-phase-lbl{color:var(--t3);font-size:9px;padding-top:1px}
+
+/* ── ANIMATIONS ── */
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+@keyframes progress-in{from{width:0}}
+
+/* ── BOTTOM STATUS BAR ── */
+#statusbar{
+  height:28px;background:var(--s1);border-top:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;padding:0 24px;gap:24px;font-size:10px;color:var(--t3);flex-shrink:0;
+}
+.sb-item{display:flex;align-items:center;gap:5px}
+.sb-dot{width:5px;height:5px;border-radius:50%}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="hdr">
+  <div class="logo">
+    <div class="logo-mark">BX</div>
+    <div>
+      <div class="logo-text">Baxter Healthcare</div>
+      <div class="logo-sub">R&amp;D Trusted Intelligence Platform</div>
+    </div>
+  </div>
+  <div class="hdr-div"></div>
+  <nav id="tabs">
+    <div class="tab active" onclick="showTab('journey')">End-to-End Journey</div>
+    <div class="tab" onclick="showTab('arch')">Architecture Layers</div>
+    <div class="tab" onclick="showTab('gov')">Governance Domains</div>
+    <div class="tab" onclick="showTab('hitl')">Human Oversight</div>
+  </nav>
+  <div class="hdr-right">
+    <div class="sys-status"><div class="status-dot"></div>All systems operational</div>
+    <div class="mtbh-badge">MTBH Avg: 97.6%</div>
+  </div>
+</header>
+
+<!-- SREG BANNER -->
+<div class="sreg-banner">
+  <span style="color:var(--accent);font-family:var(--f-head);font-weight:600;font-size:10px;letter-spacing:.5px;text-transform:uppercase">AI4RE SREG</span>
+  <span>Live requirement feeds:</span>
+  <div class="sreg-source"><div class="sreg-dot" style="background:#A78BFA"></div><span style="color:var(--t2)">Marketing</span></div>
+  <span class="sreg-arrow">→</span>
+  <div class="sreg-source"><div class="sreg-dot" style="background:var(--teal)"></div><span style="color:var(--t2)">Operations CI</span></div>
+  <span class="sreg-arrow">→</span>
+  <div class="sreg-source"><div class="sreg-dot" style="background:var(--gold)"></div><span style="color:var(--t2)">Compliance</span></div>
+  <span class="sreg-arrow">→</span>
+  <span>47 requirements formalized this cycle · 124 LKIF obligations active · SHACL shapes: 89</span>
+  <div style="margin-left:auto;display:flex;gap:8px;font-family:var(--f-mono)">
+    <span style="color:var(--green)">RDSG v2.0</span>
+    <span>·</span>
+    <span style="color:var(--violet)">Wymore M</span>
+    <span>·</span>
+    <span style="color:var(--accent)">Holonic L4</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main id="main">
+
+<!-- ═══════════════════ JOURNEY VIEW ═══════════════════ -->
+<div id="view-journey" class="view active">
+  <div id="journey-svg-wrap">
+    <svg id="journey-svg" viewBox="0 0 1240 210" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <!-- glow filter for thread -->
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow2" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="6" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Digital thread — wide glow base -->
+      <path id="thread-path" d="M90,105 C150,105 150,105 195,105 C240,105 240,105 345,105 C450,105 450,105 495,105 C540,105 540,105 645,105 C750,105 750,105 795,105 C840,105 840,105 945,105 C1050,105 1050,105 1095,105 C1140,105 1140,105 1155,105"
+        fill="none" stroke="rgba(0,212,255,.12)" stroke-width="20"/>
+      <!-- thread core -->
+      <path d="M90,105 C150,105 150,105 195,105 C240,105 240,105 345,105 C450,105 450,105 495,105 C540,105 540,105 645,105 C750,105 750,105 795,105 C840,105 840,105 945,105 C1050,105 1050,105 1095,105 C1140,105 1140,105 1155,105"
+        fill="none" stroke="rgba(0,212,255,.35)" stroke-width="1.5"/>
+      <!-- flowing particles layer 1 -->
+      <path class="thread-particles" d="M90,105 C150,105 150,105 195,105 C240,105 240,105 345,105 C450,105 450,105 495,105 C540,105 540,105 645,105 C750,105 750,105 795,105 C840,105 840,105 945,105 C1050,105 1050,105 1095,105 C1140,105 1140,105 1155,105"
+        fill="none" stroke="var(--thread)" stroke-width="2.5" filter="url(#glow)"/>
+      <!-- flowing particles layer 2 offset -->
+      <path class="thread-particles2" d="M90,105 C150,105 150,105 195,105 C240,105 240,105 345,105 C450,105 450,105 495,105 C540,105 540,105 645,105 C750,105 750,105 795,105 C840,105 840,105 945,105 C1050,105 1050,105 1095,105 C1140,105 1140,105 1155,105"
+        fill="none" stroke="rgba(0,212,255,.6)" stroke-width="1.5"/>
+
+      <!-- STAGE NODES — rendered by JS -->
+      <g id="stage-nodes"></g>
+
+      <!-- WYMORE annotation -->
+      <text x="620" y="195" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" fill="rgba(167,139,250,.5)">
+        Wymore M = (X, Y, W, S, Δ, Λ, R) · RDSG v2.0 governance at every layer boundary
+      </text>
+    </svg>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div id="panel">
+    <div id="panel-empty">
+      <div class="empty-icon">◎</div>
+      <div style="font-family:var(--f-head);font-size:14px;color:var(--t3)">Select a stage to view governance dashboard</div>
+      <div style="font-size:11px;color:var(--t3);opacity:.6">7 stages · 6 governance checkpoints · 1 connected digital thread</div>
+    </div>
+    <div id="panel-content">
+      <div id="panel-header">
+        <div class="panel-stage-icon" id="p-icon"></div>
+        <div class="panel-stage-info">
+          <div class="panel-stage-title" id="p-title"></div>
+          <div class="panel-stage-sub" id="p-sub"></div>
+        </div>
+        <button class="panel-close" onclick="closePanel()">✕</button>
+      </div>
+      <div id="panel-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ ARCHITECTURE VIEW ═══════════════════ -->
+<div id="view-arch" class="view">
+  <div id="arch-view">
+    <div class="arch-title">7-Layer Holonic Architecture · FABRIC Platform · Wymore System Model M</div>
+    <div class="arch-govband">
+      <div class="arch-govband-label">⟵ Four-Domain Governance</div>
+      <span>Data · Semantic · Analytics · AI/MTBH — ambient property across all layers, enforced at every layer boundary by the RDSG v2.0 gateway holon</span>
+    </div>
+    <div class="arch-stack" id="arch-stack"></div>
+    <div class="arch-govband" style="margin-top:8px">
+      <div class="arch-govband-label">SREG Feed</div>
+      <span>Marketing requirements → AI4RE → LKIF deontic norms → SHACL shapes → PEP enforcement at Layer 3 · continuous governance loop</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ GOVERNANCE VIEW ═══════════════════ -->
+<div id="view-gov" class="view">
+  <div id="gov-view"></div>
+</div>
+
+<!-- ═══════════════════ HITL VIEW ═══════════════════ -->
+<div id="view-hitl" class="view">
+  <div id="hitl-view">
+    <div class="hitl-timeline">
+      <div class="hitl-tl-title">Human-in-the-Loop governance checkpoints across the R&amp;D digital thread</div>
+      <div style="display:grid;grid-template-columns:24px 3fr 2fr 1fr 1fr;gap:12px;padding:0 10px 8px;font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:4px">
+        <div></div><div>Action &amp; governance trigger</div><div>Authorized by</div><div>Status</div><div style="text-align:right">Avg time</div>
+      </div>
+      <div class="hitl-points" id="hitl-points"></div>
+    </div>
+    <div class="hf-card">
+      <div class="hf-title">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="4" r="2.5" stroke="var(--gold)" stroke-width="1.2"/><path d="M2 12c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="var(--gold)" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Team cognitive state
+      </div>
+      <div id="hf-engineers"></div>
+    </div>
+    <div class="hf-card">
+      <div class="hf-title" style="color:var(--accent)">
+        Trust calibration — accuracy vs. acceptance
+      </div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:10px">How well engineers' trust matches actual AI accuracy by confidence bucket</div>
+      <div class="trust-grid" id="trust-grid"></div>
+      <div style="font-size:9px;color:var(--t3);margin-top:8px;text-align:center">Green = well-calibrated · Amber = slight over-trust · Red = significant mis-calibration</div>
+    </div>
+    <div class="hf-card" style="grid-column:span 2">
+      <div class="hf-title" style="color:var(--green)">Automation paradox defense — system reliability over time</div>
+      <div id="paradox-chart"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <div class="sb-item"><div class="sb-dot" style="background:var(--green)"></div>Knowledge Graph: 847M triples · SHACL 99.4%</div>
+  <div class="sb-item"><div class="sb-dot" style="background:var(--accent)"></div>AAS Registry: 2,847 shells · 14 sites</div>
+  <div class="sb-item"><div class="sb-dot" style="background:var(--violet)"></div>LangGraph Agents: 6 active · MTBH avg 97.6%</div>
+  <div class="sb-item"><div class="sb-dot" style="background:var(--gold)"></div>HITL Queue: 3 pending · avg response 2.1h</div>
+  <div style="margin-left:auto;font-family:var(--f-mono);font-size:9px;color:var(--t3)">Holonic Semantic Architecture v2.0 · TVE Group · May 2026</div>
+</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────
+const STAGES = [
+  {
+    id:'req', label:'Requirements', sub:'AI4RE SREG', x:90, color:'#A78BFA', bg:'rgba(167,139,250,.15)',
+    hitl:true, icon:'◎',
+    title:'AI4RE Semantic Requirements Engineering Gateway',
+    description:'Formalizing inputs from Marketing, Operations & Compliance into SHACL constraints, LKIF deontic norms, and RDSG Requirement Context Bundles',
+    metrics:[
+      {label:'Requirements Formalized',value:'47',unit:'this cycle',pct:78,color:'#A78BFA'},
+      {label:'LKIF Obligations Active',value:'124',unit:'across all domains',pct:85,color:'#A78BFA'},
+      {label:'SHACL Shapes Deployed',value:'89',unit:'constraint library',pct:72,color:'#A78BFA'},
+      {label:'ORSD Coverage',value:'94%',unit:'of critical concepts',pct:94,color:'#00E08A'},
+    ],
+    tools:['AI4RE','VocBench 3','Stardog','Neonto Editor','OPA Engine','LKIF/OWL 2'],
+    hitlText:'Ontology Governance Committee bi-weekly review of all new LKIF obligations and SHACL constraints. Architecture Board holds tie-breaking authority. Maximum 2-cycle review window before escalation.',
+    wymore:{X:'Marketing, Ops, Compliance inputs',Y:'SHACL shapes, LKIF norms, ORSD artifacts',W:'Governance DNA state',S:'Structured requirement intake events',D:'AI4RE classification + formalization','Λ':'Deployed governance artifacts',R:'100% requirements traced to formal artifact'},
+  },
+  {
+    id:'proj', label:'R&D Projects', sub:'Intelligence Platform', x:267, color:'#3B82F6', bg:'rgba(59,130,246,.15)',
+    hitl:false, icon:'◈',
+    title:'R&D Intelligence Platform',
+    description:'Cross-BL formulation knowledge synthesis, failed experiment mining, patent landscape analysis, and prior art surfacing across all Baxter research programs',
+    metrics:[
+      {label:'Cross-BL Query Time',value:'4.2',unit:'min (target: <5 min)',pct:84,color:'#3B82F6'},
+      {label:'Failed Experiments Surfaced',value:'2,847',unit:'indexed in Knowledge Graph',pct:91,color:'#3B82F6'},
+      {label:'ELN Harmonization',value:'87%',unit:'coverage across BLs',pct:87,color:'#3B82F6'},
+      {label:'MTBH — Formulation AI',value:'98.2%',unit:'circuit breaker nominal',pct:98,color:'#00E08A'},
+    ],
+    tools:['LangGraph Agents','Stardog KG','vLLM (BioMedLM)','FAISS Search','Apache Superset','dbt Semantic Layer'],
+    hitlText:'R&D Director reviews formulation strategy recommendations generated by AI agents. Competitive intelligence sign-off required before new program initiation. All AI-generated prior art summaries reviewed by IP counsel.',
+    wymore:{X:'Research queries, formulation objectives',Y:'Formulation insights, program recommendations',W:'Knowledge Graph state (847M triples)',S:'Scientist query events, ELN data feeds',D:'SPARQL + RAG traversal','Λ':'R&D Intelligence Platform outputs',R:'Query time <5 min, MTBH >95%'},
+  },
+  {
+    id:'exp', label:'Experiments', sub:'Lab Execution Engine', x:445, color:'#06B6D4', bg:'rgba(6,182,212,.15)',
+    hitl:true, icon:'⬡',
+    title:'Lab Execution & Emergent Capability Engine',
+    description:'AI-governed lab automation with RDSG-controlled emergent behavior propagation. SHACL constraints enforce GxP boundaries; novel protocols validated before propagation across lab network',
+    metrics:[
+      {label:'Active SHACL Constraints',value:'156',unit:'R&D domain',pct:90,color:'#06B6D4'},
+      {label:'Equipment Qualified',value:'34/36',unit:'IQ/OQ/PQ current',pct:94,color:'#00E08A'},
+      {label:'Emergent Behaviors Detected',value:'3',unit:'this cycle — 2 validated, 1 pending',pct:67,color:'#FFB347'},
+      {label:'MTBH — Lab AI',value:'97.1%',unit:'circuit breaker nominal',pct:97,color:'#00E08A'},
+    ],
+    tools:['Siemens IOX + MindSphere','AAS Registry','OPC-UA Adapters','MTBH Circuit Breaker','Mendix HITL','Siemens Industrial Edge'],
+    hitlText:'Protocol validation HITL gate: R&D scientists must review and approve any AI-proposed parameter change flagged by SHACL. Emergent behavior approval panel: new best practices reviewed by lab manager before propagation to Knowledge Graph. STPA UCA boundary: robot actions near humans require explicit safety sign-off.',
+    wymore:{X:'Sensor telemetry, lab commands, OPC-UA streams',Y:'Validated lab protocols, audit records',W:'Equipment states, current parameter space',S:'OPC-UA signal streams, RDF event proposals',D:'PEP SHACL + SWRL enforcement','Λ':'Compiled AI Directives, updated Knowledge Graph',R:'100% transitions satisfy SHACL; STPA UCA coverage'},
+  },
+  {
+    id:'trial', label:'Clinical Trials', sub:'Material Management', x:623, color:'#10B981', bg:'rgba(16,185,129,.15)',
+    hitl:true, icon:'◇',
+    title:'Clinical Trial Material Management & CDISC Governance',
+    description:'End-to-end IMP chain-of-custody from release authorization through site dispensing, biological sample management, and bioanalytical data return with full CDISC SEND/SDTM traceability',
+    metrics:[
+      {label:'IMP Chain-of-Custody',value:'100%',unit:'all programs',pct:100,color:'#10B981'},
+      {label:'Protocol Deviations',value:'2',unit:'detected & resolved this cycle',pct:50,color:'#FFB347'},
+      {label:'CDISC Compliance',value:'99.1%',unit:'SEND/SDTM alignment',pct:99,color:'#00E08A'},
+      {label:'CRO Data Quality',value:'94.3%',unit:'DQS score across CROs',pct:94,color:'#10B981'},
+    ],
+    tools:['HL7/FHIR Bridge','Kong API Gateway','LangGraph Clinical Agent','AAS ColdChainRecord','CDISC SDTM Ontology','Apache Kafka'],
+    hitlText:'IMP release authorization: Quality Manager HITL gate — SHACL validates CoA, stability data, supplier qualification before release sign-off. Dispensing approval: pharmacist confirms all protocol eligibility checks. Safety signal review: Clinical Medical Officer reviews any deviation flagged by LangGraph Clinical Agent.',
+    wymore:{X:'IMP tracking, CRO feeds, EDC data',Y:'Chain-of-custody records, clinical datasets',W:'IMP states, sample genealogy, trial status',S:'HL7/FHIR messages, cold chain IoT streams',D:'SHACL chain-of-custody + SWRL protocol rules','Λ':'CDISC-aligned clinical data packages',R:'100% CoC completeness; 0 expired IMPs dispensed'},
+  },
+  {
+    id:'fda', label:'FDA Submissions', sub:'Regulatory Intelligence', x:801, color:'#F59E0B', bg:'rgba(245,158,11,.15)',
+    hitl:true, icon:'◉',
+    title:'Regulatory Intelligence Hub & eCTD Submission Governance',
+    description:'CMC traceability from development batch to regulatory submission, with AI-assisted eCTD section population, real-time FDA/EMA regulatory change monitoring, and impact analysis across Baxter\'s product portfolio',
+    metrics:[
+      {label:'CMC Traceability',value:'96.8%',unit:'dev batch to submission',pct:97,color:'#F59E0B'},
+      {label:'eCTD Sections Auto-Populated',value:'67%',unit:'via LangGraph Evidence Agent',pct:67,color:'#F59E0B'},
+      {label:'Regulatory Change Impacts',value:'3',unit:'detected, under review',pct:40,color:'#FFB347'},
+      {label:'Submission Readiness',value:'88/100',unit:'composite score',pct:88,color:'#00E08A'},
+    ],
+    tools:['Veeva Vault RIM','LangGraph Regulatory Agent','SPARQL Federated Endpoint','Regulatory Intelligence Hub','NCI Thesaurus','SPL/eCTD Ontology'],
+    hitlText:'Submission review gate: Regulatory Affairs Director approves all AI-generated eCTD sections before filing. Regulatory change impact: Legal and Regulatory sign-off required when FDA/EMA guidance changes affect active submissions. FDA AI/ML guidance: HITL mandatory for all AI-assisted SaMD-adjacent recommendations.',
+    wymore:{X:'Regulatory guidance, dossier requirements',Y:'eCTD submissions, CMC traceability packages',W:'Regulatory dossier state, specification versions',S:'FDA/EMA change feeds, CMC data events',D:'SPARQL CMC traceability queries + SWRL rules','Λ':'Regulatory Intelligence Hub outputs',R:'CMC traceability >95%; zero untraced submissions'},
+  },
+  {
+    id:'transfer', label:'Tech Transfer', sub:'Manufacturing Scale-Up', x:979, color:'#8B5CF6', bg:'rgba(139,92,246,.15)',
+    hitl:true, icon:'⬢',
+    title:'Semantic Tech Transfer Engine',
+    description:'AAS-governed digital thread from R&D parameters to manufacturing BOP and SAP BOM. SWRL rules automate R&D→manufacturing parameter mapping; AAS semantic normalization enables site-agnostic scale-up across any Siemens-connected facility',
+    metrics:[
+      {label:'Transfer Cycle Time',value:'3.2',unit:'weeks (target: <4 weeks)',pct:80,color:'#8B5CF6'},
+      {label:'BOP Generation Success',value:'100%',unit:'automated via SWRL',pct:100,color:'#00E08A'},
+      {label:'Site Match Confidence',value:'97.4%',unit:'AAS semantic normalization',pct:97,color:'#00E08A'},
+      {label:'SWRL Parameter Mappings',value:'142',unit:'active rules',pct:85,color:'#8B5CF6'},
+    ],
+    tools:['Siemens Teamcenter PLM','SAP S/4HANA','SWRL Rules Engine','AAS Registry','Siemens Mendix','OPC-UA Companion Specs'],
+    hitlText:'Manufacturing parameter validation: Process Engineer reviews SWRL-generated parameter mappings before BOP is pushed to Teamcenter. Scale-up risk approval: Site QA Director authorizes transfer to any new facility. Future-site provisioning: AAS shells created before commissioning; requires Architecture Board sign-off.',
+    wymore:{X:'R&D process parameters, site capabilities',Y:'Manufacturing BOP, SAP BOM, Teamcenter records',W:'Transfer state, AAS shell population',S:'Tech transfer initiation events, AAS sync',D:'SWRL scale-up parameter mapping rules','Λ':'Harmonized BOP + BOM + PLM update packages',R:'BOP accuracy 100%; cycle time <4 weeks'},
+  },
+  {
+    id:'sc', label:'Supply Chain', sub:'Operations Intelligence', x:1157, color:'#22C55E', bg:'rgba(34,197,94,.15)',
+    hitl:false, icon:'◯',
+    title:'Supply Chain Risk Observatory & Operations Intelligence',
+    description:'Multi-tier supplier visibility with real-time qualification status, concentration risk analysis, lead time intelligence, and CMO performance governance across all Baxter business lines',
+    metrics:[
+      {label:'Tier 1 Supplier Qualification',value:'94%',unit:'currently qualified',pct:94,color:'#22C55E'},
+      {label:'Concentration Risk Alerts',value:'1',unit:'active — single-source API',pct:20,color:'#FF4A6E'},
+      {label:'Lead Time Accuracy',value:'96.2%',unit:'forecast vs. actual',pct:96,color:'#22C55E'},
+      {label:'CMO Performance Score',value:'88/100',unit:'composite governance score',pct:88,color:'#22C55E'},
+    ],
+    tools:['Apache Superset','dbt Semantic Layer','LangGraph SC Agent','Supply Chain Graph','AAS SupplierRecord','Great Expectations'],
+    hitlText:'Supplier deviation escalation: Procurement Director reviews when supplier DQS falls below threshold or qualification window expires. Single-source risk approval: Supply Chain VP must approve any critical API without an alternate supplier. CMO performance review: quarterly governance board with Quality and Procurement representatives.',
+    wymore:{X:'Supplier data, logistics events, CMO feeds',Y:'Supply chain intelligence dashboards, risk alerts',W:'Supplier qualification states, lead time models',S:'Material receipt events, supplier API feeds',D:'SPARQL risk queries + SWRL qualification rules','Λ':'Supply Chain Observatory outputs, escalations',R:'94%+ supplier qualification; 0 unqualified critical API usage'},
+  },
+];
+
+const ARCH_LAYERS = [
+  {
+    num:'L7',name:'Enterprise Ecosystem',sub:'Consumers — SAP, Teamcenter, Veeva, Regulatory Intelligence, Quality & Compliance Command Center',
+    color:'#0066CC',tools:['SAP S/4HANA','Teamcenter PLM','Veeva Vault','R&D Intelligence','QC Release','Regulatory Hub','Supply Chain Obs.','Quality Command'],
+    role:'L7 is Y (output space) in Wymore M — all value delivered to enterprise systems and human consumers',
+    wymore:'Y (output space): finished data packages — BOPs pushed to Teamcenter, BOMs to SAP, dossier-ready CMC packages to Veeva, intelligence dashboards to scientists and executives. Every output carries provenance back to Layer 4.',
+    components:[
+      {name:'SAP S/4HANA',type:'ootb',typeLabel:'OOTB ERP',purpose:'Authority for BOM, cost centers, production orders, supplier master, inventory across all business lines. Receives manufacturing BOMs from tech transfer.',integration:'NiFi BAPI/RFC read-only Ph1–2; FABRIC FCID write-back Ph3 via Mendix'},
+      {name:'Siemens Teamcenter PLM',type:'siemens',typeLabel:'Siemens',purpose:'DHF, ECO/ECR, multi-level BOM, engineering change management. Primary destination for unified Bill of Process (BOP) generated by tech transfer SWRL rules.',integration:'AAS submodels read from Teamcenter; Mendix pushes harmonized BOP on tech transfer completion'},
+      {name:'Veeva Vault QMS/RIM',type:'ootb',typeLabel:'OOTB',purpose:'CAPA, deviations, change control, SOPs, regulatory submissions, labeling. Authority for all regulated document content.',integration:'Read-only via REST API; Regulatory Intelligence Hub surfaces Veeva data in unified semantic context'},
+      {name:'R&D Intelligence Platform',type:'custom',typeLabel:'FABRIC App',purpose:'Cross-BL formulation query, failed experiment mining (2,847 records), patent landscape, ELN harmonization view, prior art synthesis for new programs.',integration:'Composes L5 KG + L6 LangGraph agents + L4 Iceberg. Query time <5 min target.'},
+      {name:'Batch Intelligence & QC Release',type:'custom',typeLabel:'FABRIC App',purpose:'Real-time batch status, LIMS–MES semantic linkage, QC release decision support with SHACL-validated analytical result linkage, batch genealogy visualization.',integration:'21 CFR Part 11 e-signature workflow via Mendix; HITL gate for QC Director sign-off'},
+      {name:'Regulatory Intelligence Hub',type:'custom',typeLabel:'FABRIC App',purpose:'CMC traceability from development batch to regulatory submission. eCTD section population (67% automated). FDA/EMA regulatory change monitoring and impact analysis.',integration:'LangGraph Regulatory Evidence Agent + Veeva Vault RIM + SPARQL federated endpoint'},
+      {name:'Supply Chain Risk Observatory',type:'custom',typeLabel:'FABRIC App',purpose:'Multi-tier supplier visibility, real-time qualification status, concentration risk alerts, lead time intelligence, CMO performance scoring.',integration:'Supply Chain Named Graph + SWRL qualification rules + Great Expectations DQS'},
+      {name:'Quality & Compliance Command Center',type:'custom',typeLabel:'FABRIC App',purpose:'Integrated CAPA status, deviation trending, audit readiness scoring, predictive quality risk model, cross-BL quality KPI benchmarking.',integration:'SHACL compliance data + L4 dbt metrics + Grafana operational dashboards'},
+    ],
+  },
+  {
+    num:'L6',name:'Holon Orchestration & UI',sub:'Siemens Mendix — HITL workflows, role-based dashboards, human performance monitoring, AI4RE SREG front-end',
+    color:'#0070C0',tools:['Siemens Mendix','HITL Pane','SHACL Viewer','Ontology Explorer','Human Perf. Monitor','AI4RE Dashboard','Wymore State Dash','Clinical Mat. Tracker'],
+    role:'Human-AI Teaming layer — trust calibration, fatigue detection, competency maintenance, HITL authorization all enforced here',
+    wymore:'Λ (output function): user-facing outputs and human governance decisions. The primary mechanism by which Wymore W-state changes become visible to humans and HITL authorizations become formal governance records.',
+    components:[
+      {name:'Siemens Mendix (Platform)',type:'siemens',typeLabel:'Siemens',purpose:'Primary orchestration and UI platform. Native Siemens Xcelerator integration (Teamcenter, Opcenter) critical for manufacturing tech transfer. Multi-experience UI for scientists, lab managers, clinical operators.',integration:'Evaluated: OutSystems, Appian, PowerApps. Mendix selected for Xcelerator integration superiority.'},
+      {name:'Workflow Engine',type:'ootb',typeLabel:'OOTB Mendix',purpose:'Standardizes task routing and multi-step GxP approval processes. Every approval generates a 21 CFR Part 11 compliant electronic signature record with timestamp and justification.',integration:'Triggers from L3 PEP HITL events; routes to appropriate role via ontological RBAC'},
+      {name:'AI Agent Task Widget',type:'ootb',typeLabel:'OOTB Mendix',purpose:'Monitors active status, decision trees, and MTBH scores of all deployed LangGraph AI agents. Displays Circuit Breaker state per agent in real time.',integration:'Reads from MTBH service + MLflow model registry via REST API'},
+      {name:'SHACL Validation Viewer',type:'custom',typeLabel:'Custom React',purpose:'Translates raw SHACL validation reports into traffic-light UI (Green/Yellow/Red). Drill-down to specific constraint violated and affected triple. Primary compliance visibility tool for QC managers.',integration:'Subscribes to Stardog SHACL validation event stream; renders in Mendix Studio Pro custom React widget'},
+      {name:'HITL Intervention Pane',type:'custom',typeLabel:'Custom React',purpose:'Side-by-side comparison of Current State vs. Proposed AI State with highlighted Wymore Δ impacts. Activated by L3 PEP on any blocked state transition. Requires logged justification before override.',integration:'Receives payload from RDSG Simplex Action Gateway; writes approval record to Governance Named Graph'},
+      {name:'Ontology Context Explorer',type:'custom',typeLabel:'Custom React',purpose:'Visual tree-node widget. Scientists explore how a clinical material, formulation component, or lab process connects to supply chain, regulatory, and manufacturing elements across all named graphs.',integration:'Live SPARQL queries against L4 Stardog federated endpoint; renders relationship graph via D3'},
+      {name:'Human Performance Monitor',type:'custom',typeLabel:'Custom',purpose:'Real-time fatigue score, trust calibration status, decision accuracy trend per knowledge engineer. Enforces mandatory breaks (fatigue >0.7). Triggers workload rebalancing.',integration:'Custom Node.js microservice + PostgreSQL performance DB; 7 detection dimensions + 5 intervention types'},
+      {name:'AI4RE Requirements Dashboard',type:'custom',typeLabel:'Custom React',purpose:'Front-end for the SREG. Live requirements traceability matrix from Marketing/Ops/Compliance sources to SHACL/LKIF artifacts. Enables requirement owners to review and approve ORSD change requests.',integration:'Reads from SREG processing pipeline + VocBench 3 governance workflow API'},
+      {name:'Clinical Trial Material Tracker',type:'custom',typeLabel:'Custom React',purpose:'Chain-of-custody, sample genealogy, protocol deviation management for investigational products. Integrates HL7/FHIR clinical feeds. Cold-chain temperature excursion alerts in real time.',integration:'Subscribes to AAS ColdChainRecord updates via Kafka; HL7/FHIR bridge + Clinical Trials Named Graph'},
+    ],
+  },
+  {
+    num:'L5',name:'Semantic Governance',sub:'The Rulebook — OWL 2 ontology, SHACL 200+ shapes, SWRL temporal rules, LKIF deontic norms, VocBench lifecycle',
+    color:'#2563EB',tools:['Stardog/GraphDB','VocBench 3','Neonto Editor','OWL 2','SHACL 200+','SWRL Rules','LKIF/ORSD','KGCL'],
+    role:'R (performance specifications) in Wymore M — every rule a state transition Δ must satisfy before it completes; the formal governance DNA of the entire holarchy',
+    wymore:'R (performance specifications): the complete set of constraints any state transition must satisfy. Nothing in the system transitions from W to W′ without satisfying the R-specifications encoded here as SHACL shapes and LKIF deontic obligations.',
+    components:[
+      {name:'OWL 2 Domain Ontology',type:'open',typeLabel:'Open Standard',purpose:'Formal knowledge holon identity and semantic class definitions. Extends BFO with IDTA AAS-derived classes. Core pharma classes: PharmaceuticalProduct, ManufacturingBatch, ActivePharmaceuticalIngredient, ClinicalSpecification, RegulatoryDossier.',integration:'VocBench 3 authoring → Git version control → Stardog deployment. Aligned to BFO, FIBO, SysML v2.'},
+      {name:'SHACL Constraint Library',type:'open',typeLabel:'W3C Standard',purpose:'200+ shapes enforcing GxP data integrity. Batch-specification relationships, supplier qualification temporal rules, batch genealogy completeness, regulatory linkage requirements. Violations block graph promotion.',integration:'Neonto Editor authoring; pre-deployment test mandatory; enforced by Stardog SHACL engine at L3 PEP Step 1'},
+      {name:'SWRL Temporal Rules',type:'open',typeLabel:'W3C Standard',purpose:'Semantic Web Rule Language rules for temporal reasoning: specification expiration, supplier qualification windows, stability interval enforcement, retest date calculation, tech transfer parameter mapping (142 active rules).',integration:'Stardog SWRL engine at L3 RDSG Step 2; temporal rules govern which rules apply at what point in time'},
+      {name:'LKIF Deontic Norm Library',type:'open',typeLabel:'Open Standard',purpose:'Legal Knowledge Interchange Format deontic statements. obligation (must), permission (may), prohibition (must not), violation (triggers Circuit Breaker), sanction (governance response). 124 active obligations.',integration:'isSubjectTo OWL relationship links norms to ontology classes; OPA Policy Engine enforces at L3 PEP Step 3'},
+      {name:'ORSD (Ontology Requirements Spec)',type:'custom',typeLabel:'TVE Method',purpose:'Design-time specification of every knowledge holon\'s governance contract. The holonic equivalent of an MBSE system requirements baseline. Every SHACL shape traces to an ORSD.',integration:'Authored in VocBench 3; traced to SREG source requirements (Marketing/Ops/Compliance); Git-versioned'},
+      {name:'KGCL (Knowledge Graph Change Language)',type:'open',typeLabel:'Open Standard',purpose:'Run-time change records: WHAT (change), WHY (rationale), WHO (agent/user ID), WHEN (timestamp). Every change to any semantic asset captured with full provenance chain.',integration:'21 CFR Part 11 audit trail; Stardog event listener generates KGCL on every graph update; queryable in Governance Named Graph'},
+      {name:'VocBench 3 + OntoDB',type:'open',typeLabel:'Open Source',purpose:'Collaborative ontology authoring and governance platform. Peer-review workflow: propose → review → approve → deploy. SHACL pre-deployment test mandatory before any constraint reaches production.',integration:'Git integration for version control; OWL export to Stardog; compared vs. TopBraid EDG (viable alternative)'},
+      {name:'External Ontology Alignments',type:'open',typeLabel:'Standards',purpose:'OWL equivalentClass/sameAs mappings: IDTA/ECLASS 12.0 (manufacturing), SNOMED CT (clinical), NCI Thesaurus (regulatory), MeSH (biomedical), CDISC SDTM/SEND (clinical trials), FIBO (financial compliance).',integration:'owl:imports at Stardog load time; LogMap alignment tool for cross-ontology mapping validation'},
+    ],
+  },
+  {
+    num:'L4',name:'Knowledge Graph + Data Fabric',sub:'Digital Thread — 847M triples, 6 named graphs, federated SPARQL, FAISS semantic search, Apache Iceberg data lakehouse',
+    color:'#0891B2',tools:['Stardog Enterprise','OWL 2 Reasoner','SPARQL 1.1','FAISS + SBERT','R2RML/RML','Apache Atlas','Apache Iceberg','dbt Core','Trino/DuckDB','OpenMetadata'],
+    role:'W (state space) in Wymore M — complete set of valid entity states across the R&D-to-manufacturing digital thread; living, reasoned, temporal model of Baxter\'s operational reality',
+    wymore:'W (state space): 847M triples across 6 named graphs representing the complete, validated, reasoned state of all Baxter R&D entities. Every entity has a typed, governed, versioned identity here. Time-travel via Iceberg snapshots enables point-in-time regulatory queries.',
+    components:[
+      {name:'Stardog Enterprise (Triplestore)',type:'open',typeLabel:'Commercial OSS',purpose:'Production-grade RDF graph DB with OWL 2 RL/EL reasoner. Sub-second SPARQL on 10B+ triple graphs. Native GraphQL interface, integrated ML inference, enterprise RBAC. GraphDB EE is evaluated fallback.',integration:'Federated SPARQL 1.1 endpoint; named graph per source domain; weekly Iceberg snapshots for time-travel analytics'},
+      {name:'Named Graph Architecture (6 domains)',type:'custom',typeLabel:'FABRIC Design',purpose:'R&D Graph (formulation, stability, ELN), Clinical Trials Graph (IMP genealogy, CDISC), Manufacturing Graph (batch, equipment, CPV), Supply Chain Graph (suppliers, materials), Regulatory Graph (dossiers, specs), Governance Graph (SHACL shapes, LKIF norms, KGCL).',integration:'SPARQL SERVICE federation enables cross-graph queries. Named graph provenance: timestamp, version, source system tagged on all triples at ingest.'},
+      {name:'FAISS + SBERT Semantic Search',type:'open',typeLabel:'Open Source',purpose:'Facebook AI Similarity Search index over entity embeddings (SBERT on labels and descriptions). Enables semantic search ("find materials similar to Excipient X") alongside precise SPARQL. Primary RAG retrieval mechanism for LLM Gateway.',integration:'FAISS index rebuilt nightly from Stardog entity export; served via REST by LangGraph agent retrieval step'},
+      {name:'Apache Iceberg (Data Lakehouse)',type:'open',typeLabel:'Open Source',purpose:'ACID-compliant open table format with schema evolution, time-travel, and partition evolution. All FABRIC tabular datasets stored as Iceberg tables. Critical for pharmaceutical time-point comparisons (stability, annual product reviews).',integration:'Runs on S3/Azure ADLS/on-premise MinIO without code changes. Avoids Databricks lock-in. Three tiers: hot (90d), warm (3yr), cold (regulatory archive).'},
+      {name:'dbt Core + Semantic Layer',type:'open',typeLabel:'Open Source',purpose:'Open-source SQL transformation framework. All transformations as dbt models with column-level lineage and built-in testing. dbt Semantic Layer defines all canonical metrics (batch yield, specification compliance rate) as governed, version-controlled metric contracts.',integration:'Self-hosted; CI/CD via Git. Cross-BL joins prohibited in source-layer models — composition only above Knowledge Graph. Metric drift structurally impossible for certified dashboards.'},
+      {name:'R2RML / RML Mapping Pipeline',type:'open',typeLabel:'W3C Standard',purpose:'Ontop-driven schema extraction → RDF triple generation → SHACL validation → Stardog ingest. Brings legacy relational data (LabVantage LIMS, Benchling ELN, SAP operational data) into the holarchy as bottom-up governed holons.',integration:'Auto-generated R2RML mappings version-controlled in Git; runs on each dbt model refresh cycle; SHACL validation blocks ingest on quality failure'},
+      {name:'Apache Atlas + OpenMetadata',type:'open',typeLabel:'Open Source',purpose:'Atlas: automated data lineage from NiFi flow graphs through dbt models to production dashboards. Full provenance: SAP record → NiFi → dbt → Iceberg → SPARQL → dashboard cell. OpenMetadata: unified catalog with business glossary integration.',integration:'Atlas lineage graph queryable via REST API; OpenMetadata connects to Atlas lineage + dbt docs + SHACL definitions via API integration'},
+      {name:'Trino / DuckDB (Query Engines)',type:'open',typeLabel:'Open Source',purpose:'Trino: interactive federated SQL across Iceberg tables spanning multiple storage locations — cross-BL analytical queries without physical data movement. DuckDB: edge analytics at manufacturing sites during network outages (governed Iceberg snapshots synchronized locally).',integration:'Great Expectations suites per domain validate data quality on promotion. DQS <80% on critical dataset blocks Knowledge Graph promotion.'},
+    ],
+  },
+  {
+    num:'L3⭑',name:'PEP & AI Edge — RDSG v2.0 Gateway',sub:'Policy Enforcement Point — six-stage holarchic traversal, MTBH Circuit Breaker, Simplex Action Gateway, STPA/STAMP UCA boundary',
+    color:'#D97706',tools:['RDSG v2.0','MTBH Circuit Breaker','Siemens Industrial Edge','Python SHACL Engine','OPA Policy Engine','STPA/STAMP','Simplex Action Gateway','LangGraph Runtime'],
+    role:'Δ (state transition function) in Wymore M — no state transition completes without passing R-specification checks; the governance is structural not procedural — impossible to bypass',
+    wymore:'Δ (state transition function): every proposed transition from W to W′ is evaluated here against R. The RDSG is not a filter on top of the architecture — it IS the state transition mechanism. Governance cannot be bypassed because governance is the structure.',
+    rdsg:true,
+    rdsgStages:[
+      {label:'Stage 0',desc:'RCB Assembly — Requirement Context Bundle instantiated from AI4RE SREG. Request decomposed into WHO/WHAT/WHEN/WHERE/WHY relevancy dimensions. Appropriate domain holons activated. Context instantiation, not input transformation.'},
+      {label:'Step 1',desc:'SHACL Enforcement — All activated domain holons\' SHACL constraints checked against the proposed state transition payload. 200+ shapes evaluated. Violations flagged with severity. GxP-critical violations halt immediately.'},
+      {label:'Step 2',desc:'SWRL Temporal Rules — Temporal rules applied: stability intervals, supplier qualification windows, specification expiration dates, retest date calculations. Ensures W′ is valid not just structurally but at the current point in time.'},
+      {label:'Step 3',desc:'PEP Compliance — Six PEP domains evaluated: Compliance, Risk, Legal, Security, Data Governance, AI Governance. Each maps to a LKIF deontic norm set. OPA Policy Engine enforces attribute-based access control from ontological role definitions.'},
+      {label:'Step 4',desc:'STPA/STAMP UCA — Unsafe Control Action coverage verified against safety holonic invariants. Irreversible actions detected and suspended at Simplex Action Gateway. No autonomous action on patient-safety decisions — ever.'},
+      {label:'Step 5',desc:'Compiled AI Directive — Governance outputs synthesized into behavioral directive. Agent receives governed context carrying semantic authority of every domain holon traversed — not instructions but constrained operational context.'},
+      {label:'Facade',desc:'Delivery Gate — Agent response validated against AcceptanceCriteria before leaving the holarchy. MTBH score updated (5 dimensions). Audit record committed to Governance Named Graph. Tripped outputs excluded from training data (anti-collapse protocol).'},
+    ],
+    components:[
+      {name:'RDSG v2.0 (Requirements-Driven Semantic Gateway)',type:'custom',typeLabel:'TVE Proprietary',purpose:'Six-stage holarchic traversal protocol governing every AI agent interaction, requirement-driven semantic operation, and cross-domain data exchange. Reframes governance as structural rather than procedural.',integration:'Implemented as Python microservice on Siemens Industrial Edge; integrates Stardog SHACL + OPA + STPA spec + LangGraph runtime'},
+      {name:'MTBH Circuit Breaker (5-Dimensional)',type:'custom',typeLabel:'TVE Proprietary',purpose:'Mean Time Between Hallucinations metric across WHO/WHAT/WHEN/WHERE/WHY dimensions. Automatic model suspension when any dimension falls below use-case-specific threshold. Zero-downtime failover to last stable model. Anti-collapse sanitization layer.',integration:'Telemetry hooks in Ray Serve at inference time; dimensional scores updated continuously; threshold calibrated per use-case risk class (patient safety vs. operational)'},
+      {name:'Siemens Industrial Edge',type:'siemens',typeLabel:'Siemens',purpose:'Edge compute platform hosting Python SHACL validation engine and AI agent runtime at the lab/manufacturing level. Validates proposed RDF event payloads from lab equipment before they reach the Knowledge Graph.',integration:'Deployed at R&D pilot facility and all manufacturing sites; connects to IOX OPC-UA layer below and Stardog above via secure API'},
+      {name:'OPA Policy Engine',type:'open',typeLabel:'Open Source',purpose:'Open Policy Agent enforcing attribute-based access control derived from ontological role definitions. Every cross-system API call validated. PII and sensitive data classification enforcement.',integration:'Policies expressed in Rego; role assignments queried from Stardog agent registry at request time; audit log to Governance Named Graph'},
+      {name:'STPA/STAMP UCA Specification',type:'custom',typeLabel:'TVE/MIT Method',purpose:'Systems Theoretic Process Analysis Unsafe Control Action boundary. Formal safety invariants governing all autonomous actions near physical equipment, patient-safety decisions, and irreversible state changes.',integration:'UCA specs authored in SysML v2/KerML; enforced at RDSG Step 4; Simplex Action Gateway holds irreversible actions for human authorization'},
+    ],
+  },
+  {
+    num:'L2',name:'Digital Twin & Connectivity',sub:'Siemens MindSphere + IOX OPC-UA, AAS Shell Management, HL7/FHIR Bridge, Kafka streaming, Apache NiFi, R2RML',
+    color:'#059669',tools:['Siemens MindSphere','IOX OPC-UA Adapter','AAS SDK (Java/Python)','Apache Kafka + Delta','HL7/FHIR Bridge','Apache NiFi','Kong API Gateway','Airbyte','MuleSoft/Camel'],
+    role:'S (admissible stimulus segments) in Wymore M — raw physical inputs typed as RDF triples conformant with L5 ontology before admission to the holarchy; semantic normalization without system consolidation',
+    wymore:'S (admissible stimulus segments): only stimulus segments that can be typed as RDF triples conformant with the L5 ontology are admitted. This layer defines what physical reality the architecture recognizes — raw sensor values become semantically typed measurements with units, ranges, quality annotations, and provenance.',
+    components:[
+      {name:'Siemens MindSphere / Industrial Operations X (IOX)',type:'siemens',typeLabel:'Siemens',purpose:'Cloud-based IIoT platform providing semantic context for operational data. Maps PLC/SCADA signals to AAS submodel attributes. Transforms raw sensor values into semantically typed measurements. Production-grade OPC-UA adapter eliminates custom protocol development.',integration:'Deployed at R&D pilot facility and all manufacturing sites. OPC-UA companion specs: PDA TR-106 (pharma equipment capability), ISA-88 (equipment phases). Converts custom integration problem into standard configuration.'},
+      {name:'Asset Administration Shell (AAS) Registry',type:'siemens',typeLabel:'Siemens/IDTA',purpose:'IEC 63278 / IDTA standard. Every Baxter asset — equipment, batch, material, supplier, facility — represented as an AAS with unique global identifier and typed submodels. 2,847 shells currently active across 14 sites. Site-agnostic semantic normalization.',integration:'IDTA submodel templates: NameplateV2, TechnicalData, BatchRecord, ColdChainRecord, StabilityProfile, SupplierQualification, RegulatoryDossierLink. JSON-LD serialization for Knowledge Graph ingest.'},
+      {name:'Apache Kafka + Delta Lake',type:'open',typeLabel:'Open Source',purpose:'Distributed event streaming for Historian, SCADA, IoT, and MES events. 30-day retention enables event replay for fault investigation. Delta Lake streaming landing zone (ACID) before promotion to Iceberg governed tables.',integration:'Topic-per-source-domain design. Confluent Schema Registry enforces schema contracts at Kafka topic level. Decouples streaming latency from governance overhead.'},
+      {name:'Apache NiFi',type:'open',typeLabel:'Open Source',purpose:'Visual flow-based data pipeline engine for batch ETL. Native SAP BAPI/RFC support via GetSAPTable processor. Built-in data provenance captures full lineage of every record movement — every NiFi flow graph is a lineage artifact readable by Apache Atlas.',integration:'Batch ETL for ELN, LIMS, SAP R&D objects, Veeva. Idempotent flows — safe for replay from Kafka retention window. Operates in DMZ network segment, no direct production DB connections.'},
+      {name:'HL7/FHIR Bridge',type:'open',typeLabel:'Open Standard',purpose:'HL7 v2 and FHIR R4 message transformation to FABRIC canonical format. For clinical trial product lines: CRO data feeds, trial site EDC systems, bioanalytical lab results. Pharmacovigilance data flows.',integration:'Custom NiFi processor; CDISC SDTM/SEND ontology alignment at ingestion; pseudonymization applied before Clinical Trials Named Graph entry per GDPR'},
+      {name:'Kong API Gateway',type:'open',typeLabel:'Open Source',purpose:'Manages REST and GraphQL API ingestion from third-party sources: CROs, CMOs, suppliers, regulatory data feeds. Rate limiting, mutual TLS authentication, schema validation, comprehensive audit logging for all external data consumers.',integration:'mTLS certificate validation; API schema validated against FABRIC canonical format before admission; Kong plugin for OPA policy enforcement at API boundary'},
+      {name:'Airbyte (Open Source)',type:'open',typeLabel:'Open Source',purpose:'300+ pre-built connectors for SaaS and database sources. Manages change data capture (CDC) for relational source systems. Supplements NiFi for standard vendor connectors — avoids custom connector development for common integration patterns.',integration:'Deployed alongside NiFi. Used for: Benchling ELN, IDBS ELN, LabVantage LIMS standard schemas, and vendor-managed SaaS connectors where custom NiFi processor would be excessive.'},
+    ],
+  },
+  {
+    num:'L1',name:'Physical Holons',sub:'Bioreactors, lab robots, automated pipettes, analytical instruments, clinical materials, environmental sensors, SCADA/DCS',
+    color:'#7C3AED',tools:['Bioreactors (5L–2000L)','Lab Robots (UR10/KUKA)','Automated Pipettes','HPLC / MS / NMR','IMP Cold Chain Storage','Environmental Sensors','SCADA/DCS Systems','Raw Clinical Materials'],
+    role:'X (input space) in Wymore M — physical reality that the holarchy receives, governs, and translates; every asset is an AAS-governed digital twin connected to the semantic layer above',
+    wymore:'X (input space): the physical reality of Baxter\'s R&D, clinical trial, and manufacturing operations. Each physical holon has an AAS digital identity, typed OPC-UA telemetry, and SHACL-governed state boundaries. The physical world enters the architecture only as typed, validated, ontology-conformant data.',
+    components:[
+      {name:'Bioreactors (R&D + Manufacturing)',type:'physical',typeLabel:'Equipment',purpose:'5L–200L R&D scale; 200L–20,000L manufacturing scale. Sartorius, Applikon, Thermo Fisher. AAS semantic normalization makes cross-site, cross-vendor comparison immediate — site-agnostic via ECLASS 12.0 classification.',integration:'OPC-UA → IOX → AAS BatchRecord/ProcessPhaseLog. Tracked: temperature, pH, DO, agitation (RPM), culture volume, process phase state. SHACL constraints enforce validated parameter ranges.'},
+      {name:'Lab Robots & Synthesis Automation',type:'physical',typeLabel:'Equipment',purpose:'Collaborative robots (Universal Robots UR10, KUKA LBR), synthesis automation platforms, colony pickers, plate handlers. Execute AI-proposed emergent protocols after RDSG validation and HITL approval.',integration:'OPC-UA/MQTT → IOX → RDF ProtocolExecutionLog. STPA UCA boundary: robot must halt if human enters safety zone. Simplex Action Gateway holds new protocol publication pending HITL sign-off.'},
+      {name:'Automated Pipettes & Liquid Handlers',type:'physical',typeLabel:'Equipment',purpose:'Hamilton Nimbus, Tecan EVO, Biomek i7. Dispensing accuracy tracked per tip lot per session. Instrument API converts dispensing records to AAS LiquidTransferRecord submodels.',integration:'Instrument API → NiFi → AAS LiquidTransferRecord. SHACL: dispensed volume within ±0.5% of target; tip lot must have traceability record. Deviation triggers HITL alert.'},
+      {name:'Analytical Instruments (HPLC/MS/NMR)',type:'physical',typeLabel:'Equipment',purpose:'Waters EMPOWER HPLC, Agilent MS, Bruker NMR. Analytical results are the primary evidence base for specification compliance, batch release, and regulatory submissions. Instrument qualification status tracked in AAS.',integration:'LIMS API → NiFi → AAS AnalyticalMethodRecord + CalibrationRecord. SHACL: instrument must have valid qualification status; method must be approved version before results admitted to KG.'},
+      {name:'Investigational Medicinal Products (IMPs)',type:'physical',typeLabel:'Clinical Material',purpose:'IMP lots, reference standards, biological samples, placebos, cold-chain materials. Each lot has an AAS ColdChainRecord and ChainOfCustodyRecord from manufacturing release through site dispensing.',integration:'Barcode scan at goods receipt → AAS shell creation; cold chain IoT sensors → Kafka → SHACL: storageTemp must be within protocol limits. LKIF prohibition: expired IMP must never be dispensed.'},
+      {name:'Environmental Control & Monitoring',type:'physical',typeLabel:'Equipment',purpose:'HVAC controllers, particulate monitors, pressure differential sensors, temperature/humidity sensors. Cleanroom classification maintenance monitored continuously. Alert threshold enforcement via SHACL.',integration:'MODBUS/OPC-UA → IOX → AAS EnvironmentalMonitoringRecord. LKIF obligation: alert must be generated within 15 minutes of limit exceedance. Deviation automatically routes to QA dashboard via Mendix.'},
+      {name:'SCADA/DCS Systems',type:'physical',typeLabel:'Equipment',purpose:'Supervisory control and data acquisition across manufacturing facilities. Real-time process control data surfaced via OPC-UA adapters through Siemens IOX — no custom PLC integration required.',integration:'IOX OPC-UA adapter converts entire manufacturing floor data collection from custom integration problem into standard configuration exercise. Tagged data maps to AAS submodel properties via ECLASS 12.0.'},
+    ],
+  },
+];
+
+const GOV_DOMAINS = [
+  {
+    title:'Data Governance',sub:'OpenMetadata · Atlas · Great Expectations · OPA · SAP MDM',
+    icon:'◉',color:'#0070C0',
+    kpis:[{v:'95%',l:'Catalog coverage target'},{v:'92.4%',l:'R&D DQS score'},{v:'100%',l:'Lineage (target Ph3)'},{v:'<5d',l:'Steward response SLA'}],
+    bars:[{l:'Catalog coverage',v:71,c:'#3B82F6'},{l:'Data Quality Score — R&D',v:92,c:'#00E08A'},{l:'PII classification coverage',v:88,c:'#3B82F6'},{l:'Lineage completeness',v:65,c:'#06B6D4'}],
+    capabilities:[
+      {title:'Unified Data Catalog',desc:'All R&D datasets (ELN, LIMS, stability, clinical) catalogued in OpenMetadata with automated discovery, schema profiling, and business glossary linkage. Target: 95% by Phase 2.'},
+      {title:'End-to-End Automated Lineage',desc:'Apache Atlas captures full provenance: from SAP material master through NiFi extraction, dbt transformation, Iceberg storage, SPARQL query, to analyst dashboard cell. 100% target by Phase 3.'},
+      {title:'Data Quality Scoring (DQS)',desc:'Great Expectations suites per domain. DQS below threshold blocks Knowledge Graph promotion — prevents garbage-in at the semantic layer. R&D domain target: >92%. DQS exposed in OpenMetadata and dashboard watermarks.'},
+      {title:'Master Data Management',desc:'SAP MDM governs product, supplier, facility, and organizational master data as single authoritative records across all business lines. FABRIC Canonical Identifiers (FCIDs) maintain cross-system traceability.'},
+      {title:'PII & Sensitive Data Classification',desc:'OPA Policy Engine enforces attribute-based access control. Clinical trial subject data pseudonymized at Layer 2 before Knowledge Graph entry. Ontological role definitions drive access — no manual permission matrices.'},
+      {title:'Data Stewardship Program',desc:'Designated data stewards per domain with defined accountability metrics and escalation paths. R&D, Clinical, Manufacturing, and Supply Chain stewards. Response time SLA: <5 business days.'},
+      {title:'Retention, Archival & Purge Automation',desc:'Three storage tiers: hot (90 days, Trino-optimized), warm (3 years, Iceberg partitioned), cold (regulatory archive). 21 CFR Part 11, EU GDPR, and Baxter corporate data policy compliant.'},
+    ],
+    toolsDetail:['OpenMetadata (catalog + glossary)','Apache Atlas (lineage automation)','Great Expectations (DQS)','OPA Policy Engine','SAP MDM','Apache Iceberg (time-travel)','dbt Core CI gates','FABRIC Canonical Identifiers'],
+    phases:[
+      {ph:'Phase 1',target:'40% catalog coverage · DQS >90% R&D domain · Atlas lineage for all R&D NiFi flows · Data stewards designated'},
+      {ph:'Phase 2',target:'75% coverage · DQS >92% all domains · Full lineage for all production reports · MDM cross-BL coverage 80%'},
+      {ph:'Phase 3',target:'95% coverage · 100% lineage completeness · Predictive DQS monitoring · Self-service data quality toolkit'},
+    ],
+  },
+  {
+    title:'Semantic Governance',sub:'VocBench 3 · Protégé · OntoDB · SHACL Validator · Git',
+    icon:'◈',color:'#A78BFA',
+    kpis:[{v:'200+',l:'SHACL shapes active'},{v:'85%',l:'Ontology coverage (Ph3)'},{v:'100%',l:'Apps using governed terms'},{v:'2 cyc',l:'Max term review window'}],
+    bars:[{l:'SHACL compliance rate',v:99.4,c:'#00E08A'},{l:'Ontology coverage',v:72,c:'#A78BFA'},{l:'External alignment (ECLASS/CDISC)',v:81,c:'#A78BFA'},{l:'Change protocol adherence',v:96,c:'#A78BFA'}],
+    capabilities:[
+      {title:'Centralized Ontology Registry',desc:'Git-backed versioning in VocBench 3. Every OWL class, property, and axiom tracked from ORSD creation through deprecation. Deprecation-without-deletion: owl:deprecated annotation + tombstone timestamp preserves historical queryability.'},
+      {title:'Formal Term Lifecycle',desc:'Governance workflow: proposed → under Ontology Committee review → approved → stable → deprecated (with sunset timeline). Term disputes may not exceed 2 bi-weekly meeting cycles before Architecture Board escalation.'},
+      {title:'SHACL Constraint Library (200+ shapes)',desc:'Cross-domain data integrity invariants enforced at every layer boundary. Pre-deployment SHACL testing mandatory. Shapes cover: product-batch relationships, specification version constraints, supplier qualification temporal rules, batch genealogy completeness.'},
+      {title:'External Ontology Alignment',desc:'OWL equivalentClass/sameAs mappings: IDTA/ECLASS 12.0 (manufacturing), SNOMED CT (clinical), NCI Thesaurus (regulatory), MeSH (biomedical), CDISC SDTM/SEND (clinical trials), FIBO (financial compliance).'},
+      {title:'Ontology Change Impact Analysis',desc:'Automated SPARQL query identifies all downstream artifacts affected by any proposed ontology change before deployment. SHACL shapes, SWRL rules, SPARQL queries, and dashboards all surfaced before change is approved.'},
+      {title:'Ontology Governance Committee',desc:'Cross-functional bi-weekly review body: R&D, Clinical, Manufacturing, Quality, Regulatory, Legal represented. AI4RE SREG outputs reviewed at each meeting. Architecture Board holds tie-breaking authority.'},
+      {title:'LKIF Deontic Norm Library',desc:'124 active obligations. Every governance rule expressed as lkif:obligation, lkif:permission, or lkif:prohibition — formally reasoned and machine-enforceable via the PEP at Layer 3. SOX, GxP, 21 CFR Part 11, EU AI Act all encoded.'},
+    ],
+    toolsDetail:['VocBench 3 (authoring + governance)','Protégé (development)','OntoDB','SHACL Validator (Stardog native)','Git (ontology version control)','Neonto Editor (SHACL/SWRL authoring)','LogMap (alignment tool)','ROBOT (ontology CI/CD)'],
+    phases:[
+      {ph:'Phase 1',target:'Seed ontology from IDTA/ECLASS · 50+ SHACL shapes · R&D domain coverage 30% · Ontology Committee chartered'},
+      {ph:'Phase 2',target:'Manufacturing + Supply Chain extensions · 200+ shapes · External alignments: ECLASS, CDISC, NCI · Coverage 65%'},
+      {ph:'Phase 3',target:'SHACL compliance >99.5% · Coverage 85% · Self-service extension toolkit · Full LKIF norm library'},
+    ],
+  },
+  {
+    title:'Analytics Governance',sub:'MLflow · dbt Semantic Layer · Superset RBAC · Great Expectations',
+    icon:'◇',color:'#06B6D4',
+    kpis:[{v:'100%',l:'Certified dashboards: dbt SL'},{v:'<10d',l:'Model promotion cycle time'},{v:'85%',l:'Certification rate (Ph3)'},{v:'0',l:'Metric drift incidents'}],
+    bars:[{l:'Certified dashboard coverage',v:73,c:'#06B6D4'},{l:'Model registry completeness',v:89,c:'#06B6D4'},{l:'Audit log coverage',v:97,c:'#00E08A'},{l:'RBAC via ontology roles',v:91,c:'#06B6D4'}],
+    capabilities:[
+      {title:'ML Experiment Registry',desc:'Every training run tracked in MLflow with full hyperparameter, code version, training data version, and evaluation metric lineage. Stability outcome forecasting, batch yield prediction, dissolution risk models — all tracked from first experiment to production.'},
+      {title:'Model Promotion Workflow',desc:'Four-stage gate: experiment → candidate → staging (statistical validation + A/B test) → production (MTBH-monitored, auto-rollback). No R&D predictive model reaches production without MTBH baseline and Circuit Breaker configured. Target: <10 business days.'},
+      {title:'dbt Semantic Layer — Single Metric Source',desc:'"Batch yield" means the same thing in every dashboard across all business lines. Defined once as a version-controlled dbt metric contract. Metric drift is structurally impossible for certified dashboards. Ad-hoc SQL dashboards flagged as "uncertified."'},
+      {title:'Dashboard Certification Program',desc:'"Baxter Certified" badge on dashboards passing: data quality gate (DQS >90%), business logic peer review, and ontological RBAC verification. Self-Service outputs watermarked "Unvalidated" until certified.'},
+      {title:'Role-Based Access via Ontology',desc:'Ontological role assignments from the Knowledge Graph drive data access controls — no manual permission matrix management. Clinical trial data accessible only to personnel with ClinicalTrialRole and current GCP training record in the ontology.'},
+      {title:'Statistical Validation Gates',desc:'A/B testing framework for model comparison before any production promotion. Minimum 30-day parallel run for regulated use cases. Statistical significance threshold configurable per use-case risk class.'},
+      {title:'Analytics Audit Log',desc:'All dashboard views, report exports, and model inferences logged for regulatory readiness. 21 CFR Part 11 compliant audit log exportable for FDA inspection. Low-use dashboards (<20% weekly active usage) flagged for redesign.'},
+    ],
+    toolsDetail:['MLflow (experiment tracking + model registry)','dbt Core + Semantic Layer','Apache Superset (BI)','JupyterHub (data science workbench)','Ray Serve (model serving)','FLAML / AutoML','Grafana (operations monitoring)','Great Expectations (quality gates)'],
+    phases:[
+      {ph:'Phase 1',target:'MLflow + JupyterHub live · MTBH baselines set · Superset connected to dbt Semantic Layer · R&D Intelligence certified dashboards'},
+      {ph:'Phase 2',target:'All 6 capability apps >60% weekly adoption · Circuit Breaker on all production models · Dashboard certification running · RBAC fully ontology-driven'},
+      {ph:'Phase 3',target:'85% dashboard certification rate · <10d model promotion cycle · Advanced CPV analytics · Cross-BL benchmarking suite'},
+    ],
+  },
+  {
+    title:'AI Governance — MTBH Framework',sub:'Circuit Breaker · EU AI Act · FDA AI/ML · Model Cards · Immutable Audit',
+    icon:'⬡',color:'#FFB347',
+    kpis:[{v:'97.6%',l:'MTBH avg across models'},{v:'100%',l:'HITL on safety decisions'},{v:'>85%',l:'EU AI Act (Ph3 target)'},{v:'0',l:'Unauthorized AI actions'}],
+    bars:[{l:'MTBH — Formulation AI',v:98.2,c:'#00E08A'},{l:'MTBH — Clinical Agent',v:96.8,c:'#00E08A'},{l:'MTBH — Regulatory Agent',v:97.4,c:'#00E08A'},{l:'EU AI Act readiness',v:58,c:'#FFB347'}],
+    capabilities:[
+      {title:'MTBH Per Model — 5-Dimensional',desc:'Mean Time Between Hallucinations calculated continuously per deployed model. Five dimensions: WHO (persona routing fidelity), WHAT (concept resolution), WHEN (temporal anchoring), WHERE (domain boundary routing), WHY (intent-governance alignment). Dimensional stratification enables targeted remediation without systemic shutdown.'},
+      {title:'Circuit Breaker Architecture',desc:'Automated model suspension when MTBH falls below use-case-specific threshold. Zero-downtime failover to last stable model version. Threshold calibrated per risk class: patient-safety-adjacent use cases require higher MTBH than operational optimization.'},
+      {title:'Composition Theorem Enforcement',desc:'Multiplicative fidelity degradation tracked across multi-model pipelines. A LangGraph agent chain of 4 model hops: composite MTBH is the product of individual scores. Prevents compounding individual model uncertainty from accumulating silently.'},
+      {title:'Sanitization Framework — Anti-Collapse',desc:'Tripped Circuit Breaker outputs excluded from training data. Failed clinical batch analysis outputs never contaminate training data. KGCL quarantine record created for every tripped output. Prevents local holonic failures from corrupting the governance DNA.'},
+      {title:'Model Cards (All Production Models)',desc:'Bias assessments, intended use declarations, known limitations, and out-of-scope warnings for every production model. Published to MLflow model registry. Regulatory Evidence Agent model card explicitly states: not approved for standalone regulatory decision-making.'},
+      {title:'HITL Gates — Mandatory for Safety Decisions',desc:'No autonomous action on: patient-safety decisions, IMP dispensing, clinical batch release, manufacturing process changes. Human-in-the-loop authorization is a formal governance record committed to the Governance Named Graph, not a click-through.'},
+      {title:'EU AI Act Article 9 Risk Management',desc:'Risk classification per AI system. Technical documentation in Regulatory Named Graph. Post-market monitoring plan for applicable systems. Clinical trial AI classified as high-risk. Target: >85% Article 9 compliance by Phase 3.'},
+    ],
+    toolsDetail:['MTBH Circuit Breaker (TVE proprietary)','OPA Policy Engine (AI governance)','Model Cards (MLflow registry)','EU AI Act Readiness Scanner','Immutable Audit Log (Governance Named Graph)','Ray Serve (telemetry hooks at inference)','Sanitization microservice','STPA UCA boundary specification'],
+    phases:[
+      {ph:'Phase 1',target:'MTBH baselines defined for all R&D AI models · Circuit Breaker active for R&D domain · EU AI Act assessment complete'},
+      {ph:'Phase 2',target:'MTBH within threshold 100% of window · HITL compliance 100% · FDA AI/ML SaMD assessment initiated · All model cards published'},
+      {ph:'Phase 3',target:'EU AI Act readiness >85% · Predetermined change control protocols · Continuous MTBH monitoring · Anti-collapse protocol fully validated'},
+    ],
+  },
+];
+
+const HITL_POINTS = [
+  {stage:'Requirements',action:'Ontology Governance Committee — LKIF obligation approval and SHACL constraint library review',who:'Architecture Board + Quality Manager',status:'active',statusColor:'#00E08A',time:'2–5 days'},
+  {stage:'R&D Projects',action:'Formulation strategy sign-off — AI-generated competitive intelligence and prior art review',who:'R&D Director + IP Counsel',status:'complete',statusColor:'#3B82F6',time:'1–3 days'},
+  {stage:'Experiments',action:'Emergent behavior validation — new protocol parameter proposed by lab robot (pH 7.5 buffer optimization)',who:'R&D Scientist + QA Manager',status:'pending',statusColor:'#FFB347',time:'4–8 hours'},
+  {stage:'Experiments',action:'STPA UCA boundary exception — robotic arm path within operator safety zone',who:'Safety Engineer + Site QA',status:'complete',statusColor:'#3B82F6',time:'2 hours'},
+  {stage:'Clinical Trials',action:'IMP batch release authorization — SHACL: CoA, stability, supplier qualification, storage all validated',who:'Quality Manager + QP',status:'active',statusColor:'#00E08A',time:'1–2 days'},
+  {stage:'Clinical Trials',action:'Protocol deviation classification — patient sample temperature excursion during transport',who:'Clinical Medical Officer',status:'complete',statusColor:'#3B82F6',time:'6 hours'},
+  {stage:'FDA Submissions',action:'AI-generated eCTD Module 3.2 section review — CMC process description auto-populated at 94% confidence',who:'Regulatory Affairs Director',status:'pending',statusColor:'#FFB347',time:'2–5 days'},
+  {stage:'Tech Transfer',action:'Manufacturing parameter validation — SWRL-mapped scale-up parameters for 200L bioreactor at Site 7',who:'Process Engineer + Site QA Director',status:'active',statusColor:'#00E08A',time:'1–2 days'},
+  {stage:'Supply Chain',action:'Concentration risk escalation — single-source API supplier qualification window expiring in 45 days',who:'Supply Chain VP + Procurement',status:'pending',statusColor:'#FFB347',time:'5–10 days'},
+];
+
+const ENGINEERS = [
+  {name:'K. Okafor',role:'Knowledge Engineer',fatigue:0.18,accuracy:94,trust:92,status:'green'},
+  {name:'S. Mehta',role:'Ontology Specialist',fatigue:0.34,accuracy:91,trust:88,status:'green'},
+  {name:'R. Vance',role:'R&D Data Steward',fatigue:0.61,accuracy:82,trust:79,status:'amber'},
+  {name:'J. Lee',role:'Clinical Data Engineer',fatigue:0.24,accuracy:96,trust:94,status:'green'},
+];
+
+// ─── RENDER STAGE NODES ────────────────────────────────────────────────────
+function renderStages() {
+  const g = document.getElementById('stage-nodes');
+  g.innerHTML = '';
+  STAGES.forEach((s, i) => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg','g');
+    el.setAttribute('class','stage-node');
+    el.setAttribute('id','sn-'+s.id);
+    el.onclick = () => openStage(i);
+
+    // HITL pulsing rings
+    if (s.hitl) {
+      const r1 = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      r1.setAttribute('class','hitl-ring');
+      r1.setAttribute('cx',s.x);r1.setAttribute('cy',105);r1.setAttribute('r',16);
+      r1.setAttribute('fill','none');r1.setAttribute('stroke',s.color);r1.setAttribute('stroke-width','1');r1.setAttribute('opacity','0.7');
+      const r2 = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      r2.setAttribute('class','hitl-ring2');
+      r2.setAttribute('cx',s.x);r2.setAttribute('cy',105);r2.setAttribute('r',16);
+      r2.setAttribute('fill','none');r2.setAttribute('stroke',s.color);r2.setAttribute('stroke-width','0.5');r2.setAttribute('opacity','0.4');
+      el.appendChild(r1);el.appendChild(r2);
+    }
+
+    // connection point on thread
+    const cp = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    cp.setAttribute('cx',s.x);cp.setAttribute('cy',105);cp.setAttribute('r',20);
+    cp.setAttribute('fill',s.bg);cp.setAttribute('stroke',s.color);cp.setAttribute('stroke-width','1.5');
+    cp.setAttribute('class','stage-bg');
+    el.appendChild(cp);
+
+    // selection ring
+    const ring = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ring.setAttribute('cx',s.x);ring.setAttribute('cy',105);ring.setAttribute('r',21);
+    ring.setAttribute('fill','none');ring.setAttribute('stroke',s.color);ring.setAttribute('stroke-width','0');
+    ring.setAttribute('class','stage-ring');ring.setAttribute('opacity','0');
+    el.appendChild(ring);
+
+    // icon
+    const ico = document.createElementNS('http://www.w3.org/2000/svg','text');
+    ico.setAttribute('x',s.x);ico.setAttribute('y',109);ico.setAttribute('text-anchor','middle');
+    ico.setAttribute('dominant-baseline','central');
+    ico.setAttribute('font-size','14');ico.setAttribute('fill',s.color);ico.setAttribute('font-weight','600');
+    ico.textContent = s.icon;
+    el.appendChild(ico);
+
+    // label below
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',s.x);lbl.setAttribute('y',135);lbl.setAttribute('text-anchor','middle');
+    lbl.setAttribute('font-family',"'Exo 2', sans-serif");lbl.setAttribute('font-size','10');
+    lbl.setAttribute('font-weight','600');lbl.setAttribute('fill',s.color);lbl.setAttribute('letter-spacing','.5');
+    lbl.textContent = s.label.toUpperCase();
+    el.appendChild(lbl);
+
+    // sublabel
+    const sub = document.createElementNS('http://www.w3.org/2000/svg','text');
+    sub.setAttribute('x',s.x);sub.setAttribute('y',148);sub.setAttribute('text-anchor','middle');
+    sub.setAttribute('font-family',"'DM Sans', sans-serif");sub.setAttribute('font-size','8');
+    sub.setAttribute('fill','rgba(170,200,230,.55)');
+    sub.textContent = s.sub;
+    el.appendChild(sub);
+
+    // HITL badge (gold human icon)
+    if (s.hitl) {
+      const hb = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const hc = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      hc.setAttribute('cx',s.x+14);hc.setAttribute('cy',88);hc.setAttribute('r',7);
+      hc.setAttribute('fill','rgba(255,179,71,.15)');hc.setAttribute('stroke','#FFB347');hc.setAttribute('stroke-width','1');
+      const ht = document.createElementNS('http://www.w3.org/2000/svg','text');
+      ht.setAttribute('x',s.x+14);ht.setAttribute('y',92);ht.setAttribute('text-anchor','middle');
+      ht.setAttribute('font-size','8');ht.setAttribute('fill','#FFB347');ht.textContent='H';
+      hb.appendChild(hc);hb.appendChild(ht);
+      el.appendChild(hb);
+    }
+
+    // stage number
+    const num = document.createElementNS('http://www.w3.org/2000/svg','text');
+    num.setAttribute('x',s.x);num.setAttribute('y',72);num.setAttribute('text-anchor','middle');
+    num.setAttribute('font-family',"'JetBrains Mono', monospace");num.setAttribute('font-size','9');
+    num.setAttribute('fill','rgba(170,200,230,.35)');
+    num.textContent = 'S'+(i+1);
+    el.appendChild(num);
+
+    g.appendChild(el);
+  });
+}
+
+// ─── OPEN STAGE DETAIL ─────────────────────────────────────────────────────
+let activeStage = null;
+function openStage(i) {
+  if(activeStage===i){closePanel();return;}
+  activeStage = i;
+
+  document.querySelectorAll('.stage-node').forEach(n => n.classList.remove('selected'));
+  document.getElementById('sn-'+STAGES[i].id).classList.add('selected');
+
+  const s = STAGES[i];
+  const empty = document.getElementById('panel-empty');
+  const content = document.getElementById('panel-content');
+  empty.style.display = 'none';
+  content.classList.remove('visible');
+  void content.offsetWidth;
+
+  // header
+  const icon = document.getElementById('p-icon');
+  icon.textContent = s.icon;
+  icon.style.background = s.bg;
+  icon.style.color = s.color;
+  document.getElementById('p-title').textContent = s.title;
+  document.getElementById('p-sub').textContent = s.description;
+
+  // body
+  const body = document.getElementById('panel-body');
+  body.innerHTML = '';
+
+  // metric cards
+  s.metrics.forEach(m => {
+    const c = document.createElement('div');
+    c.className = 'metric-card';
+    c.innerHTML = `<div class="metric-label">${m.label}</div>
+      <div class="metric-value" style="color:${m.color}">${m.value}</div>
+      <div class="metric-unit">${m.unit}</div>
+      <div class="metric-bar"><div class="metric-bar-fill" style="background:${m.color};width:0%" data-w="${m.pct}%"></div></div>`;
+    body.appendChild(c);
+  });
+
+  // tools
+  const tc = document.createElement('div');
+  tc.className = 'tools-card';
+  tc.innerHTML = `<div class="tools-label">Key Platform Components</div>
+    <div class="tools-list">${s.tools.map(t=>`<span class="tool-pill">${t}</span>`).join('')}</div>`;
+  body.appendChild(tc);
+
+  // hitl
+  const hc = document.createElement('div');
+  hc.className = 'hitl-card';
+  hc.innerHTML = `<div class="hitl-label">⬡ Human-in-the-loop governance</div>
+    <div class="hitl-text">${s.hitlText}</div>`;
+  body.appendChild(hc);
+
+  // wymore
+  const wc = document.createElement('div');
+  wc.className = 'wymore-card';
+  const wk = s.wymore;
+  wc.innerHTML = `<div class="wymore-label">Wymore System Model M — formal specification for this stage</div>
+    <div class="wymore-grid">
+      ${Object.entries(wk).map(([k,v])=>`<div class="wymore-item"><div class="wymore-sym">${k}</div><div class="wymore-desc">${v}</div></div>`).join('')}
+    </div>`;
+  body.appendChild(wc);
+
+  content.classList.add('visible');
+
+  // animate bars
+  setTimeout(()=>{
+    document.querySelectorAll('.metric-bar-fill').forEach(el => {
+      el.style.width = el.dataset.w;
+    });
+  },100);
+}
+
+function closePanel() {
+  activeStage = null;
+  document.querySelectorAll('.stage-node').forEach(n => n.classList.remove('selected'));
+  document.getElementById('panel-empty').style.display = '';
+  document.getElementById('panel-content').classList.remove('visible');
+}
+
+// ─── ARCHITECTURE LAYERS ────────────────────────────────────────────────────
+let activeLayer = null;
+function toggleLayer(i) {
+  const stack = document.getElementById('arch-stack');
+  const layers = stack.querySelectorAll('.arch-layer');
+  const details = stack.querySelectorAll('.arch-detail');
+  if (activeLayer === i) {
+    layers[i].classList.remove('expanded');
+    details[i].classList.remove('open');
+    activeLayer = null;
+    return;
+  }
+  layers.forEach((l,j)=>{l.classList.remove('expanded');details[j].classList.remove('open');});
+  layers[i].classList.add('expanded');
+  details[i].classList.add('open');
+  activeLayer = i;
+  setTimeout(()=>{
+    layers[i].scrollIntoView({behavior:'smooth',block:'nearest'});
+  },50);
+}
+
+function typeClass(t) {
+  const m={siemens:'type-siemens',ootb:'type-ootb',custom:'type-custom',open:'type-open',physical:'type-physical'};
+  return m[t]||'type-open';
+}
+
+function buildArchDetail(l) {
+  let html = '<div class="arch-detail">';
+
+  // Component table
+  html += `<div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">Component inventory</div>`;
+  html += '<table class="comp-table"><colgroup><col class="c-name"><col class="c-type"><col class="c-purpose"><col class="c-int"></colgroup><thead><tr><th>Component</th><th>Type</th><th>Purpose &amp; GxP Role</th><th>Integration &amp; Alternatives</th></tr></thead><tbody>';
+  l.components.forEach(c => {
+    html += `<tr>
+      <td><div class="comp-name">${c.name}</div></td>
+      <td><span class="comp-type ${typeClass(c.type)}">${c.typeLabel}</span></td>
+      <td style="color:var(--t2)">${c.purpose}</td>
+      <td style="color:var(--t3);font-size:10px">${c.integration}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+
+  // RDSG stages for L3
+  if (l.rdsgStages) {
+    html += `<div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin:12px 0 6px">RDSG v2.0 — six-stage holarchic traversal</div>`;
+    html += '<div class="rdsg-stages">';
+    l.rdsgStages.forEach(s => {
+      html += `<div class="rdsg-stage-row"><div class="rdsg-stage-label">${s.label}</div><div class="rdsg-stage-desc">${s.desc}</div></div>`;
+    });
+    html += '</div>';
+  }
+
+  // Wymore inline
+  html += `<div class="wymore-inline"><span style="opacity:.6">Wymore M:</span> ${l.wymore}</div>`;
+  html += '</div>';
+  return html;
+}
+
+function renderArch() {
+  const stack = document.getElementById('arch-stack');
+  // Build layers array respecting the RDSG band insert after index 4
+  ARCH_LAYERS.forEach((l, i) => {
+    // Insert RDSG band after L3 (index 4 in 0-based)
+    if (i === 4) {
+      const gb = document.createElement('div');
+      gb.style.cssText='display:flex;align-items:center;gap:8px;padding:4px 16px;font-size:9px;color:var(--t3)';
+      gb.innerHTML = '<span style="color:var(--thread);font-family:var(--f-mono)">↕ RDSG v2.0</span> All cross-layer state transitions governed by the six-stage holarchic traversal · MTBH Circuit Breaker monitors every hop · click ⭑ layer to explore stages';
+      stack.appendChild(gb);
+    }
+
+    const tools = l.tools.map(t => {
+      const bg = l.color+'22';
+      return `<span class="arch-tool" style="background:${bg};color:${l.color};border:1px solid ${l.color}44">${t}</span>`;
+    }).join('');
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;flex-direction:column;';
+
+    const div = document.createElement('div');
+    div.className = 'arch-layer';
+    div.style.cssText = `border-left:3px solid ${l.color};border-radius:10px;position:relative;`;
+    div.onclick = (e) => { if(!e.target.closest('.arch-detail')) toggleLayer(i); };
+
+    div.innerHTML = `
+      <div class="arch-layer-num" style="color:${l.color};opacity:.5;font-family:var(--f-mono);font-size:22px;font-weight:500">${l.num}</div>
+      <div class="arch-layer-main" style="flex:1">
+        <div class="arch-layer-name" style="color:${l.color}">${l.name}</div>
+        <div class="arch-layer-sub">${l.sub}</div>
+        <div style="font-size:9px;color:rgba(167,139,250,.6);margin-top:4px;font-family:var(--f-mono)">${l.role}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">${tools}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        ${l.rdsg?'<div class="rdsg-badge" style="position:relative;right:auto;top:auto">RDSG Δ gateway</div>':''}
+        <div class="arch-layer-chevron">▾</div>
+        <div style="font-size:9px;color:var(--t3);text-align:right">${l.components.length} components</div>
+      </div>
+      ${buildArchDetail(l)}
+    `;
+
+    stack.appendChild(div);
+  });
+}
+
+// ─── GOVERNANCE DOMAINS ────────────────────────────────────────────────────
+let activeGovDomain = null;
+function toggleGovDomain(i) {
+  const cards = document.querySelectorAll('.gov-domain');
+  const details = document.querySelectorAll('.gov-detail');
+  if (activeGovDomain === i) {
+    cards[i].classList.remove('expanded');
+    details[i].classList.remove('open');
+    activeGovDomain = null;
+    return;
+  }
+  cards.forEach((c,j)=>{c.classList.remove('expanded');details[j].classList.remove('open');});
+  cards[i].classList.add('expanded');
+  details[i].classList.add('open');
+  activeGovDomain = i;
+  setTimeout(()=>{
+    document.querySelectorAll('.gov-bar-fill').forEach(el=>{el.style.width=el.dataset.w;});
+    cards[i].scrollIntoView({behavior:'smooth',block:'nearest'});
+  },80);
+}
+
+function renderGov() {
+  const container = document.getElementById('gov-view');
+  GOV_DOMAINS.forEach((d, i) => {
+    const div = document.createElement('div');
+    div.className = 'gov-domain';
+    div.onclick = () => toggleGovDomain(i);
+
+    const kpis = d.kpis.map(k=>`<div class="gov-kpi"><div class="gov-kpi-val" style="color:${d.color}">${k.v}</div><div class="gov-kpi-lbl">${k.l}</div></div>`).join('');
+    const bars = d.bars.map(b=>`<div class="gov-bar-row">
+      <div class="gov-bar-lbl"><span>${b.l}</span><span style="font-family:'JetBrains Mono';color:${b.c}">${b.v}%</span></div>
+      <div class="gov-bar-track"><div class="gov-bar-fill" style="background:${b.c};width:0%" data-w="${b.v}%"></div></div>
+    </div>`).join('');
+
+    // Capabilities detail (hidden until expanded)
+    const caps = d.capabilities.map(c=>`<div class="gov-cap-item">
+      <div><div class="gov-cap-dot" style="background:${d.color}"></div></div>
+      <div><div class="gov-cap-title">${c.title}</div><div class="gov-cap-desc">${c.desc}</div></div>
+    </div>`).join('');
+
+    const tools = d.toolsDetail.map(t=>`<span class="gov-tool-chip" style="background:${d.color}18;color:${d.color};border:1px solid ${d.color}33">${t}</span>`).join('');
+
+    const phases = d.phases.map(p=>`<div class="gov-phase-row">
+      <div class="gov-phase-lbl">${p.ph}</div>
+      <div style="color:var(--t2);font-size:10px">${p.target}</div>
+    </div>`).join('');
+
+    div.innerHTML = `
+      <div class="gov-domain-hdr">
+        <div class="gov-domain-icon" style="background:${d.color}22;color:${d.color};font-size:16px">${d.icon}</div>
+        <div style="flex:1"><div class="gov-domain-title" style="color:${d.color}">${d.title}</div><div class="gov-domain-sub">${d.sub}</div></div>
+        <div class="gov-domain-chevron">▾</div>
+      </div>
+      <div class="gov-kpis">${kpis}</div>
+      <div class="gov-bars">${bars}</div>
+      <div class="gov-detail">
+        <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Core capabilities (${d.capabilities.length})</div>
+        <div class="gov-cap-grid">${caps}</div>
+        <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin:10px 0 4px">Tooling</div>
+        <div class="gov-tools-detail">${tools}</div>
+        <div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin:10px 0 4px">Phase targets</div>
+        <div style="display:flex;flex-direction:column;gap:4px">${phases}</div>
+      </div>`;
+
+    container.appendChild(div);
+  });
+}
+
+// ─── HITL VIEW ─────────────────────────────────────────────────────────────
+function renderHITL() {
+  // timeline
+  const pts = document.getElementById('hitl-points');
+  HITL_POINTS.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'hitl-pt';
+    div.innerHTML = `
+      <div class="hitl-pt-dot ${p.status==='pending'?'active':''}" style="background:${p.statusColor};color:${p.statusColor}"></div>
+      <div><div class="hitl-pt-action">${p.action}</div><div class="hitl-pt-stage" style="margin-top:2px">${p.stage}</div></div>
+      <div class="hitl-pt-who">${p.who}</div>
+      <div class="hitl-pt-status" style="background:${p.statusColor}22;color:${p.statusColor};border:1px solid ${p.statusColor}44">${p.status}</div>
+      <div class="hitl-pt-time">${p.time}</div>`;
+    pts.appendChild(div);
+  });
+
+  // engineers
+  const eng = document.getElementById('hf-engineers');
+  ENGINEERS.forEach(e => {
+    const sc = e.status==='amber'?'#FFB347':'#00E08A';
+    const div = document.createElement('div');
+    div.style.cssText = 'display:grid;grid-template-columns:1fr 80px 80px 60px;gap:8px;align-items:center;margin-bottom:8px;font-size:11px';
+    div.innerHTML = `
+      <div><span style="color:var(--t1)">${e.name}</span><span style="color:var(--t3);margin-left:6px;font-size:10px">${e.role}</span></div>
+      <div><div style="font-size:9px;color:var(--t3);margin-bottom:2px">Fatigue</div><div class="hf-meter"><div class="hf-fill" style="background:${e.fatigue>.5?'#FFB347':'#00E08A'};width:${e.fatigue*100}%"></div></div></div>
+      <div><div style="font-size:9px;color:var(--t3);margin-bottom:2px">Accuracy</div><div class="hf-meter"><div class="hf-fill" style="background:#3B82F6;width:${e.accuracy}%"></div></div></div>
+      <div style="font-family:'JetBrains Mono';font-size:11px;color:${sc};text-align:right">${e.accuracy}%</div>`;
+    eng.appendChild(div);
+  });
+
+  // trust calibration
+  const tg = document.getElementById('trust-grid');
+  const buckets = [
+    {range:'0.60–0.69',acc:58,accept:71,c:'#FF4A6E'},
+    {range:'0.70–0.79',acc:72,accept:79,c:'#FFB347'},
+    {range:'0.80–0.89',acc:84,accept:88,c:'#FFB347'},
+    {range:'0.90–0.94',acc:91,accept:90,c:'#00E08A'},
+    {range:'0.95–1.00',acc:96,accept:94,c:'#00E08A'},
+  ];
+  buckets.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'trust-bucket';
+    div.innerHTML = `<div class="tb-range">${b.range}</div>
+      <div class="tb-acc" style="color:${b.c}">${b.acc}%</div>
+      <div style="font-size:8px;color:var(--t3)">AI accuracy</div>
+      <div class="tb-bar" style="background:${b.c}33"><div style="height:100%;border-radius:2px;background:${b.c};width:${b.accept}%"></div></div>
+      <div style="font-size:8px;color:var(--t3);margin-top:2px">${b.accept}% accepted</div>`;
+    tg.appendChild(div);
+  });
+
+  // paradox chart — simple SVG bar chart
+  const pc = document.getElementById('paradox-chart');
+  pc.innerHTML = `
+  <div style="font-size:10px;color:var(--t3);margin-bottom:8px">Without Human-AI Teaming Framework vs. with it — system reliability over time as AI accuracy improves</div>
+  <svg width="100%" viewBox="0 0 560 100" style="overflow:visible">
+    <!-- axes -->
+    <line x1="40" y1="10" x2="40" y2="80" stroke="rgba(255,255,255,.15)" stroke-width="0.5"/>
+    <line x1="40" y1="80" x2="540" y2="80" stroke="rgba(255,255,255,.15)" stroke-width="0.5"/>
+    <!-- y labels -->
+    <text x="36" y="14" text-anchor="end" font-size="8" fill="rgba(170,200,230,.5)" font-family="'JetBrains Mono'">100%</text>
+    <text x="36" y="46" text-anchor="end" font-size="8" fill="rgba(170,200,230,.5)" font-family="'JetBrains Mono'">85%</text>
+    <text x="36" y="80" text-anchor="end" font-size="8" fill="rgba(170,200,230,.5)" font-family="'JetBrains Mono'">70%</text>
+    <!-- x labels -->
+    <text x="90" y="92" text-anchor="middle" font-size="8" fill="rgba(170,200,230,.4)" font-family="'DM Sans'">Wk 0</text>
+    <text x="220" y="92" text-anchor="middle" font-size="8" fill="rgba(170,200,230,.4)" font-family="'DM Sans'">Wk 13</text>
+    <text x="350" y="92" text-anchor="middle" font-size="8" fill="rgba(170,200,230,.4)" font-family="'DM Sans'">Wk 26</text>
+    <text x="480" y="92" text-anchor="middle" font-size="8" fill="rgba(170,200,230,.4)" font-family="'DM Sans'">Wk 52</text>
+    <!-- WITHOUT framework line (degrading) -->
+    <polyline points="90,16 220,22 350,36 480,46" fill="none" stroke="#FF4A6E" stroke-width="1.5" stroke-dasharray="4 3" opacity=".7"/>
+    <!-- WITH framework line (sustained) -->
+    <polyline points="90,16 220,15 350,14 480,12" fill="none" stroke="#00E08A" stroke-width="2"/>
+    <!-- AI accuracy line -->
+    <polyline points="90,60 220,36 350,22 480,14" fill="none" stroke="rgba(59,130,246,.7)" stroke-width="1.5" stroke-dasharray="2 2"/>
+    <!-- dots -->
+    <circle cx="480" cy="46" r="4" fill="#FF4A6E"/>
+    <circle cx="480" cy="12" r="4" fill="#00E08A"/>
+    <!-- labels -->
+    <text x="490" y="49" font-size="8" fill="#FF4A6E" font-family="'DM Sans'">85% (no framework)</text>
+    <text x="490" y="15" font-size="8" fill="#00E08A" font-family="'DM Sans'">99% (with framework)</text>
+    <text x="490" y="33" font-size="8" fill="rgba(59,130,246,.8)" font-family="'DM Sans'">AI accuracy: 92%</text>
+  </svg>`;
+}
+
+// ─── TAB SWITCHING ──────────────────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const map = {journey:'view-journey',arch:'view-arch',gov:'view-gov',hitl:'view-hitl'};
+  document.getElementById(map[tab]).classList.add('active');
+  const idx = {journey:0,arch:1,gov:2,hitl:3};
+  document.querySelectorAll('.tab')[idx[tab]].classList.add('active');
+  if (tab==='gov') {
+    setTimeout(()=>{
+      document.querySelectorAll('.gov-bar-fill').forEach(el=>{el.style.width=el.dataset.w;});
+    },200);
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderStages();
+renderArch();
+renderGov();
+renderHITL();
+</script>
+</body>
+</html>

@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INCOSE Working Groups Integration Graph</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js" integrity="sha512-M7nHCiNUOwFt6Us3r8alutZLm9qMt4s9951uo8jqO4UwJ1hziseL6O3ndFyigx6+LREfZqnhHxYjKRJ8ZQ69DQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            overflow: hidden;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-width: 340px;
+            max-height: 85vh;
+            overflow-y: auto;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        #controls h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #1e3c72;
+            border-bottom: 2px solid #2a5298;
+            padding-bottom: 8px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input[type="range"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input[type="range"] {
+            padding: 0;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #333;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            background: #e0e0e0;
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: #2a5298;
+            color: white;
+        }
+
+        .highlight-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            background: #7e22ce;
+            color: white;
+            font-weight: 600;
+            margin-top: 8px;
+            transition: all 0.2s;
+        }
+
+        .highlight-btn:hover {
+            background: #6b21a8;
+            transform: translateY(-1px);
+        }
+
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-width: 380px;
+            max-height: 85vh;
+            overflow-y: auto;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        #info-panel h3 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        #info-panel .info-section {
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        #info-panel .info-section:last-child {
+            border-bottom: none;
+        }
+
+        #info-panel .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        #info-panel .value {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #2a5298;
+        }
+
+        #stats {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            font-size: 12px;
+            color: #555;
+            backdrop-filter: blur(10px);
+        }
+
+        #stats div {
+            margin-bottom: 4px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100vh;
+            cursor: grab;
+        }
+
+        svg:active {
+            cursor: grabbing;
+        }
+
+        .node circle {
+            stroke: white;
+            stroke-width: 2.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .node:hover circle {
+            stroke-width: 4px;
+            filter: brightness(1.1);
+        }
+
+        .node.highlighted circle {
+            stroke: #ffd700;
+            stroke-width: 5px;
+            filter: brightness(1.2);
+        }
+
+        .node text {
+            font-size: 10px;
+            pointer-events: none;
+            user-select: none;
+            fill: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            font-weight: 600;
+        }
+
+        .link {
+            stroke: rgba(255, 255, 255, 0.3);
+            stroke-width: 1.5px;
+            fill: none;
+        }
+
+        .link.collaboration {
+            stroke: rgba(126, 34, 206, 0.5);
+            stroke-width: 2.5px;
+        }
+
+        .link.highlighted {
+            stroke: #ffd700;
+            stroke-width: 3px;
+        }
+
+        .link-label {
+            font-size: 9px;
+            fill: rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            user-select: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            max-width: 250px;
+        }
+
+        #legend h4 {
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #555;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid white;
+        }
+
+        .wg-list {
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.6;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        .wg-list div {
+            cursor: pointer;
+            padding: 2px 0;
+            transition: color 0.2s;
+        }
+
+        .wg-list div:hover {
+            color: #2a5298;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h2>🔍 Graph Controls</h2>
+        
+        <div class="control-group">
+            <label>Node Size</label>
+            <input type="range" id="nodeSize" min="4" max="18" value="10" step="0.5">
+        </div>
+
+        <div class="control-group">
+            <label>Link Distance</label>
+            <input type="range" id="linkDistance" min="50" max="250" value="120" step="10">
+        </div>
+
+        <div class="control-group">
+            <label>Charge Strength</label>
+            <input type="range" id="chargeStrength" min="-800" max="-100" value="-300" step="20">
+        </div>
+
+        <div class="control-group">
+            <label>Filter by Category</label>
+            <div class="filter-buttons" id="categoryFilters"></div>
+        </div>
+
+        <div class="control-group">
+            <label>Show Labels</label>
+            <select id="labelMode">
+                <option value="wg">Working Groups Only</option>
+                <option value="all">All Nodes</option>
+                <option value="selected">Selected Only</option>
+                <option value="none">None</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Search Working Groups</label>
+            <input type="text" id="wgSearch" placeholder="Type to search...">
+            <div id="wgList" class="wg-list"></div>
+        </div>
+
+        <button class="highlight-btn" onclick="highlightKSWG()">
+            Highlight Knowledge Systems WG Hub
+        </button>
+    </div>
+
+    <div id="info-panel">
+        <button class="close-btn" onclick="closeInfo()">×</button>
+        <div id="info-content"></div>
+    </div>
+
+    <div id="stats">
+        <div><strong>Working Groups:</strong> <span id="wgCount">0</span></div>
+        <div><strong>Total Nodes:</strong> <span id="nodeCount">0</span></div>
+        <div><strong>Connections:</strong> <span id="edgeCount">0</span></div>
+        <div><strong>Zoom:</strong> <span id="zoomLevel">100%</span></div>
+    </div>
+
+    <div id="legend">
+        <h4>Node Categories</h4>
+        <div id="legendContent"></div>
+    </div>
+
+    <svg id="graph"></svg>
+
+    <script>
+        // Wait for D3 to load
+        window.addEventListener('load', function() {
+            if (typeof d3 === 'undefined') {
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#1e3c72;color:white;"><div style="text-align:center;"><h2>Error Loading Visualization</h2><p>D3.js library failed to load. Please refresh the page.</p></div></div>';
+                return;
+            }
+            initializeGraph();
+        });
+
+        function initializeGraph() {
+        // INCOSE Working Groups and related entities
+        const ontologyData = {
+            workingGroups: [
+                { id: 'WG_KnowledgeSystems', label: 'Knowledge Systems', abbr: 'KSWG', domain: 'Knowledge Engineering', practice: 'Semantic Integration', category: 'Working Group' },
+                { id: 'WG_Adaptive', label: 'Adaptive & Adaptable Systems', abbr: 'Adaptive', domain: 'Complex Adaptive Systems', practice: 'Dynamic Engineering', category: 'Working Group' },
+                { id: 'WG_Agile', label: 'Agile Systems & SE', abbr: 'Agile', domain: 'Agile Methodologies', practice: 'Iterative Development', category: 'Working Group' },
+                { id: 'WG_Architecture', label: 'Architecture', abbr: 'Arch', domain: 'System Architecture', practice: 'Architecture Frameworks', category: 'Working Group' },
+                { id: 'WG_AI_Systems', label: 'AI Systems', abbr: 'AI', domain: 'Artificial Intelligence', practice: 'AI Engineering', category: 'Working Group' },
+                { id: 'WG_ComplexSystems', label: 'Complex Systems', abbr: 'Complex', domain: 'Complex Systems', practice: 'Systems Dynamics', category: 'Working Group' },
+                { id: 'WG_CostEstimation', label: 'Cost Estimation', abbr: 'Cost', domain: 'Cost Analysis', practice: 'Parametric Estimation', category: 'Working Group' },
+                { id: 'WG_DecisionAnalysis', label: 'Decision Analysis', abbr: 'Decision', domain: 'Decision Science', practice: 'Multi-Criteria Analysis', category: 'Working Group' },
+                { id: 'WG_DEIX', label: 'Digital Engineering Interop', abbr: 'DEIX', domain: 'Digital Engineering', practice: 'Interoperability', category: 'Working Group' },
+                { id: 'WG_Enterprise', label: 'Enterprise Systems', abbr: 'Enterprise', domain: 'Enterprise Engineering', practice: 'Enterprise Architecture', category: 'Working Group' },
+                { id: 'WG_HumanSystems', label: 'Human Systems Integration', abbr: 'HSI', domain: 'Human Factors', practice: 'Human-Centered Design', category: 'Working Group' },
+                { id: 'WG_IVV', label: 'Integration, Verification & Validation', abbr: 'IVV', domain: 'Quality Assurance', practice: 'V&V Methods', category: 'Working Group' },
+                { id: 'WG_MBSE', label: 'Model-Based SE', abbr: 'MBSE', domain: 'Model-Based Engineering', practice: 'SysML', category: 'Working Group' },
+                { id: 'WG_Measurement', label: 'Measurement', abbr: 'Measure', domain: 'Metrics & Measurement', practice: 'Performance Metrics', category: 'Working Group' },
+                { id: 'WG_NaturalSystems', label: 'Natural Systems', abbr: 'Natural', domain: 'Biological Systems', practice: 'Biomimicry', category: 'Working Group' },
+                { id: 'WG_PM', label: 'Project Management', abbr: 'PM', domain: 'Project Management', practice: 'Program Planning', category: 'Working Group' },
+                { id: 'WG_Requirements', label: 'Requirements', abbr: 'Req', domain: 'Requirements Engineering', practice: 'Requirements Management', category: 'Working Group' },
+                { id: 'WG_Resilient', label: 'Resilient Systems', abbr: 'Resilient', domain: 'Resilience Engineering', practice: 'Adaptive Capacity', category: 'Working Group' },
+                { id: 'WG_RiskMgmt', label: 'Risk Management', abbr: 'Risk', domain: 'Risk Analysis', practice: 'Risk Assessment', category: 'Working Group' },
+                { id: 'WG_Security', label: 'Security', abbr: 'Security', domain: 'Cybersecurity', practice: 'Security Engineering', category: 'Working Group' },
+                { id: 'WG_SoS', label: 'System of Systems', abbr: 'SoS', domain: 'System of Systems', practice: 'SoS Architecture', category: 'Working Group' },
+                { id: 'WG_Sustainability', label: 'Sustainability', abbr: 'Sustain', domain: 'Sustainable Engineering', practice: 'Lifecycle Assessment', category: 'Working Group' },
+                { id: 'WG_SystemSafety', label: 'System Safety', abbr: 'Safety', domain: 'System Safety', practice: 'Hazard Analysis', category: 'Working Group' },
+                { id: 'WG_SystemsScience', label: 'Systems Science', abbr: 'SciSys', domain: 'Systems Theory', practice: 'Scientific Foundations', category: 'Working Group' },
+                { id: 'WG_SocialSystems', label: 'Social Systems', abbr: 'Social', domain: 'Sociotechnical Systems', practice: 'Social Analysis', category: 'Working Group' },
+                { id: 'WG_ToolsIntegration', label: 'Tools & Integration', abbr: 'Tools', domain: 'SE Tools', practice: 'Tool Integration', category: 'Working Group' }
+            ],
+            
+            concepts: [
+                // Value Types
+                { id: 'UnderstandingValue', label: 'Understanding', category: 'Value Type', description: 'Enhanced comprehension of domain concepts' },
+                { id: 'CommunicationValue', label: 'Communication', category: 'Value Type', description: 'Improved cross-group communication' },
+                { id: 'CoordinationValue', label: 'Coordination', category: 'Value Type', description: 'Enhanced coordination & alignment' },
+                { id: 'ImpactValue', label: 'Impact', category: 'Value Type', description: 'Amplified measurable impact' },
+                
+                // Intelligence Types
+                { id: 'BusinessIntelligence', label: 'BI & Analytics', category: 'Intelligence', description: 'Business intelligence capabilities' },
+                { id: 'ArtificialIntelligence', label: 'AI/ML', category: 'Intelligence', description: 'Artificial intelligence & ML' },
+                { id: 'SemanticIntelligence', label: 'Semantic Intel', category: 'Intelligence', description: 'Semantic reasoning' },
+                { id: 'DecisionIntelligence', label: 'Decision Intel', category: 'Intelligence', description: 'Causal decision-making' },
+                
+                // Key Technologies
+                { id: 'OntologyDevelopment', label: 'Ontologies', category: 'Technology', description: 'Formal ontology development' },
+                { id: 'KnowledgeGraphs', label: 'Knowledge Graphs', category: 'Technology', description: 'Enterprise knowledge graphs' },
+                { id: 'RAG2', label: 'RAG 2.0', category: 'Technology', description: 'Retrieval Augmented Generation' },
+                { id: 'SemanticGovernance', label: 'Semantic Governance', category: 'Technology', description: 'Governance frameworks' },
+                
+                // Integration Opportunities
+                { id: 'Opp_MBSE_AI', label: 'MBSE + AI Integration', category: 'Integration', description: 'Semantic models enable AI reasoning over SysML' },
+                { id: 'Opp_Decision_Risk_Safety', label: 'Decision + Risk + Safety', category: 'Integration', description: 'DCFM integrates decision, risk, and safety' },
+                { id: 'Opp_Sustainability_Measurement', label: 'Sustainability + Measurement', category: 'Integration', description: 'Quantifiable sustainability metrics' },
+                { id: 'Opp_Enterprise_Arch_DEIX', label: 'Enterprise + Arch + DEIX', category: 'Integration', description: 'Enterprise-wide architecture interop' },
+                
+                // SCQA Framework
+                { id: 'KSWG_Situation', label: 'Situation: 50+ WGs', category: 'SCQA', description: 'INCOSE has 50+ working groups with specialized expertise' },
+                { id: 'KSWG_Complication', label: 'Complication: Silos', category: 'SCQA', description: 'Lack of semantic interoperability' },
+                { id: 'KSWG_Question', label: 'Question: Integration?', category: 'SCQA', description: 'How to enable cross-group collaboration?' },
+                { id: 'KSWG_Answer', label: 'Answer: KSWG as Integrator', category: 'SCQA', description: 'KSWG serves as semantic integrator' },
+                
+                // Supporting Arguments
+                { id: 'KSWG_Support_Understanding', label: 'Support: Understanding', category: 'Support', description: 'KSWG enables understanding across groups' },
+                { id: 'KSWG_Support_Communication', label: 'Support: Communication', category: 'Support', description: 'KSWG enables communication' },
+                { id: 'KSWG_Support_Coordination', label: 'Support: Coordination', category: 'Support', description: 'KSWG enables coordination' },
+                { id: 'KSWG_Support_Impact', label: 'Support: Impact', category: 'Support', description: 'KSWG amplifies impact' }
+            ]
+        };
+
+        // Combine all nodes
+        const allNodes = [...ontologyData.workingGroups, ...ontologyData.concepts];
+
+        // Create edges
+        const edges = [];
+        
+        // KSWG enables all other working groups
+        ontologyData.workingGroups.forEach(wg => {
+            if (wg.id !== 'WG_KnowledgeSystems') {
+                edges.push({
+                    source: 'WG_KnowledgeSystems',
+                    target: wg.id,
+                    type: 'enables',
+                    label: 'enables'
+                });
+            }
+        });
+
+        // Cross-group collaborations
+        const collaborations = [
+            { source: 'WG_Architecture', target: 'WG_Enterprise', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_Architecture', target: 'WG_MBSE', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_AI_Systems', target: 'WG_MBSE', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_AI_Systems', target: 'WG_DecisionAnalysis', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_ComplexSystems', target: 'WG_SystemsScience', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_ComplexSystems', target: 'WG_SoS', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_MBSE', target: 'WG_DEIX', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_MBSE', target: 'WG_ToolsIntegration', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_MBSE', target: 'WG_Requirements', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_Requirements', target: 'WG_IVV', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_Requirements', target: 'WG_SystemSafety', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_RiskMgmt', target: 'WG_SystemSafety', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_RiskMgmt', target: 'WG_Resilient', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_RiskMgmt', target: 'WG_Security', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_Sustainability', target: 'WG_NaturalSystems', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_Sustainability', target: 'WG_SocialSystems', type: 'collaboration', label: 'collaborates' },
+            { source: 'WG_Sustainability', target: 'WG_Measurement', type: 'collaboration', label: 'collaborates' }
+        ];
+
+        edges.push(...collaborations);
+
+        // Intelligence integrations
+        edges.push(
+            { source: 'WG_KnowledgeSystems', target: 'BusinessIntelligence', type: 'provides', label: 'provides' },
+            { source: 'WG_KnowledgeSystems', target: 'ArtificialIntelligence', type: 'provides', label: 'provides' },
+            { source: 'WG_KnowledgeSystems', target: 'SemanticIntelligence', type: 'provides', label: 'provides' },
+            { source: 'WG_KnowledgeSystems', target: 'DecisionIntelligence', type: 'provides', label: 'provides' }
+        );
+
+        // Key technologies
+        edges.push(
+            { source: 'WG_KnowledgeSystems', target: 'OntologyDevelopment', type: 'develops', label: 'develops' },
+            { source: 'WG_KnowledgeSystems', target: 'KnowledgeGraphs', type: 'develops', label: 'develops' },
+            { source: 'WG_KnowledgeSystems', target: 'RAG2', type: 'develops', label: 'develops' },
+            { source: 'WG_KnowledgeSystems', target: 'SemanticGovernance', type: 'develops', label: 'develops' }
+        );
+
+        // Value types
+        edges.push(
+            { source: 'WG_KnowledgeSystems', target: 'UnderstandingValue', type: 'delivers', label: 'delivers' },
+            { source: 'WG_KnowledgeSystems', target: 'CommunicationValue', type: 'delivers', label: 'delivers' },
+            { source: 'WG_KnowledgeSystems', target: 'CoordinationValue', type: 'delivers', label: 'delivers' },
+            { source: 'WG_KnowledgeSystems', target: 'ImpactValue', type: 'delivers', label: 'delivers' }
+        );
+
+        // Integration opportunities
+        edges.push(
+            { source: 'Opp_MBSE_AI', target: 'WG_MBSE', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_MBSE_AI', target: 'WG_AI_Systems', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_Decision_Risk_Safety', target: 'WG_DecisionAnalysis', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_Decision_Risk_Safety', target: 'WG_RiskMgmt', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_Decision_Risk_Safety', target: 'WG_SystemSafety', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_Sustainability_Measurement', target: 'WG_Sustainability', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_Sustainability_Measurement', target: 'WG_Measurement', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_Enterprise_Arch_DEIX', target: 'WG_Enterprise', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_Enterprise_Arch_DEIX', target: 'WG_Architecture', type: 'benefits', label: 'benefits' },
+            { source: 'Opp_Enterprise_Arch_DEIX', target: 'WG_DEIX', type: 'benefits', label: 'benefits' }
+        );
+
+        // SCQA relationships
+        edges.push(
+            { source: 'KSWG_Complication', target: 'KSWG_Situation', type: 'occursIn', label: 'occurs in' },
+            { source: 'KSWG_Question', target: 'KSWG_Complication', type: 'raisedBy', label: 'raised by' },
+            { source: 'KSWG_Answer', target: 'KSWG_Question', type: 'addresses', label: 'addresses' },
+            { source: 'KSWG_Answer', target: 'KSWG_Support_Understanding', type: 'supportedBy', label: 'supported by' },
+            { source: 'KSWG_Answer', target: 'KSWG_Support_Communication', type: 'supportedBy', label: 'supported by' },
+            { source: 'KSWG_Answer', target: 'KSWG_Support_Coordination', type: 'supportedBy', label: 'supported by' },
+            { source: 'KSWG_Answer', target: 'KSWG_Support_Impact', type: 'supportedBy', label: 'supported by' }
+        );
+
+        // Color scheme by category
+        const colorScheme = {
+            'Working Group': '#2a5298',
+            'Value Type': '#f093fb',
+            'Intelligence': '#4facfe',
+            'Technology': '#43e97b',
+            'Integration': '#feca57',
+            'SCQA': '#fa709a',
+            'Support': '#ff6b6b'
+        };
+
+        // SVG setup
+        const svg = d3.select('#graph');
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        svg.attr('viewBox', [0, 0, width, height]);
+
+        const g = svg.append('g');
+
+        // Zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on('zoom', (event) => {
+                g.attr('transform', event.transform);
+                d3.select('#zoomLevel').text(Math.round(event.transform.k * 100) + '%');
+            });
+
+        svg.call(zoom);
+
+        // Force simulation
+        let simulation = d3.forceSimulation(allNodes)
+            .force('link', d3.forceLink(edges).id(d => d.id).distance(120))
+            .force('charge', d3.forceManyBody().strength(-300))
+            .force('center', d3.forceCenter(width / 2, height / 2))
+            .force('collision', d3.forceCollide().radius(30));
+
+        // Create links
+        const link = g.append('g')
+            .selectAll('path')
+            .data(edges)
+            .join('path')
+            .attr('class', d => d.type === 'collaboration' ? 'link collaboration' : 'link')
+            .attr('marker-end', 'url(#arrowhead)');
+
+        // Arrow marker
+        svg.append('defs').append('marker')
+            .attr('id', 'arrowhead')
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 22)
+            .attr('refY', 0)
+            .attr('markerWidth', 6)
+            .attr('markerHeight', 6)
+            .attr('orient', 'auto')
+            .append('path')
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', 'rgba(255,255,255,0.6)');
+
+        // Create nodes
+        const node = g.append('g')
+            .selectAll('g')
+            .data(allNodes)
+            .join('g')
+            .attr('class', 'node')
+            .call(d3.drag()
+                .on('start', dragstarted)
+                .on('drag', dragged)
+                .on('end', dragended))
+            .on('click', showInfo);
+
+        node.append('circle')
+            .attr('r', d => d.category === 'Working Group' ? 12 : 8)
+            .attr('fill', d => colorScheme[d.category] || '#999');
+
+        node.append('text')
+            .attr('x', 14)
+            .attr('y', 4)
+            .text(d => d.abbr || d.label);
+
+        // Update positions
+        simulation.on('tick', () => {
+            link.attr('d', d => {
+                const dx = d.target.x - d.source.x;
+                const dy = d.target.y - d.source.y;
+                const dr = Math.sqrt(dx * dx + dy * dy);
+                return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+            });
+
+            node.attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+
+        // Drag functions
+        function dragstarted(event) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            event.subject.fx = event.subject.x;
+            event.subject.fy = event.subject.y;
+        }
+
+        function dragged(event) {
+            event.subject.fx = event.x;
+            event.subject.fy = event.y;
+        }
+
+        function dragended(event) {
+            if (!event.active) simulation.alphaTarget(0);
+            event.subject.fx = null;
+            event.subject.fy = null;
+        }
+
+        // Show node info
+        function showInfo(event, d) {
+            const panel = document.getElementById('info-panel');
+            const content = document.getElementById('info-content');
+            
+            let html = `<h3>${d.label}</h3>`;
+            
+            html += `<div class="info-section">
+                <div class="label">Category</div>
+                <div class="value">${d.category}</div>
+            </div>`;
+            
+            if (d.description) {
+                html += `<div class="info-section">
+                    <div class="label">Description</div>
+                    <div class="value">${d.description}</div>
+                </div>`;
+            }
+            
+            if (d.domain) {
+                html += `<div class="info-section">
+                    <div class="label">Domain Focus</div>
+                    <div class="value">${d.domain}</div>
+                </div>`;
+            }
+            
+            if (d.practice) {
+                html += `<div class="info-section">
+                    <div class="label">Practice Area</div>
+                    <div class="value">${d.practice}</div>
+                </div>`;
+            }
+            
+            // Find connections
+            const outgoing = edges.filter(e => e.source.id === d.id);
+            const incoming = edges.filter(e => e.target.id === d.id);
+            
+            if (outgoing.length > 0) {
+                html += `<div class="info-section">
+                    <div class="label">Outgoing (${outgoing.length})</div>
+                    <div class="value">`;
+                outgoing.forEach(c => {
+                    html += `→ ${c.target.label || c.target.id} <em>(${c.label})</em><br>`;
+                });
+                html += `</div></div>`;
+            }
+            
+            if (incoming.length > 0) {
+                html += `<div class="info-section">
+                    <div class="label">Incoming (${incoming.length})</div>
+                    <div class="value">`;
+                incoming.forEach(c => {
+                    html += `← ${c.source.label || c.source.id} <em>(${c.label})</em><br>`;
+                });
+                html += `</div></div>`;
+            }
+            
+            content.innerHTML = html;
+            panel.style.display = 'block';
+            
+            // Highlight connected nodes
+            link.classed('highlighted', e => e.source.id === d.id || e.target.id === d.id);
+            node.classed('highlighted', n => {
+                return n.id === d.id || 
+                       edges.some(e => (e.source.id === d.id && e.target.id === n.id) || 
+                                      (e.target.id === d.id && e.source.id === n.id));
+            });
+        }
+
+        window.closeInfo = function() {
+            document.getElementById('info-panel').style.display = 'none';
+            link.classed('highlighted', false);
+            node.classed('highlighted', false);
+        }
+
+        // Highlight KSWG hub
+        window.highlightKSWG = function() {
+            const kswg = allNodes.find(n => n.id === 'WG_KnowledgeSystems');
+            if (kswg) {
+                showInfo(null, kswg);
+            }
+        }
+
+        // Controls
+        document.getElementById('nodeSize').addEventListener('input', function() {
+            node.select('circle').attr('r', d => {
+                const baseSize = parseFloat(this.value);
+                return d.category === 'Working Group' ? baseSize * 1.2 : baseSize;
+            });
+        });
+
+        document.getElementById('linkDistance').addEventListener('input', function() {
+            simulation.force('link').distance(this.value);
+            simulation.alpha(0.3).restart();
+        });
+
+        document.getElementById('chargeStrength').addEventListener('input', function() {
+            simulation.force('charge').strength(this.value);
+            simulation.alpha(0.3).restart();
+        });
+
+        document.getElementById('labelMode').addEventListener('change', function() {
+            const mode = this.value;
+            node.select('text').style('display', d => {
+                if (mode === 'none') return 'none';
+                if (mode === 'wg') return d.category === 'Working Group' ? 'block' : 'none';
+                return 'block';
+            });
+        });
+
+        // Search functionality
+        const wgList = document.getElementById('wgList');
+        const searchInput = document.getElementById('wgSearch');
+        
+        function updateWGList(filter = '') {
+            const filtered = ontologyData.workingGroups.filter(wg => 
+                wg.label.toLowerCase().includes(filter.toLowerCase())
+            );
+            
+            wgList.innerHTML = filtered.map(wg => 
+                `<div onclick="focusOnNode('${wg.id}')">${wg.label}</div>`
+            ).join('');
+        }
+        
+        updateWGList();
+        
+        searchInput.addEventListener('input', function() {
+            updateWGList(this.value);
+        });
+        
+        window.focusOnNode = function(nodeId) {
+            const nodeData = allNodes.find(n => n.id === nodeId);
+            if (nodeData) {
+                showInfo(null, nodeData);
+                
+                // Zoom to node
+                const scale = 1.5;
+                const translate = [
+                    width / 2 - scale * nodeData.x,
+                    height / 2 - scale * nodeData.y
+                ];
+                
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+            }
+        }
+
+        // Category filters
+        const categories = [...new Set(allNodes.map(n => n.category))];
+        const activeCategories = new Set(categories);
+
+        const filterContainer = document.getElementById('categoryFilters');
+        categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'filter-btn active';
+            btn.textContent = cat;
+            btn.onclick = () => {
+                if (activeCategories.has(cat)) {
+                    activeCategories.delete(cat);
+                    btn.classList.remove('active');
+                } else {
+                    activeCategories.add(cat);
+                    btn.classList.add('active');
+                }
+                updateVisibility();
+            };
+            filterContainer.appendChild(btn);
+        });
+
+        function updateVisibility() {
+            node.style('opacity', d => activeCategories.has(d.category) ? 1 : 0.1);
+            link.style('opacity', d => {
+                return activeCategories.has(d.source.category) && activeCategories.has(d.target.category) ? 1 : 0.1;
+            });
+        }
+
+        // Legend
+        const legendContent = document.getElementById('legendContent');
+        Object.entries(colorScheme).forEach(([category, color]) => {
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            item.innerHTML = `<div class="legend-color" style="background:${color}"></div>${category}`;
+            legendContent.appendChild(item);
+        });
+
+        // Stats
+        const wgCount = ontologyData.workingGroups.length;
+        document.getElementById('wgCount').textContent = wgCount;
+        document.getElementById('nodeCount').textContent = allNodes.length;
+        document.getElementById('edgeCount').textContent = edges.length;
+
+        // Initial zoom to fit
+        setTimeout(() => {
+            const bounds = g.node().getBBox();
+            const fullWidth = bounds.width;
+            const fullHeight = bounds.height;
+            const midX = bounds.x + fullWidth / 2;
+            const midY = bounds.y + fullHeight / 2;
+            
+            const scale = 0.7 / Math.max(fullWidth / width, fullHeight / height);
+            const translate = [width / 2 - scale * midX, height / 2 - scale * midY];
+            
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+        }, 1000);
+        } // End initializeGraph
+    </script>
+</body>
+</html>

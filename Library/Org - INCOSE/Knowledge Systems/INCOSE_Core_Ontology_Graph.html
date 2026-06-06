@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INCOSE SEBoK Core Ontology - Complete Graph (53 Nodes)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        #header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        #controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        label {
+            font-size: 13px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        select, button {
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e0;
+            font-size: 13px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        #graph-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 180px);
+            overflow: auto;
+        }
+
+        #graph {
+            width: 2400px;
+            height: 1600px;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 100%);
+            cursor: grab;
+        }
+
+        #graph.grabbing {
+            cursor: grabbing;
+        }
+
+        .node {
+            cursor: move;
+            user-select: none;
+        }
+
+        .node circle {
+            stroke-width: 2px;
+            stroke: white;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            transition: all 0.2s;
+        }
+
+        .node:hover circle {
+            stroke-width: 4px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+        }
+
+        .node text {
+            font-size: 10px;
+            font-weight: 500;
+            pointer-events: none;
+            fill: #2d3748;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+        }
+
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.4;
+            stroke-width: 1.5;
+            fill: none;
+            marker-end: url(#arrow);
+        }
+
+        .link.subclass {
+            stroke: #cbd5e0;
+            stroke-width: 2;
+        }
+
+        .link.produces {
+            stroke: #48bb78;
+            stroke-dasharray: 4;
+        }
+
+        .link.consumes {
+            stroke: #4299e1;
+            stroke-dasharray: 4;
+        }
+
+        .link.has {
+            stroke: #9f7aea;
+        }
+
+        .link.precedes {
+            stroke: #ed8936;
+        }
+
+        #tooltip {
+            position: fixed;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            pointer-events: none;
+            display: none;
+            max-width: 300px;
+            z-index: 1000;
+            font-size: 13px;
+        }
+
+        .tooltip-type {
+            color: #667eea;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .tooltip-description {
+            color: #4a5568;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        #legend {
+            position: fixed;
+            top: 200px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 11px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2d3748;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            margin-right: 6px;
+        }
+
+        #stats {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 12px;
+        }
+
+        .stat-item {
+            margin: 5px 0;
+            color: #4a5568;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        #zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid #cbd5e0;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .zoom-btn:hover {
+            background: #f7fafc;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔷 INCOSE SEBoK Core Ontology - Complete Interactive Graph</h1>
+        <div class="subtitle">53 Nodes • 90+ Relationships • Full Ontology Structure</div>
+    </div>
+
+    <div id="controls">
+        <div class="control-group">
+            <label>View:</label>
+            <select id="viewSelector">
+                <option value="full">Complete Ontology (53 nodes)</option>
+                <option value="systems">System Hierarchy</option>
+                <option value="lifecycle">Life Cycle Model</option>
+                <option value="processes">Process Framework</option>
+                <option value="artifacts">Artifacts & Requirements</option>
+                <option value="stakeholders">Stakeholder View</option>
+                <option value="quality">Quality Attributes</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Layout:</label>
+            <select id="layoutSelector">
+                <option value="hierarchical">Hierarchical</option>
+                <option value="circular">Circular</option>
+                <option value="force">Force-Directed</option>
+            </select>
+        </div>
+        <button id="resetBtn">Reset View</button>
+        <button id="animateBtn">Animate Layout</button>
+        <button id="fitBtn">Fit to Screen</button>
+    </div>
+
+    <div id="graph-container">
+        <svg id="graph"></svg>
+        <div id="tooltip">
+            <div class="tooltip-type"></div>
+            <div class="tooltip-title"></div>
+            <div class="tooltip-description"></div>
+        </div>
+        <div id="legend">
+            <div class="legend-title">Node Types</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #667eea;"></div>
+                <div>System (6)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #48bb78;"></div>
+                <div>Process (20)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ed8936;"></div>
+                <div>Artifact (8)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e53e3e;"></div>
+                <div>Requirement (5)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9f7aea;"></div>
+                <div>LifeCycle (7)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #38b2ac;"></div>
+                <div>Stakeholder (5)</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f6ad55;"></div>
+                <div>QualityAttr (4)</div>
+            </div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+                <div class="legend-title">Relationship Types</div>
+                <div style="margin: 4px 0;">
+                    <span style="color: #cbd5e0;">━━</span> Subclass
+                </div>
+                <div style="margin: 4px 0;">
+                    <span style="color: #48bb78;">- -</span> Produces
+                </div>
+                <div style="margin: 4px 0;">
+                    <span style="color: #4299e1;">- -</span> Consumes
+                </div>
+                <div style="margin: 4px 0;">
+                    <span style="color: #9f7aea;">━━</span> Has
+                </div>
+                <div style="margin: 4px 0;">
+                    <span style="color: #ed8936;">━━</span> Precedes
+                </div>
+            </div>
+        </div>
+        <div id="stats">
+            <div class="stat-item">Nodes: <span class="stat-value" id="nodeCount">0</span></div>
+            <div class="stat-item">Edges: <span class="stat-value" id="edgeCount">0</span></div>
+            <div class="stat-item">Types: <span class="stat-value" id="typeCount">0</span></div>
+        </div>
+        <div id="zoom-controls">
+            <div class="zoom-btn" id="zoomIn">+</div>
+            <div class="zoom-btn" id="zoomOut">−</div>
+        </div>
+    </div>
+
+    <script>
+        // Complete Ontology Data - 53 Nodes
+        const ontologyData = {
+            nodes: [
+                // System Hierarchy (6 nodes)
+                {id: 'System', type: 'System', level: 0, x: 400, y: 100, desc: 'Integrated combination of elements to accomplish objective'},
+                {id: 'EngineeredSystem', type: 'System', level: 1, x: 400, y: 200, desc: 'Technical/socio-technical system designed for purpose'},
+                {id: 'ProductSystem', type: 'System', level: 2, x: 200, y: 300, desc: 'Tangible goods fulfilling specific functions'},
+                {id: 'ServiceSystem', type: 'System', level: 2, x: 350, y: 300, desc: 'Intangible value delivery system'},
+                {id: 'EnterpriseSystem', type: 'System', level: 2, x: 500, y: 300, desc: 'Organization achieving common goals'},
+                {id: 'SystemOfSystems', type: 'System', level: 2, x: 650, y: 300, desc: 'Integrated independent systems providing unique capabilities'},
+                
+                // Life Cycle (7 nodes)
+                {id: 'LifeCycle', type: 'LifeCycle', level: 0, x: 1200, y: 100, desc: 'Evolution from conception through retirement'},
+                {id: 'LifeCycleModel', type: 'LifeCycle', level: 1, x: 1200, y: 200, desc: 'Framework of processes organized into stages'},
+                {id: 'ConceptStage', type: 'LifeCycle', level: 2, x: 900, y: 350, desc: 'Initial needs identification and solution concepts'},
+                {id: 'DevelopmentStage', type: 'LifeCycle', level: 2, x: 1050, y: 350, desc: 'System definition and detailed design'},
+                {id: 'ProductionStage', type: 'LifeCycle', level: 2, x: 1200, y: 350, desc: 'Manufacturing and construction'},
+                {id: 'UtilizationStage', type: 'LifeCycle', level: 2, x: 1350, y: 350, desc: 'Operational use and value delivery'},
+                {id: 'SupportStage', type: 'LifeCycle', level: 2, x: 1500, y: 350, desc: 'Maintenance and sustainment'},
+                
+                // Process Hierarchy - Technical Management (10 nodes)
+                {id: 'Process', type: 'Process', level: 0, x: 200, y: 500, desc: 'Activities transforming inputs into outputs'},
+                {id: 'TechnicalManagement', type: 'Process', level: 1, x: 100, y: 650, desc: 'Managing technical resources and activities'},
+                {id: 'ProjectPlanning', type: 'Process', level: 2, x: 50, y: 800, desc: 'Developing project plans and strategies'},
+                {id: 'ProjectAssessment', type: 'Process', level: 2, x: 150, y: 800, desc: 'Assessing progress and implementing corrections'},
+                {id: 'DecisionManagement', type: 'Process', level: 2, x: 50, y: 900, desc: 'Making informed structured decisions'},
+                {id: 'RiskManagement', type: 'Process', level: 2, x: 150, y: 900, desc: 'Identifying and managing risks'},
+                {id: 'ConfigurationMgmt', type: 'Process', level: 2, x: 50, y: 1000, desc: 'Managing system configurations and integrity'},
+                {id: 'InformationMgmt', type: 'Process', level: 2, x: 150, y: 1000, desc: 'Managing life cycle information'},
+                {id: 'RequirementsMgmt', type: 'Process', level: 2, x: 50, y: 1100, desc: 'Managing requirements and changes'},
+                {id: 'QualityManagement', type: 'Process', level: 2, x: 150, y: 1100, desc: 'Ensuring quality objectives are met'},
+                
+                // Process - System Definition (5 nodes)
+                {id: 'SystemDefinition', type: 'Process', level: 1, x: 350, y: 650, desc: 'Defining system from concept to design'},
+                {id: 'BusinessAnalysis', type: 'Process', level: 2, x: 300, y: 800, desc: 'Defining business problems and opportunities'},
+                {id: 'StakeholderNeeds', type: 'Process', level: 2, x: 400, y: 800, desc: 'Eliciting and analyzing stakeholder requirements'},
+                {id: 'SystemRequirements', type: 'Process', level: 2, x: 300, y: 900, desc: 'Transforming to technical requirements'},
+                {id: 'ArchitectureDesign', type: 'Process', level: 2, x: 400, y: 900, desc: 'Synthesizing solution architecture'},
+                
+                // Process - System Realization (4 nodes)
+                {id: 'SystemRealization', type: 'Process', level: 1, x: 600, y: 650, desc: 'Transforming designs into physical reality'},
+                {id: 'SystemAnalysis', type: 'Process', level: 2, x: 550, y: 800, desc: 'Understanding and evaluating system characteristics'},
+                {id: 'Implementation', type: 'Process', level: 2, x: 650, y: 800, desc: 'Creating system elements per specifications'},
+                {id: 'Integration', type: 'Process', level: 2, x: 550, y: 900, desc: 'Combining elements to form configurations'},
+                {id: 'Verification', type: 'Process', level: 2, x: 650, y: 900, desc: 'Confirming requirements satisfaction'},
+                
+                // Process - Deployment (3 nodes)
+                {id: 'SystemDeployment', type: 'Process', level: 1, x: 850, y: 650, desc: 'Deploying and using the system'},
+                {id: 'Validation', type: 'Process', level: 2, x: 800, y: 800, desc: 'Confirming intended use fulfillment'},
+                {id: 'Operation', type: 'Process', level: 2, x: 900, y: 800, desc: 'Operating system to deliver value'},
+                {id: 'Maintenance', type: 'Process', level: 2, x: 850, y: 900, desc: 'Sustaining system capability'},
+                
+                // Artifacts (8 nodes)
+                {id: 'Artifact', type: 'Artifact', level: 0, x: 1200, y: 500, desc: 'Tangible/intangible product created during processes'},
+                {id: 'Architecture', type: 'Artifact', level: 1, x: 1100, y: 650, desc: 'Fundamental system structure and properties'},
+                {id: 'FunctionalArch', type: 'Artifact', level: 2, x: 1000, y: 750, desc: 'Functions and their relationships'},
+                {id: 'LogicalArch', type: 'Artifact', level: 2, x: 1100, y: 750, desc: 'Logical elements independent of implementation'},
+                {id: 'PhysicalArch', type: 'Artifact', level: 2, x: 1200, y: 750, desc: 'Physical elements and arrangement'},
+                {id: 'Model', type: 'Artifact', level: 1, x: 1300, y: 650, desc: 'Representation of system concepts'},
+                {id: 'Specification', type: 'Artifact', level: 1, x: 1200, y: 800, desc: 'Documented requirements and design'},
+                {id: 'ConfigurationItem', type: 'Artifact', level: 1, x: 1300, y: 800, desc: 'Entity within configuration'},
+                
+                // Requirements (5 nodes)
+                {id: 'Requirement', type: 'Requirement', level: 1, x: 1500, y: 650, desc: 'Statement of necessary capability'},
+                {id: 'StakeholderReq', type: 'Requirement', level: 2, x: 1450, y: 750, desc: 'Stakeholder-expressed needs'},
+                {id: 'SystemReq', type: 'Requirement', level: 2, x: 1550, y: 750, desc: 'Technical system requirements'},
+                {id: 'FunctionalReq', type: 'Requirement', level: 3, x: 1500, y: 850, desc: 'Required system functions'},
+                {id: 'NonFunctionalReq', type: 'Requirement', level: 3, x: 1600, y: 850, desc: 'Quality attributes and constraints'},
+                
+                // Stakeholders (5 nodes)
+                {id: 'Stakeholder', type: 'Stakeholder', level: 0, x: 1800, y: 500, desc: 'Individual with interest in system'},
+                {id: 'SystemsEngineer', type: 'Stakeholder', level: 1, x: 1700, y: 650, desc: 'SE professional applying principles'},
+                {id: 'ProjectManager', type: 'Stakeholder', level: 1, x: 1800, y: 650, desc: 'Project planning and execution'},
+                {id: 'Customer', type: 'Stakeholder', level: 1, x: 1900, y: 650, desc: 'Service beneficiary'},
+                {id: 'Operator', type: 'Stakeholder', level: 1, x: 1800, y: 750, desc: 'System operator delivering services'},
+                
+                // Quality Attributes (4 nodes)
+                {id: 'QualityAttribute', type: 'QualityAttr', level: 0, x: 2100, y: 500, desc: 'System quality characteristics'},
+                {id: 'Reliability', type: 'QualityAttr', level: 1, x: 2050, y: 650, desc: 'Performance under stated conditions'},
+                {id: 'Safety', type: 'QualityAttr', level: 1, x: 2150, y: 650, desc: 'Freedom from unacceptable risk'},
+                {id: 'Security', type: 'QualityAttr', level: 1, x: 2100, y: 750, desc: 'Protection from threats'}
+            ],
+            
+            links: [
+                // System hierarchy (5 links)
+                {source: 'System', target: 'EngineeredSystem', type: 'subclass'},
+                {source: 'EngineeredSystem', target: 'ProductSystem', type: 'subclass'},
+                {source: 'EngineeredSystem', target: 'ServiceSystem', type: 'subclass'},
+                {source: 'EngineeredSystem', target: 'EnterpriseSystem', type: 'subclass'},
+                {source: 'EngineeredSystem', target: 'SystemOfSystems', type: 'subclass'},
+                
+                // Life Cycle relationships (10 links)
+                {source: 'EngineeredSystem', target: 'LifeCycle', type: 'has'},
+                {source: 'LifeCycle', target: 'LifeCycleModel', type: 'has'},
+                {source: 'LifeCycleModel', target: 'ConceptStage', type: 'has'},
+                {source: 'LifeCycleModel', target: 'DevelopmentStage', type: 'has'},
+                {source: 'LifeCycleModel', target: 'ProductionStage', type: 'has'},
+                {source: 'LifeCycleModel', target: 'UtilizationStage', type: 'has'},
+                {source: 'LifeCycleModel', target: 'SupportStage', type: 'has'},
+                {source: 'ConceptStage', target: 'DevelopmentStage', type: 'precedes'},
+                {source: 'DevelopmentStage', target: 'ProductionStage', type: 'precedes'},
+                {source: 'ProductionStage', target: 'UtilizationStage', type: 'precedes'},
+                
+                // Process hierarchy - Technical Management (9 links)
+                {source: 'Process', target: 'TechnicalManagement', type: 'subclass'},
+                {source: 'TechnicalManagement', target: 'ProjectPlanning', type: 'subclass'},
+                {source: 'TechnicalManagement', target: 'ProjectAssessment', type: 'subclass'},
+                {source: 'TechnicalManagement', target: 'DecisionManagement', type: 'subclass'},
+                {source: 'TechnicalManagement', target: 'RiskManagement', type: 'subclass'},
+                {source: 'TechnicalManagement', target: 'ConfigurationMgmt', type: 'subclass'},
+                {source: 'TechnicalManagement', target: 'InformationMgmt', type: 'subclass'},
+                {source: 'TechnicalManagement', target: 'RequirementsMgmt', type: 'subclass'},
+                {source: 'TechnicalManagement', target: 'QualityManagement', type: 'subclass'},
+                
+                // Process - System Definition (5 links)
+                {source: 'Process', target: 'SystemDefinition', type: 'subclass'},
+                {source: 'SystemDefinition', target: 'BusinessAnalysis', type: 'subclass'},
+                {source: 'SystemDefinition', target: 'StakeholderNeeds', type: 'subclass'},
+                {source: 'SystemDefinition', target: 'SystemRequirements', type: 'subclass'},
+                {source: 'SystemDefinition', target: 'ArchitectureDesign', type: 'subclass'},
+                
+                // Process - Realization (5 links)
+                {source: 'Process', target: 'SystemRealization', type: 'subclass'},
+                {source: 'SystemRealization', target: 'SystemAnalysis', type: 'subclass'},
+                {source: 'SystemRealization', target: 'Implementation', type: 'subclass'},
+                {source: 'SystemRealization', target: 'Integration', type: 'subclass'},
+                {source: 'SystemRealization', target: 'Verification', type: 'subclass'},
+                
+                // Process - Deployment (4 links)
+                {source: 'Process', target: 'SystemDeployment', type: 'subclass'},
+                {source: 'SystemDeployment', target: 'Validation', type: 'subclass'},
+                {source: 'SystemDeployment', target: 'Operation', type: 'subclass'},
+                {source: 'SystemDeployment', target: 'Maintenance', type: 'subclass'},
+                
+                // Process flows (6 links)
+                {source: 'BusinessAnalysis', target: 'StakeholderNeeds', type: 'precedes'},
+                {source: 'StakeholderNeeds', target: 'SystemRequirements', type: 'precedes'},
+                {source: 'SystemRequirements', target: 'ArchitectureDesign', type: 'precedes'},
+                {source: 'ArchitectureDesign', target: 'Implementation', type: 'precedes'},
+                {source: 'Implementation', target: 'Integration', type: 'precedes'},
+                {source: 'Integration', target: 'Verification', type: 'precedes'},
+                
+                // Process to Stage (8 links)
+                {source: 'BusinessAnalysis', target: 'ConceptStage', type: 'appliedIn'},
+                {source: 'StakeholderNeeds', target: 'ConceptStage', type: 'appliedIn'},
+                {source: 'SystemRequirements', target: 'ConceptStage', type: 'appliedIn'},
+                {source: 'ArchitectureDesign', target: 'DevelopmentStage', type: 'appliedIn'},
+                {source: 'Implementation', target: 'DevelopmentStage', type: 'appliedIn'},
+                {source: 'Verification', target: 'DevelopmentStage', type: 'appliedIn'},
+                {source: 'Validation', target: 'UtilizationStage', type: 'appliedIn'},
+                {source: 'Operation', target: 'UtilizationStage', type: 'appliedIn'},
+                
+                // Artifact hierarchy (8 links)
+                {source: 'Artifact', target: 'Architecture', type: 'subclass'},
+                {source: 'Artifact', target: 'Model', type: 'subclass'},
+                {source: 'Artifact', target: 'Specification', type: 'subclass'},
+                {source: 'Artifact', target: 'ConfigurationItem', type: 'subclass'},
+                {source: 'Architecture', target: 'FunctionalArch', type: 'subclass'},
+                {source: 'Architecture', target: 'LogicalArch', type: 'subclass'},
+                {source: 'Architecture', target: 'PhysicalArch', type: 'subclass'},
+                {source: 'Artifact', target: 'Requirement', type: 'subclass'},
+                
+                // Requirements hierarchy (4 links)
+                {source: 'Requirement', target: 'StakeholderReq', type: 'subclass'},
+                {source: 'Requirement', target: 'SystemReq', type: 'subclass'},
+                {source: 'SystemReq', target: 'FunctionalReq', type: 'subclass'},
+                {source: 'SystemReq', target: 'NonFunctionalReq', type: 'subclass'},
+                
+                // Process produces artifacts (7 links)
+                {source: 'StakeholderNeeds', target: 'StakeholderReq', type: 'produces'},
+                {source: 'SystemRequirements', target: 'SystemReq', type: 'produces'},
+                {source: 'ArchitectureDesign', target: 'Architecture', type: 'produces'},
+                {source: 'ArchitectureDesign', target: 'Model', type: 'produces'},
+                {source: 'SystemRequirements', target: 'Specification', type: 'produces'},
+                {source: 'ConfigurationMgmt', target: 'ConfigurationItem', type: 'produces'},
+                {source: 'SystemAnalysis', target: 'Model', type: 'produces'},
+                
+                // Process consumes artifacts (5 links)
+                {source: 'SystemRequirements', target: 'StakeholderReq', type: 'consumes'},
+                {source: 'ArchitectureDesign', target: 'SystemReq', type: 'consumes'},
+                {source: 'Implementation', target: 'Architecture', type: 'consumes'},
+                {source: 'Verification', target: 'SystemReq', type: 'consumes'},
+                {source: 'Validation', target: 'StakeholderReq', type: 'consumes'},
+                
+                // Requirements traceability (3 links)
+                {source: 'StakeholderReq', target: 'SystemReq', type: 'derivedFrom'},
+                {source: 'FunctionalReq', target: 'FunctionalArch', type: 'satisfiedBy'},
+                {source: 'LogicalArch', target: 'FunctionalArch', type: 'realizes'},
+                
+                // System relationships (4 links)
+                {source: 'EngineeredSystem', target: 'Requirement', type: 'has'},
+                {source: 'EngineeredSystem', target: 'Architecture', type: 'has'},
+                {source: 'EngineeredSystem', target: 'Stakeholder', type: 'has'},
+                {source: 'EngineeredSystem', target: 'QualityAttribute', type: 'has'},
+                
+                // Stakeholder hierarchy (4 links)
+                {source: 'Stakeholder', target: 'SystemsEngineer', type: 'subclass'},
+                {source: 'Stakeholder', target: 'ProjectManager', type: 'subclass'},
+                {source: 'Stakeholder', target: 'Customer', type: 'subclass'},
+                {source: 'Stakeholder', target: 'Operator', type: 'subclass'},
+                
+                // Stakeholder relationships (3 links)
+                {source: 'StakeholderReq', target: 'Customer', type: 'expressedBy'},
+                {source: 'SystemsEngineer', target: 'ArchitectureDesign', type: 'performs'},
+                {source: 'ProjectManager', target: 'ProjectPlanning', type: 'performs'},
+                
+                // Quality attributes (3 links)
+                {source: 'QualityAttribute', target: 'Reliability', type: 'subclass'},
+                {source: 'QualityAttribute', target: 'Safety', type: 'subclass'},
+                {source: 'QualityAttribute', target: 'Security', type: 'subclass'}
+            ]
+        };
+
+        const colors = {
+            System: '#667eea',
+            Process: '#48bb78',
+            Artifact: '#ed8936',
+            Requirement: '#e53e3e',
+            LifeCycle: '#9f7aea',
+            Stakeholder: '#38b2ac',
+            QualityAttr: '#f6ad55'
+        };
+
+        // Setup SVG
+        const svg = document.getElementById('graph');
+        const container = document.getElementById('graph-container');
+        
+        let scale = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let startPanX, startPanY;
+
+        // Create arrow marker
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrow');
+        marker.setAttribute('viewBox', '0 0 10 10');
+        marker.setAttribute('refX', '20');
+        marker.setAttribute('refY', '5');
+        marker.setAttribute('markerWidth', '6');
+        marker.setAttribute('markerHeight', '6');
+        marker.setAttribute('orient', 'auto-start-reverse');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+        path.setAttribute('fill', '#999');
+        marker.appendChild(path);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+
+        const linksGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        svg.appendChild(linksGroup);
+        svg.appendChild(nodesGroup);
+
+        let currentData = JSON.parse(JSON.stringify(ontologyData));
+        let animating = false;
+
+        function drawGraph(data) {
+            linksGroup.innerHTML = '';
+            nodesGroup.innerHTML = '';
+
+            const nodeMap = {};
+            data.nodes.forEach(n => nodeMap[n.id] = n);
+
+            // Draw links
+            data.links.forEach(link => {
+                const source = nodeMap[link.source];
+                const target = nodeMap[link.target];
+                if (!source || !target) return;
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', `link ${link.type}`);
+                line.setAttribute('x1', source.x);
+                line.setAttribute('y1', source.y);
+                line.setAttribute('x2', target.x);
+                line.setAttribute('y2', target.y);
+                linksGroup.appendChild(line);
+            });
+
+            // Draw nodes
+            data.nodes.forEach(node => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'node');
+                g.setAttribute('transform', `translate(${node.x},${node.y})`);
+
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('r', 7 + node.level * 1.5);
+                circle.setAttribute('fill', colors[node.type] || '#718096');
+                g.appendChild(circle);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', 10);
+                text.setAttribute('y', 3);
+                text.textContent = node.id;
+                g.appendChild(text);
+
+                // Tooltip
+                g.addEventListener('mouseenter', (e) => {
+                    const tooltip = document.getElementById('tooltip');
+                    tooltip.querySelector('.tooltip-type').textContent = node.type;
+                    tooltip.querySelector('.tooltip-title').textContent = node.id;
+                    tooltip.querySelector('.tooltip-description').textContent = node.desc;
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.clientX + 10) + 'px';
+                    tooltip.style.top = (e.clientY - 10) + 'px';
+                });
+
+                g.addEventListener('mouseleave', () => {
+                    document.getElementById('tooltip').style.display = 'none';
+                });
+
+                // Drag
+                let isDragging = false;
+                let startX, startY;
+
+                g.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    const rect = svg.getBoundingClientRect();
+                    startX = (e.clientX - rect.left - panX) / scale - node.x;
+                    startY = (e.clientY - rect.top - panY) / scale - node.y;
+                    e.stopPropagation();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        const rect = svg.getBoundingClientRect();
+                        node.x = (e.clientX - rect.left - panX) / scale - startX;
+                        node.y = (e.clientY - rect.top - panY) / scale - startY;
+                        drawGraph(currentData);
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+
+                nodesGroup.appendChild(g);
+            });
+
+            // Update stats
+            document.getElementById('nodeCount').textContent = data.nodes.length;
+            document.getElementById('edgeCount').textContent = data.links.length;
+            document.getElementById('typeCount').textContent = new Set(data.nodes.map(n => n.type)).size;
+        }
+
+        // Panning
+        svg.addEventListener('mousedown', (e) => {
+            if (e.target === svg || e.target.tagName === 'line') {
+                isPanning = true;
+                svg.classList.add('grabbing');
+                startPanX = e.clientX - panX;
+                startPanY = e.clientY - panY;
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                panX = e.clientX - startPanX;
+                panY = e.clientY - startPanY;
+                svg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isPanning = false;
+            svg.classList.remove('grabbing');
+        });
+
+        // Zoom
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            scale *= 1.2;
+            svg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            scale /= 1.2;
+            svg.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        });
+
+        // Filter
+        function filterData(view) {
+            let nodes = JSON.parse(JSON.stringify(ontologyData.nodes));
+            
+            if (view === 'systems') {
+                nodes = nodes.filter(n => n.type === 'System');
+            } else if (view === 'lifecycle') {
+                nodes = nodes.filter(n => n.type === 'LifeCycle' || n.id === 'EngineeredSystem');
+            } else if (view === 'processes') {
+                nodes = nodes.filter(n => n.type === 'Process');
+            } else if (view === 'artifacts') {
+                nodes = nodes.filter(n => n.type === 'Artifact' || n.type === 'Requirement');
+            } else if (view === 'stakeholders') {
+                nodes = nodes.filter(n => n.type === 'Stakeholder' || n.id === 'EngineeredSystem');
+            } else if (view === 'quality') {
+                nodes = nodes.filter(n => n.type === 'QualityAttr' || n.id === 'EngineeredSystem');
+            }
+
+            const nodeIds = new Set(nodes.map(n => n.id));
+            const links = ontologyData.links.filter(l => 
+                nodeIds.has(l.source) && nodeIds.has(l.target)
+            );
+
+            return { nodes, links };
+        }
+
+        // Layout algorithms
+        function applyLayout(layout) {
+            if (layout === 'hierarchical') {
+                // Already hierarchical by default
+            } else if (layout === 'circular') {
+                const radius = 600;
+                const center = 1200;
+                currentData.nodes.forEach((n, i) => {
+                    const angle = (i / currentData.nodes.length) * 2 * Math.PI;
+                    n.x = center + radius * Math.cos(angle);
+                    n.y = center + radius * Math.sin(angle);
+                });
+            } else if (layout === 'force') {
+                // Simple force layout
+                for (let i = 0; i < 100; i++) {
+                    currentData.nodes.forEach(node => {
+                        let fx = 0, fy = 0;
+                        currentData.nodes.forEach(other => {
+                            if (other === node) return;
+                            const dx = node.x - other.x;
+                            const dy = node.y - other.y;
+                            const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                            const force = 3000 / (dist * dist);
+                            fx += (dx / dist) * force;
+                            fy += (dy / dist) * force;
+                        });
+                        node.x += fx * 0.01;
+                        node.y += fy * 0.01;
+                    });
+                }
+            }
+            drawGraph(currentData);
+        }
+
+        // Events
+        document.getElementById('viewSelector').addEventListener('change', (e) => {
+            currentData = filterData(e.target.value);
+            drawGraph(currentData);
+        });
+
+        document.getElementById('layoutSelector').addEventListener('change', (e) => {
+            applyLayout(e.target.value);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            currentData = JSON.parse(JSON.stringify(ontologyData));
+            scale = 1;
+            panX = 0;
+            panY = 0;
+            svg.style.transform = '';
+            drawGraph(currentData);
+        });
+
+        document.getElementById('animateBtn').addEventListener('click', (e) => {
+            animating = !animating;
+            e.target.textContent = animating ? 'Stop Animation' : 'Animate Layout';
+            if (animating) animate();
+        });
+
+        document.getElementById('fitBtn').addEventListener('click', () => {
+            scale = 0.6;
+            panX = 0;
+            panY = 0;
+            svg.style.transform = `scale(${scale})`;
+        });
+
+        function animate() {
+            if (!animating) return;
+            
+            currentData.nodes.forEach(node => {
+                let fx = 0, fy = 0;
+                currentData.nodes.forEach(other => {
+                    if (other === node) return;
+                    const dx = node.x - other.x;
+                    const dy = node.y - other.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                    const force = 500 / (dist * dist);
+                    fx += (dx / dist) * force;
+                    fy += (dy / dist) * force;
+                });
+                
+                fx += (1200 - node.x) * 0.005;
+                fy += (800 - node.y) * 0.005;
+                
+                node.vx = (node.vx || 0) * 0.95 + fx * 0.05;
+                node.vy = (node.vy || 0) * 0.95 + fy * 0.05;
+                node.x += node.vx;
+                node.y += node.vy;
+            });
+
+            drawGraph(currentData);
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize
+        drawGraph(currentData);
+    </script>
+</body>
+</html>

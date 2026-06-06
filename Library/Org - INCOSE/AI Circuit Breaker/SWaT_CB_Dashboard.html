@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWaT AI Circuit Breaker — Live Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #1a237e; --teal: #006064; --orange: #e65100;
+    --green: #1b5e20; --red: #b71c1c; --amber: #f57f17;
+    --pass: #c6efce; --pass-d: #1b5e20;
+    --comply: #ffeb9c; --comply-d: #7d5a00;
+    --freeze: #ffcc80; --freeze-d: #e65100;
+    --halt: #ffc7ce; --halt-d: #b71c1c;
+    --bg: #0d1117; --card: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #7d8590;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
+
+  /* ── HEADER ── */
+  .hdr { background: linear-gradient(135deg,#1a237e 0%,#006064 100%);
+         padding: 18px 28px; display: flex; align-items: center; gap: 16px;
+         border-bottom: 2px solid #0097a7; }
+  .hdr-logo { font-size: 28px; }
+  .hdr-title { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  .hdr-sub   { font-size: 11px; color: #b2ebf2; margin-top: 2px; }
+  .hdr-right { margin-left: auto; text-align: right; }
+  .hdr-clock { font-size: 11px; color: #b2ebf2; }
+  .hdr-morphism { font-size: 10px; color: #80cbc4; margin-top: 4px; }
+
+  /* ── LAYOUT ── */
+  .main { display: grid; grid-template-columns: 300px 1fr; gap: 0; height: calc(100vh - 70px); }
+  .sidebar { background: #0d1117; border-right: 1px solid var(--border); overflow-y: auto; padding: 12px; }
+  .content { overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── SIDEBAR TITLE ── */
+  .sidebar-title { font-size: 10px; font-weight: 700; text-transform: uppercase;
+                   color: var(--muted); letter-spacing: 1px; padding: 6px 4px 8px; }
+
+  /* ── AGENT CARD (sidebar) ── */
+  .agent-card { background: var(--card); border: 1px solid var(--border);
+                border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+                cursor: pointer; transition: border-color .2s; }
+  .agent-card:hover, .agent-card.active { border-color: #0097a7; }
+  .agent-card.active { background: #0d2137; }
+  .ac-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .ac-badge  { width: 32px; height: 32px; border-radius: 6px;
+               display: flex; align-items: center; justify-content: center;
+               font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .ac-name   { font-weight: 600; font-size: 12px; }
+  .ac-stage  { font-size: 10px; color: var(--muted); }
+  .ac-verdict { margin-left: auto; font-size: 10px; font-weight: 700;
+                padding: 2px 7px; border-radius: 10px; }
+  .v-PASS   { background: var(--pass);   color: var(--pass-d); }
+  .v-COMPLY { background: var(--comply); color: var(--comply-d); }
+  .v-FREEZE { background: var(--freeze); color: var(--freeze-d); }
+  .v-HALT   { background: var(--halt);   color: var(--halt-d); }
+
+  /* slider */
+  .slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .slider-label { font-size: 10px; color: var(--muted); width: 64px; flex-shrink: 0; }
+  .slider-val   { font-size: 11px; font-weight: 700; color: #0097a7; width: 18px; text-align: right; flex-shrink: 0; }
+  input[type=range] { flex: 1; height: 4px; accent-color: #0097a7; cursor: pointer; }
+  .bar-track { display: flex; gap: 2px; margin-top: 4px; }
+  .bar-seg   { flex: 1; height: 6px; border-radius: 2px; transition: background .15s; }
+  .bar-on    { background: #e65100; }
+  .bar-off   { background: #30363d; }
+
+  /* metric chips */
+  .metric-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .chip { font-size: 9px; padding: 2px 6px; border-radius: 8px;
+          border: 1px solid var(--border); color: var(--muted); }
+  .chip span { color: #0097a7; font-weight: 700; }
+
+  /* ── SCENARIO PICKER ── */
+  .scenario-bar { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .sc-title { font-size: 11px; font-weight: 700; color: #0097a7; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .sc-grid  { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sc-btn   { font-size: 10px; padding: 5px 10px; border-radius: 16px; border: 1px solid var(--border);
+              background: #21262d; color: var(--text); cursor: pointer; transition: all .15s; }
+  .sc-btn:hover  { border-color: #0097a7; color: #0097a7; }
+  .sc-btn.active { background: #0097a7; border-color: #0097a7; color: #fff; }
+  .sc-desc { font-size: 10px; color: var(--muted); margin-top: 8px; min-height: 28px; }
+
+  /* ── GRID CARDS (content area) ── */
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .card-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+
+  /* ── VERDICT MATRIX ── */
+  .matrix { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .mx-cell { border-radius: 6px; padding: 8px 4px; text-align: center; }
+  .mx-plc   { font-size: 10px; font-weight: 700; }
+  .mx-stage { font-size: 9px; opacity: .7; }
+  .mx-verd  { font-size: 11px; font-weight: 800; margin-top: 4px; }
+  .mx-tier  { font-size: 9px; opacity: .8; }
+
+  /* ── COMPOSITION BOX ── */
+  .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .comp-metric { background: #21262d; border-radius: 6px; padding: 10px; }
+  .comp-label  { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .comp-value  { font-size: 20px; font-weight: 800; margin: 4px 0 2px; }
+  .comp-sub    { font-size: 9px; color: var(--muted); }
+  .comp-breach { color: var(--halt-d); background: var(--halt); }
+  .comp-ok     { color: var(--pass-d); }
+  .comp-warn   { color: var(--comply-d); }
+
+  /* ── GAUGE ── */
+  .gauge-wrap { position: relative; width: 120px; height: 70px; margin: 0 auto 6px; }
+  .gauge-label { text-align: center; font-size: 10px; color: var(--muted); }
+  .gauges-row { display: flex; justify-content: space-around; align-items: flex-end; }
+
+  /* ── CHART canvases ── */
+  .chart-wrap { position: relative; height: 180px; }
+
+  /* ── IMPOSSIBLE STATE TABLE ── */
+  .is-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  .is-table th { background: #21262d; color: var(--muted); text-align: left; padding: 5px 8px; font-weight: 600; }
+  .is-table td { border-top: 1px solid var(--border); padding: 5px 8px; vertical-align: top; }
+  .is-table tr:hover td { background: #21262d44; }
+  .is-badge { display: inline-block; padding: 1px 5px; border-radius: 8px; font-size: 9px; font-weight: 700; }
+
+  /* ── FUNCTOR ZONE PILLS ── */
+  .zone-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .zone-pill { padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; cursor: pointer; border: 1px solid transparent; }
+  .zone-pill.active { border-color: #0097a7; }
+
+  /* ── LOG STREAM ── */
+  .log-wrap { background: #010409; border: 1px solid var(--border); border-radius: 6px;
+              height: 120px; overflow-y: auto; padding: 8px; font-family: 'Courier New', monospace; font-size: 10px; }
+  .log-line  { margin-bottom: 3px; }
+  .log-ts    { color: var(--muted); }
+  .log-PASS  { color: #3fb950; }
+  .log-COMPLY{ color: #d29922; }
+  .log-FREEZE{ color: #e65100; }
+  .log-HALT  { color: #f85149; font-weight: 700; }
+  .log-INFO  { color: #58a6ff; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+  /* ── MORPHISM THEOREM BOX ── */
+  .theorem { background: #0d2137; border-left: 3px solid #0097a7; border-radius: 0 6px 6px 0;
+             padding: 8px 12px; font-size: 10px; color: #b2ebf2; margin-bottom: 10px; }
+  .theorem code { font-family: 'Courier New'; color: #80cbc4; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="hdr">
+  <div class="hdr-logo">🔐</div>
+  <div>
+    <div class="hdr-title">SWaT Testbed — AI Circuit Breaker Dashboard</div>
+    <div class="hdr-sub">DARPA CLARA · Morphism-Grounded Compositional Assurance · 6 PLC Agents · Real-Time</div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-clock" id="clock">--:--:--</div>
+    <div class="hdr-morphism">h: Z<sub>ai</sub> → Z<sub>real</sub> &nbsp;|&nbsp; D_h = (D_s, D_b)</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ═══ SIDEBAR ═══ -->
+<div class="sidebar">
+  <div class="sidebar-title">⚙ Agent Sensitivity Controls</div>
+  <div id="agent-cards"></div>
+  <div class="sidebar-title" style="margin-top:8px">💉 Attack Scenarios</div>
+  <div class="scenario-bar">
+    <div class="sc-grid" id="sc-grid"></div>
+    <div class="sc-desc" id="sc-desc"></div>
+  </div>
+</div>
+
+<!-- ═══ CONTENT ═══ -->
+<div class="content">
+
+  <!-- Scenario description banner -->
+  <div class="theorem" id="morphism-box">
+    Composition Theorem: <code>D_s_total ≥ max(D_s_i)</code> &nbsp;·&nbsp;
+    <code>D_b_total ≤ Σ(D_b_i)</code> &nbsp;·&nbsp;
+    Trust Gate: <code>S_a &lt; 0.15 ∧ C_r ≥ 0.85 ∧ K_trust ≥ 0.5</code>
+    &nbsp;→&nbsp; Select an attack scenario to inject anomalies.
+  </div>
+
+  <!-- Row 1: Verdict Matrix + Composition metrics -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">🟩 Live Verdict Matrix — All 6 Agents</div>
+      <div class="matrix" id="verdict-matrix"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📐 Composition Theorem Metrics</div>
+      <div class="comp-grid" id="comp-grid"></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Trust metric trend + D_s / D_b radar / tier bar -->
+  <div class="row3">
+    <div class="card">
+      <div class="card-title">📈 S_a · C_r Trend (All Agents)</div>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🕸 Agent Trust Radar</div>
+      <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Tier Distribution</div>
+      <div class="chart-wrap"><canvas id="tierChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 3: D_b gauge row + Impossible states -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">⚡ D_b Behavioral Distance vs Threshold</div>
+      <div class="chart-wrap"><canvas id="dbChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🚫 Impossible State Monitor</div>
+      <table class="is-table">
+        <thead><tr>
+          <th>Stage</th><th>Condition</th><th>Status</th><th>Layer</th>
+        </tr></thead>
+        <tbody id="is-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Row 4: Event log -->
+  <div class="card">
+    <div class="card-title">📋 Circuit Breaker Event Log</div>
+    <div class="log-wrap" id="log-wrap"></div>
+  </div>
+
+</div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA MODEL
+// ═══════════════════════════════════════════════════════════
+const AGENTS = [
+  { id:'PLC-1', stage:'P1 · Raw Water Intake',    color:'#1a237e', ds:[.05,.28], cr:[.95,.70], db:8.5,  mtbh:450 },
+  { id:'PLC-2', stage:'P2 · Chemical Dosing',     color:'#006064', ds:[.04,.24], cr:[.96,.72], db:0.03, mtbh:520 },
+  { id:'PLC-3', stage:'P3 · Dechlorination',      color:'#4a148c', ds:[.08,.28], cr:[.92,.70], db:.015, mtbh:380 },
+  { id:'PLC-4', stage:'P4 · Ultrafiltration',     color:'#1b5e20', ds:[.05,.24], cr:[.94,.72], db:0.03, mtbh:410 },
+  { id:'PLC-5', stage:'P5 · RO Feed',             color:'#bf360c', ds:[.07,.28], cr:[.93,.70], db:0.22, mtbh:310 },
+  { id:'PLC-6', stage:'P6 · Clean Water Storage', color:'#37474f', ds:[.04,.24], cr:[.95,.72], db:12,   mtbh:480 },
+];
+
+// Sensitivity 1-10 per agent (default=5)
+const sens = [5,5,5,5,5,5];
+
+// Live readings per agent: {sa, cr, db, mtbh, ktrust}
+const readings = [
+  {sa:.06, cr:.92, db:4.1,  mtbh:450, ktrust:.82},
+  {sa:.04, cr:.94, db:0.02, mtbh:520, ktrust:.90},
+  {sa:.07, cr:.90, db:.010, mtbh:380, ktrust:.78},
+  {sa:.05, cr:.91, db:0.02, mtbh:410, ktrust:.88},
+  {sa:.06, cr:.91, db:0.15, mtbh:310, ktrust:.82},
+  {sa:.03, cr:.93, db:8.0,  mtbh:480, ktrust:.91},
+];
+
+// Trend history (last 20 ticks)
+const HIST = 20;
+const saHist  = AGENTS.map(()=>[]);
+const crHist  = AGENTS.map(()=>[]);
+const tLabels = [];
+
+// ═══════════════════════════════════════════════════════════
+// SCENARIOS
+// ═══════════════════════════════════════════════════════════
+const SCENARIOS = [
+  { label:'Normal',             desc:'All agents operating within bounds. No anomalies detected.',
+    apply: ()=>{ readings.forEach((r,i)=>{ r.sa=.04+i*.005; r.cr=.93-i*.003; r.db=AGENTS[i].db*.5; r.ktrust=.85+i*.01; }); } },
+  { label:'P3 Sensor Spoof',    desc:'Stage 3 dechlorination sensor reports falsified AIT-level data. S_a spike detected.',
+    apply: ()=>{ setReading(2,{sa:.18,cr:.88,db:.012,mtbh:380,ktrust:.78}); } },
+  { label:'P1 Valve Manip.',    desc:'MV101 commanded open while P1 tank near-full. C_r drops below 0.85 threshold.',
+    apply: ()=>{ setReading(0,{sa:.09,cr:.73,db:6.2,mtbh:440,ktrust:.81}); } },
+  { label:'P1+P3 Coordinated',  desc:'Simultaneous attack on P1 and P3. D_s_total breaches composition theorem bound.',
+    apply: ()=>{ setReading(0,{sa:.14,cr:.80,db:5.5,mtbh:430,ktrust:.79}); setReading(2,{sa:.16,cr:.83,db:.014,mtbh:370,ktrust:.77}); } },
+  { label:'P5 Replay Attack',   desc:'Historical commands replayed to P5 RO feed. MTBH below 200h minimum alert.',
+    apply: ()=>{ setReading(4,{sa:.07,cr:.90,db:.19,mtbh:85,ktrust:.82}); } },
+  { label:'K_trust Lockdown',   desc:'Operator fatigue detected across all agents. K_trust=0.44 triggers autonomous HALT.',
+    apply: ()=>{ readings.forEach(r=>{ r.ktrust=.44; r.sa+=.03; }); } },
+  { label:'Super-Huberous',     desc:'S_a=0.22 AND C_r=0.79 on P4. Both semantic and contextual gates fire simultaneously.',
+    apply: ()=>{ setReading(3,{sa:.22,cr:.79,db:.025,mtbh:400,ktrust:.86}); } },
+];
+
+function setReading(idx, vals) {
+  Object.assign(readings[idx], vals);
+}
+
+// ═══════════════════════════════════════════════════════════
+// THRESHOLD COMPUTATION
+// ═══════════════════════════════════════════════════════════
+function dsThresh(agentIdx) {
+  const a = AGENTS[agentIdx], s = sens[agentIdx];
+  return a.ds[0] + (s-1)*(a.ds[1]-a.ds[0])/9;
+}
+function crThresh(agentIdx) {
+  const a = AGENTS[agentIdx], s = sens[agentIdx];
+  return a.cr[0] - (s-1)*(a.cr[0]-a.cr[1])/9;
+}
+
+function verdict(i) {
+  const r = readings[i], dst = dsThresh(i), crt = crThresh(i);
+  const halt  = r.ktrust < 0.5;
+  const seVeto= r.sa >= 0.15 || r.cr < crt;
+  const tier2 = r.sa >= dst || r.db > AGENTS[i].db || r.mtbh < AGENTS[i].mtbh * .5;
+  const tier1 = r.sa >= dst*0.67;
+  if (halt)   return {v:'HALT',   tier:3};
+  if (seVeto) return {v:'FREEZE', tier:2};
+  if (tier2)  return {v:'COMPLY', tier:1};
+  if (tier1)  return {v:'COMPLY', tier:1};
+  return {v:'PASS', tier:0};
+}
+
+// ═══════════════════════════════════════════════════════════
+// IMPOSSIBLE STATES
+// ═══════════════════════════════════════════════════════════
+const IS_STATES = [
+  {stage:'P1', cond:'LIT101>1100 ∧ MV101=OPEN ∧ P101=ON', layer:'L1', checkFn: i=>readings[0].sa>.12 && readings[0].cr<.85},
+  {stage:'P1', cond:'LIT101<250 ∧ P101=ON',               layer:'L1', checkFn: i=>readings[0].db>7.5},
+  {stage:'P2', cond:'FIT201>0 ∧ MV201=CLOSED',            layer:'L1', checkFn: i=>readings[1].sa>.14},
+  {stage:'P3', cond:'AIT301>1.5 ∧ P302=ON',               layer:'L2', checkFn: i=>readings[2].sa>=.15},
+  {stage:'P4', cond:'DPIT401>10 ∧ UV401=OFF',             layer:'L2', checkFn: i=>readings[3].sa>=.18},
+  {stage:'P5', cond:'PIT501>800 ∧ P501=OFF',              layer:'L2', checkFn: i=>readings[4].mtbh<200},
+  {stage:'P6', cond:'LIT601>3000',                        layer:'L1', checkFn: i=>readings[5].db>10},
+  {stage:'SYS',cond:'K_trust < 0.5 (any agent)',          layer:'L3', checkFn: i=>readings.some(r=>r.ktrust<0.5)},
+];
+
+// ═══════════════════════════════════════════════════════════
+// DOM BUILD
+// ═══════════════════════════════════════════════════════════
+
+// Sidebar agent cards
+const acContainer = document.getElementById('agent-cards');
+AGENTS.forEach((a,i)=>{
+  const d = document.createElement('div');
+  d.className = 'agent-card';
+  d.id = `ac-${i}`;
+  d.innerHTML = `
+    <div class="ac-header">
+      <div class="ac-badge" style="background:${a.color}">${a.id}</div>
+      <div>
+        <div class="ac-name">${a.id}</div>
+        <div class="ac-stage">${a.stage}</div>
+      </div>
+      <div class="ac-verdict v-PASS" id="ac-verd-${i}">PASS</div>
+    </div>
+    <div class="slider-row">
+      <div class="slider-label">Sensitivity</div>
+      <input type="range" min="1" max="10" value="5" id="sl-${i}" oninput="onSens(${i},this.value)">
+      <div class="slider-val" id="sv-${i}">5</div>
+    </div>
+    <div class="bar-track" id="bar-${i}">
+      ${[...Array(10)].map((_,b)=>`<div class="bar-seg bar-on" id="bs-${i}-${b}"></div>`).join('')}
+    </div>
+    <div class="metric-row">
+      <div class="chip">D_s thr <span id="dst-${i}">--</span></div>
+      <div class="chip">C_r thr <span id="crt-${i}">--</span></div>
+      <div class="chip">S_a <span id="sa-${i}">--</span></div>
+      <div class="chip">C_r <span id="cr-${i}">--</span></div>
+    </div>`;
+  acContainer.appendChild(d);
+});
+
+// Scenario buttons
+const scGrid = document.getElementById('sc-grid');
+let activeSc = 0;
+SCENARIOS.forEach((s,i)=>{
+  const b = document.createElement('button');
+  b.className = 'sc-btn' + (i===0?' active':'');
+  b.textContent = s.label;
+  b.onclick = ()=>injectScenario(i);
+  scGrid.appendChild(b);
+});
+
+function injectScenario(i) {
+  // reset to normal first
+  readings.forEach((r,j)=>{ r.sa=.04+j*.005; r.cr=.93-j*.003; r.db=AGENTS[j].db*.5; r.ktrust=.85+j*.01; r.mtbh=AGENTS[j].mtbh; });
+  SCENARIOS[i].apply();
+  activeSc = i;
+  document.querySelectorAll('.sc-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
+  document.getElementById('sc-desc').textContent = SCENARIOS[i].desc;
+  addLog(`Scenario injected: "${SCENARIOS[i].label}"`, 'INFO');
+  updateAll();
+}
+
+function onSens(i, v) {
+  sens[i] = +v;
+  document.getElementById('sv-'+i).textContent = v;
+  updateBar(i);
+  updateAll();
+}
+function updateBar(i) {
+  const s = sens[i];
+  for(let b=0;b<10;b++){
+    const el = document.getElementById(`bs-${i}-${b}`);
+    el.classList.toggle('bar-on', b<s);
+    el.classList.toggle('bar-off', b>=s);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════
+const AGENT_COLORS = AGENTS.map(a=>a.color);
+
+// Trend chart (S_a of each agent over time)
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+const trendChart = new Chart(trendCtx, {
+  type:'line',
+  data:{
+    labels: tLabels,
+    datasets: AGENTS.map((a,i)=>({
+      label: a.id+' S_a',
+      data: saHist[i],
+      borderColor: a.color,
+      backgroundColor: a.color+'22',
+      borderWidth: 1.5,
+      pointRadius: 0,
+      tension: .3,
+      fill: false
+    })).concat([{
+      label:'S_a Threshold',
+      data: Array(HIST).fill(0.15),
+      borderColor:'#f85149',
+      borderDash:[4,4],
+      borderWidth:1,
+      pointRadius:0,
+      fill:false
+    }])
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    animation:{duration:200},
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{display:false}, grid:{color:'#30363d'}},
+      y:{min:0, max:.30, ticks:{color:'#7d8590', font:{size:9}},
+         grid:{color:'#30363d'},
+         title:{display:true, text:'S_a', color:'#7d8590', font:{size:9}}}
+    }}
+});
+
+// Radar chart
+const radarCtx = document.getElementById('radarChart').getContext('2d');
+const radarChart = new Chart(radarCtx, {
+  type:'radar',
+  data:{
+    labels:['S_a (inv)','C_r','K_trust','MTBH%','D_b% (inv)'],
+    datasets: AGENTS.map((a,i)=>({
+      label: a.id,
+      data: [0,0,0,0,0],
+      borderColor: a.color,
+      backgroundColor: a.color+'33',
+      borderWidth: 1.5,
+      pointRadius: 2
+    }))
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    animation:{duration:200},
+    plugins:{legend:{display:false}},
+    scales:{r:{min:0, max:1,
+      ticks:{display:false},
+      grid:{color:'#30363d'},
+      pointLabels:{color:'#7d8590', font:{size:9}}
+    }}
+  }
+});
+
+// Tier bar chart
+const tierCtx = document.getElementById('tierChart').getContext('2d');
+const tierChart = new Chart(tierCtx, {
+  type:'bar',
+  data:{
+    labels: AGENTS.map(a=>a.id),
+    datasets:[{
+      label:'Tier',
+      data: AGENTS.map((_,i)=>verdict(i).tier),
+      backgroundColor: AGENTS.map((_,i)=>{
+        const t=verdict(i).tier; return ['#c6efce','#ffeb9c','#ffcc80','#ffc7ce'][t];
+      }),
+      borderColor: AGENTS.map((_,i)=>{
+        const t=verdict(i).tier; return ['#1b5e20','#7d5a00','#e65100','#b71c1c'][t];
+      }),
+      borderWidth:1
+    }]
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    animation:{duration:200},
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'#7d8590', font:{size:9}}, grid:{display:false}},
+      y:{min:0, max:3.5, ticks:{color:'#7d8590', font:{size:9}, stepSize:1,
+           callback:v=>['PASS','COMPLY','FREEZE','HALT'][v]||''},
+         grid:{color:'#30363d'}}
+    }}
+});
+
+// D_b chart (actual vs threshold)
+const dbCtx = document.getElementById('dbChart').getContext('2d');
+const dbChart = new Chart(dbCtx, {
+  type:'bar',
+  data:{
+    labels: AGENTS.map(a=>a.id),
+    datasets:[
+      { label:'D_b Actual',    data:[], backgroundColor:'#0097a755', borderColor:'#0097a7', borderWidth:1 },
+      { label:'D_b Threshold', data:[], backgroundColor:'#f8514933', borderColor:'#f85149', borderWidth:1, type:'bar' },
+    ]
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    animation:{duration:200},
+    plugins:{legend:{labels:{color:'#7d8590', font:{size:9}}}},
+    scales:{
+      x:{ticks:{color:'#7d8590', font:{size:9}}, grid:{display:false}},
+      y:{ticks:{color:'#7d8590', font:{size:9}}, grid:{color:'#30363d'},
+         title:{display:true, text:'D_b', color:'#7d8590', font:{size:9}}}
+    }}
+});
+
+// ═══════════════════════════════════════════════════════════
+// UPDATE ENGINE
+// ═══════════════════════════════════════════════════════════
+let tickCount = 0;
+const verdictColors = {
+  PASS:  {bg:'#c6efce', fg:'#1b5e20'},
+  COMPLY:{bg:'#ffeb9c', fg:'#7d5a00'},
+  FREEZE:{bg:'#ffcc80', fg:'#e65100'},
+  HALT:  {bg:'#ffc7ce', fg:'#b71c1c'},
+};
+
+function updateAll() {
+  const verdicts = AGENTS.map((_,i)=>verdict(i));
+
+  // Sidebar chips
+  AGENTS.forEach((a,i)=>{
+    const dst=dsThresh(i), crt=crThresh(i);
+    document.getElementById(`dst-${i}`).textContent = dst.toFixed(3);
+    document.getElementById(`crt-${i}`).textContent = crt.toFixed(3);
+    document.getElementById(`sa-${i}`).textContent  = readings[i].sa.toFixed(3);
+    document.getElementById(`cr-${i}`).textContent  = readings[i].cr.toFixed(3);
+    const vEl = document.getElementById(`ac-verd-${i}`);
+    vEl.textContent = verdicts[i].v;
+    vEl.className = `ac-verdict v-${verdicts[i].v}`;
+  });
+
+  // Verdict matrix
+  const matEl = document.getElementById('verdict-matrix');
+  matEl.innerHTML = '';
+  AGENTS.forEach((a,i)=>{
+    const {v,tier} = verdicts[i];
+    const vc = verdictColors[v];
+    const d = document.createElement('div');
+    d.className='mx-cell';
+    d.style.background = vc.bg;
+    d.innerHTML = `<div class="mx-plc" style="color:${vc.fg}">${a.id}</div>
+      <div class="mx-stage" style="color:${vc.fg}">${a.stage.split('·')[0]}</div>
+      <div class="mx-verd" style="color:${vc.fg}">${v}</div>
+      <div class="mx-tier" style="color:${vc.fg}">Tier ${tier}</div>`;
+    matEl.appendChild(d);
+  });
+
+  // Composition metrics
+  const dsTotals = AGENTS.map((_,i)=>readings[i].sa);
+  const dsTotal  = Math.max(...dsTotals);
+  const dbTotal  = readings.reduce((s,r)=>s+r.db, 0);
+  const ktMin    = Math.min(...readings.map(r=>r.ktrust));
+  const mtbhAvg  = readings.reduce((s,r)=>s+r.mtbh,0)/6;
+  const anyHalt  = verdicts.some(v=>v.v==='HALT');
+  const anyFreeze= verdicts.some(v=>v.v==='FREEZE');
+
+  const compData = [
+    { label:'D_s Total (max)', val:dsTotal.toFixed(4), sub:'≤ 0.15 safe', cls: dsTotal>=.15?'comp-breach':dsTotal>=.10?'comp-warn':'comp-ok' },
+    { label:'D_b Total (Σ)',   val:dbTotal.toFixed(3),  sub:'Behavioral sum', cls:'comp-ok' },
+    { label:'K_trust Min',     val:ktMin.toFixed(3),    sub:'≥ 0.50 required', cls: ktMin<.5?'comp-breach':ktMin<.7?'comp-warn':'comp-ok' },
+    { label:'Avg MTBH (hrs)',  val:Math.round(mtbhAvg), sub:'Mean time btw. halt.', cls: mtbhAvg<200?'comp-breach':mtbhAvg<350?'comp-warn':'comp-ok' },
+  ];
+  const cgEl = document.getElementById('comp-grid');
+  cgEl.innerHTML = '';
+  compData.forEach(m=>{
+    const d=document.createElement('div');
+    d.className=`comp-metric ${m.cls}`;
+    d.innerHTML=`<div class="comp-label">${m.label}</div>
+      <div class="comp-value">${m.val}</div>
+      <div class="comp-sub">${m.sub}</div>`;
+    cgEl.appendChild(d);
+  });
+
+  // Trend history
+  const now = new Date();
+  const ts = `${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  tLabels.push(ts);
+  if(tLabels.length>HIST) tLabels.shift();
+  AGENTS.forEach((a,i)=>{
+    saHist[i].push(readings[i].sa);
+    if(saHist[i].length>HIST) saHist[i].shift();
+  });
+  trendChart.update();
+
+  // Radar
+  AGENTS.forEach((a,i)=>{
+    const r=readings[i], dst=dsThresh(i);
+    radarChart.data.datasets[i].data = [
+      Math.max(0,1-r.sa/0.30),     // S_a inverted (higher=safer)
+      r.cr,                          // C_r
+      r.ktrust,                      // K_trust
+      Math.min(1, r.mtbh/600),       // MTBH normalized
+      Math.max(0,1-r.db/AGENTS[i].db),// D_b inverted
+    ];
+  });
+  radarChart.update();
+
+  // Tier bar
+  tierChart.data.datasets[0].data = AGENTS.map((_,i)=>verdicts[i].tier);
+  tierChart.data.datasets[0].backgroundColor = AGENTS.map((_,i)=>{
+    const t=verdicts[i].tier; return ['#c6efce','#ffeb9c','#ffcc80','#ffc7ce'][t];
+  });
+  tierChart.data.datasets[0].borderColor = AGENTS.map((_,i)=>{
+    const t=verdicts[i].tier; return ['#1b5e20','#7d5a00','#e65100','#b71c1c'][t];
+  });
+  tierChart.update();
+
+  // D_b chart
+  dbChart.data.datasets[0].data = AGENTS.map((_,i)=>readings[i].db);
+  dbChart.data.datasets[1].data = AGENTS.map(a=>a.db);
+  dbChart.update();
+
+  // Impossible states
+  const tbody = document.getElementById('is-tbody');
+  tbody.innerHTML = '';
+  IS_STATES.forEach(is=>{
+    const active = is.checkFn();
+    const tr = document.createElement('tr');
+    const layerColor = {L1:'#1b5e20',L2:'#7d5a00',L3:'#b71c1c'}[is.layer]||'#555';
+    const layerBg    = {L1:'#c6efce',L2:'#ffeb9c',L3:'#ffc7ce'}[is.layer]||'#eee';
+    tr.innerHTML = `
+      <td><strong>${is.stage}</strong></td>
+      <td style="color:#7d8590;font-family:'Courier New'">${is.cond}</td>
+      <td><span class="is-badge" style="background:${active?'#ffc7ce':'#c6efce'};color:${active?'#b71c1c':'#1b5e20'}">${active?'⚡ ACTIVE':'✓ CLEAR'}</span></td>
+      <td><span class="is-badge" style="background:${layerBg};color:${layerColor}">${is.layer}</span></td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Auto-log significant verdicts
+  verdicts.forEach((vd,i)=>{
+    if(vd.v!=='PASS' && tickCount%5===i) {
+      addLog(`${AGENTS[i].id} → ${vd.v} (Tier ${vd.tier}) | S_a=${readings[i].sa.toFixed(3)} C_r=${readings[i].cr.toFixed(3)} K_t=${readings[i].ktrust.toFixed(3)}`, vd.v);
+    }
+  });
+
+  tickCount++;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOG
+// ═══════════════════════════════════════════════════════════
+function addLog(msg, level='INFO') {
+  const now = new Date();
+  const ts = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  const wrap = document.getElementById('log-wrap');
+  const line = document.createElement('div');
+  line.className='log-line';
+  line.innerHTML=`<span class="log-ts">[${ts}]</span> <span class="log-${level}">[${level}]</span> ${msg}`;
+  wrap.appendChild(line);
+  if(wrap.children.length>80) wrap.removeChild(wrap.firstChild);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLOCK + JITTER (simulates live sensor noise)
+// ═══════════════════════════════════════════════════════════
+function clockTick() {
+  const n=new Date();
+  document.getElementById('clock').textContent =
+    `${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}:${n.getSeconds().toString().padStart(2,'0')} UTC`;
+}
+
+function applyJitter() {
+  readings.forEach((r,i)=>{
+    r.sa    = Math.max(0.01, Math.min(.29, r.sa    + (Math.random()-.5)*.004));
+    r.cr    = Math.max(0.60, Math.min(.99, r.cr    + (Math.random()-.5)*.003));
+    r.ktrust= Math.max(0.30, Math.min(.99, r.ktrust+ (Math.random()-.5)*.003));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+// Initial bar draws
+AGENTS.forEach((_,i)=>updateBar(i));
+injectScenario(0);
+addLog('SWaT AI Circuit Breaker dashboard initialized — 6 PLC agents online', 'INFO');
+addLog('Morphism monitor active: h: Z_ai → Z_real | D_h = (D_s, D_b)', 'INFO');
+
+setInterval(()=>{ clockTick(); applyJitter(); updateAll(); }, 1500);
+clockTick();
+</script>
+</body>
+</html>

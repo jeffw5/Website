@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baxter Healthcare — R&D Intelligence Platform · Executive Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06101F;--s1:#0A1828;--s2:#0F2035;--s3:#152840;--s4:#1C3352;
+  --blue:#0055CC;--accent:#0099FF;--gold:#F0A500;--green:#00C87A;
+  --red:#E84545;--violet:#9B72F0;--teal:#00B4A0;--orange:#F07030;
+  --t1:#D8ECFF;--t2:#7AADD0;--t3:#3D6A8A;--t4:#1E3D58;
+  --f-head:'Exo 2',sans-serif;--f-body:'DM Sans',sans-serif;--f-mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--f-body);overflow:hidden}
+body{display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+#hdr{
+  height:54px;background:var(--s1);border-bottom:1px solid rgba(0,153,255,.15);
+  display:flex;align-items:center;padding:0 28px;gap:20px;flex-shrink:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:30px;height:30px;border-radius:6px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:var(--f-head);font-weight:800;font-size:13px;color:#fff}
+.logo-text{font-family:var(--f-head);font-weight:700;font-size:14px;color:var(--t1);letter-spacing:.2px}
+.logo-sub{font-size:10px;color:var(--t3)}
+.hdiv{width:1px;height:26px;background:rgba(255,255,255,.08)}
+#nav{display:flex;gap:2px}
+.nav-btn{
+  padding:6px 18px;border-radius:6px;font-family:var(--f-head);font-size:11px;font-weight:500;
+  color:var(--t3);cursor:pointer;transition:all .2s;border:1px solid transparent;
+  text-transform:uppercase;letter-spacing:.6px;
+}
+.nav-btn:hover{color:var(--t2);background:rgba(255,255,255,.04)}
+.nav-btn.active{color:var(--accent);background:rgba(0,153,255,.1);border-color:rgba(0,153,255,.2)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.badge{font-family:var(--f-mono);font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid}
+.badge-green{background:rgba(0,200,122,.1);color:var(--green);border-color:rgba(0,200,122,.25)}
+.badge-gold{background:rgba(240,165,0,.1);color:var(--gold);border-color:rgba(240,165,0,.25)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pdot 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pdot{0%,100%{box-shadow:0 0 0 0 rgba(0,200,122,.5)}50%{box-shadow:0 0 0 5px rgba(0,200,122,0)}}
+
+/* ── VIEWS ── */
+#main{flex:1;overflow:hidden;position:relative}
+.view{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+.view.active{display:flex}
+
+/* ── STATUS BAR ── */
+#sbar{height:26px;background:var(--s1);border-top:1px solid rgba(255,255,255,.05);
+  display:flex;align-items:center;padding:0 28px;gap:24px;font-size:10px;color:var(--t3);flex-shrink:0}
+.si{display:flex;align-items:center;gap:5px}
+.sd{width:5px;height:5px;border-radius:50%}
+
+/* ══════════════════════════════════════════════
+   EXECUTIVE SUMMARY
+══════════════════════════════════════════════ */
+#exec-view{overflow-y:auto;padding:20px 28px;gap:14px;display:flex;flex-direction:column}
+#exec-view::-webkit-scrollbar{width:4px}
+#exec-view::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+
+.exec-hero{
+  background:linear-gradient(135deg,var(--s2) 0%,var(--s3) 100%);
+  border:1px solid rgba(0,153,255,.15);border-radius:14px;padding:28px 32px;
+  position:relative;overflow:hidden;
+}
+.exec-hero::before{
+  content:'';position:absolute;top:-40px;right:-40px;width:240px;height:240px;
+  border-radius:50%;background:radial-gradient(circle,rgba(0,85,204,.15) 0%,transparent 70%);
+}
+.exec-hero-tag{font-size:10px;color:var(--accent);font-family:var(--f-head);font-weight:600;
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.exec-hero-tag::before{content:'';display:inline-block;width:18px;height:2px;background:var(--accent);border-radius:1px}
+.exec-hero-title{font-family:var(--f-head);font-size:26px;font-weight:700;color:var(--t1);line-height:1.2;margin-bottom:8px}
+.exec-hero-title span{color:var(--accent)}
+.exec-hero-sub{font-size:13px;color:var(--t2);line-height:1.6;max-width:72%;margin-bottom:20px}
+.exec-hero-metrics{display:flex;gap:24px;flex-wrap:wrap}
+.ehm{text-align:left}
+.ehm-val{font-family:var(--f-mono);font-size:28px;font-weight:500;line-height:1}
+.ehm-lbl{font-size:10px;color:var(--t3);margin-top:4px;text-transform:uppercase;letter-spacing:.6px}
+
+.exec-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.exec-grid-r{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+.card{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:18px}
+.card-title{font-family:var(--f-head);font-size:12px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--t3);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:14px;height:2px;border-radius:1px;background:currentColor}
+
+/* value driver table */
+.vd-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.vd-row:last-child{border-bottom:none}
+.vd-label{font-size:12px;color:var(--t2)}
+.vd-label span{font-size:10px;color:var(--t3);display:block;margin-top:2px}
+.vd-delta{font-family:var(--f-mono);font-size:13px;font-weight:500;text-align:right}
+.vd-bar-wrap{display:flex;align-items:center;gap:8px;margin-top:4px}
+.vd-bar{flex:1;height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.vd-bar-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+
+/* tco comparison */
+.tco-row{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.tco-label{display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:3px}
+.tco-track{height:22px;background:rgba(255,255,255,.05);border-radius:6px;overflow:hidden;position:relative}
+.tco-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:10px;
+  font-family:var(--f-mono);font-size:10px;font-weight:500;transition:width 1.2s ease-out}
+
+/* strategic pillars */
+.pillar-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pillar{border-radius:9px;padding:12px;position:relative;overflow:hidden}
+.pillar-icon{font-size:18px;margin-bottom:6px}
+.pillar-title{font-family:var(--f-head);font-size:12px;font-weight:600;margin-bottom:4px}
+.pillar-desc{font-size:10px;line-height:1.5;color:rgba(255,255,255,.6)}
+
+/* risk / readiness */
+.readiness-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.readiness-row:last-child{border-bottom:none}
+.readiness-name{font-size:11px;color:var(--t2);flex:1}
+.readiness-score{font-family:var(--f-mono);font-size:12px;font-weight:500;width:38px;text-align:right}
+.readiness-bar{flex:1;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.readiness-fill{height:100%;border-radius:2px;transition:width 1.2s ease-out}
+
+/* ══════════════════════════════════════════════
+   STAKEHOLDER IMPACT
+══════════════════════════════════════════════ */
+#stk-view{display:flex;flex-direction:column;overflow:hidden}
+#stk-tabs{
+  display:flex;gap:0;flex-shrink:0;background:var(--s1);
+  border-bottom:1px solid rgba(255,255,255,.07);padding:0 28px;
+}
+.stk-tab{
+  padding:12px 22px;font-family:var(--f-head);font-size:11px;font-weight:500;
+  color:var(--t3);cursor:pointer;transition:all .2s;border-bottom:2px solid transparent;
+  text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:7px;
+}
+.stk-tab:hover{color:var(--t2)}
+.stk-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.stk-tab-dot{width:7px;height:7px;border-radius:50%}
+#stk-body{flex:1;overflow-y:auto}
+#stk-body::-webkit-scrollbar{width:4px}
+#stk-body::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+.stk-panel{display:none;padding:24px 28px;animation:fin .25s ease-out}
+.stk-panel.active{display:block}
+@keyframes fin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.stk-hero{border-radius:12px;padding:24px 28px;margin-bottom:16px;position:relative;overflow:hidden}
+.stk-hero-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;opacity:.8;font-family:var(--f-head)}
+.stk-hero-title{font-family:var(--f-head);font-size:20px;font-weight:700;margin-bottom:8px}
+.stk-hero-sub{font-size:12px;line-height:1.65;opacity:.8;max-width:80%}
+
+.stk-content-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.stk-content-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+
+.benefit-card{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px}
+.bc-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:10px}
+.bc-title{font-family:var(--f-head);font-size:13px;font-weight:600;margin-bottom:6px}
+.bc-desc{font-size:11px;color:var(--t2);line-height:1.6}
+.bc-metric{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);
+  font-family:var(--f-mono);font-size:12px;display:flex;align-items:baseline;gap:5px}
+.bc-metric-val{font-size:18px;font-weight:500}
+.bc-metric-lbl{font-size:10px;color:var(--t3)}
+
+.before-after{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden}
+.ba-header{display:grid;grid-template-columns:1fr 1fr;background:rgba(0,0,0,.2)}
+.ba-header-cell{padding:8px 14px;font-family:var(--f-head);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.6px}
+.ba-rows{display:flex;flex-direction:column}
+.ba-row{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,.04)}
+.ba-cell{padding:9px 14px;font-size:11px}
+.ba-before{color:rgba(232,69,69,.8)}
+.ba-after{color:rgba(0,200,122,.85)}
+
+.impact-number{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;
+  padding:14px 16px;text-align:center}
+.in-val{font-family:var(--f-mono);font-size:26px;font-weight:500;line-height:1;margin-bottom:4px}
+.in-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;line-height:1.4}
+
+.timeline-strip{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:16px}
+.ts-title{font-family:var(--f-head);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--t3);margin-bottom:12px}
+.ts-items{display:flex;flex-direction:column;gap:0}
+.ts-item{display:grid;grid-template-columns:80px 16px 1fr;gap:10px;align-items:start;padding:6px 0}
+.ts-when{font-family:var(--f-mono);font-size:10px;color:var(--t3);padding-top:2px}
+.ts-dot-col{display:flex;flex-direction:column;align-items:center;padding-top:4px}
+.ts-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ts-line{width:1px;background:rgba(255,255,255,.08);flex:1;min-height:16px;margin-top:3px}
+.ts-text{font-size:11px;color:var(--t2);line-height:1.5;padding-bottom:6px}
+
+/* ══════════════════════════════════════════════
+   ROADMAP
+══════════════════════════════════════════════ */
+#road-view{display:flex;flex-direction:column;overflow:hidden}
+.road-top{
+  flex-shrink:0;padding:18px 28px 0;
+  display:flex;flex-direction:column;gap:12px;
+}
+.phase-selector{display:flex;gap:8px}
+.phase-btn{
+  flex:1;border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .25s;
+  border:1px solid rgba(255,255,255,.08);background:var(--s2);
+  position:relative;overflow:hidden;
+}
+.phase-btn.active{border-color:var(--phase-color,var(--accent))}
+.phase-btn:hover{background:var(--s3)}
+.phase-btn::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:var(--phase-color,var(--accent));opacity:0;transition:opacity .25s;
+}
+.phase-btn.active::after{opacity:1}
+.pb-num{font-family:var(--f-mono);font-size:10px;color:var(--t3);margin-bottom:4px}
+.pb-title{font-family:var(--f-head);font-size:13px;font-weight:600;margin-bottom:2px}
+.pb-sub{font-size:10px;color:var(--t3)}
+.pb-invest{
+  font-family:var(--f-mono);font-size:11px;margin-top:8px;padding:4px 8px;
+  border-radius:6px;display:inline-block;
+}
+.pb-active-ind{
+  position:absolute;top:10px;right:10px;width:8px;height:8px;border-radius:50%;
+  background:var(--phase-color,var(--accent));opacity:0;transition:opacity .25s;
+}
+.phase-btn.active .pb-active-ind{opacity:1}
+
+.road-detail{flex:1;overflow-y:auto;padding:16px 28px 20px}
+.road-detail::-webkit-scrollbar{width:4px}
+.road-detail::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+.phase-panel{display:none;animation:fin .25s ease-out}
+.phase-panel.active{display:block}
+
+.phase-layout{display:grid;grid-template-columns:1fr 340px;gap:16px}
+
+/* tasks/milestones timeline */
+.phase-timeline{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:18px}
+.pt-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.pt-title{font-family:var(--f-head);font-size:14px;font-weight:600}
+.pt-sub{font-size:11px;color:var(--t3);margin-top:3px}
+.pt-gate{
+  padding:4px 12px;border-radius:20px;font-family:var(--f-mono);font-size:10px;
+  border:1px solid;text-align:center;flex-shrink:0;
+}
+.month-group{margin-bottom:14px}
+.mg-label{
+  font-family:var(--f-mono);font-size:9px;color:var(--t3);text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:6px;padding-left:24px;
+}
+.task-row{
+  display:grid;grid-template-columns:16px 1fr auto;gap:10px;align-items:start;
+  padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer;
+  border-radius:6px;transition:background .15s;
+}
+.task-row:hover{background:rgba(255,255,255,.025);padding-left:4px}
+.task-row:last-child{border-bottom:none}
+.task-dot{width:8px;height:8px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.task-content{}
+.task-name{font-size:12px;color:var(--t1);margin-bottom:2px}
+.task-desc{font-size:10px;color:var(--t3);line-height:1.4}
+.task-badge{
+  font-size:9px;padding:2px 7px;border-radius:10px;font-family:var(--f-mono);
+  flex-shrink:0;align-self:start;margin-top:2px;
+}
+.milestone-row{
+  display:grid;grid-template-columns:16px 1fr;gap:10px;align-items:start;
+  padding:8px 0;border-top:1px solid rgba(255,255,255,.08);margin-top:6px;
+}
+.ms-diamond{
+  width:10px;height:10px;transform:rotate(45deg);margin-top:2px;flex-shrink:0;
+  border:1.5px solid;
+}
+.ms-content{}
+.ms-name{font-size:12px;font-weight:600;font-family:var(--f-head);margin-bottom:2px}
+.ms-gate-criteria{font-size:10px;color:var(--t3);line-height:1.5}
+
+/* right sidebar */
+.phase-sidebar{display:flex;flex-direction:column;gap:12px}
+.invest-card{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
+.ic-title{font-family:var(--f-head);font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.7px;color:var(--t3);margin-bottom:12px}
+.invest-row{display:flex;justify-content:space-between;align-items:center;
+  padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.invest-row:last-child{border-bottom:none}
+.ir-label{font-size:11px;color:var(--t2)}
+.ir-val{font-family:var(--f-mono);font-size:13px;font-weight:500}
+.ir-total{
+  margin-top:10px;padding:10px;border-radius:8px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.ir-total-label{font-family:var(--f-head);font-size:12px;font-weight:600}
+.ir-total-val{font-family:var(--f-mono);font-size:18px;font-weight:500}
+
+.results-card{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
+.result-item{display:flex;flex-direction:column;gap:2px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.result-item:last-child{border-bottom:none}
+.ri-metric{font-family:var(--f-mono);font-size:16px;font-weight:500}
+.ri-label{font-size:10px;color:var(--t2)}
+.ri-target{font-size:10px;color:var(--t3)}
+
+.rationalization-card{background:var(--s2);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px}
+.rat-row{display:flex;justify-content:space-between;align-items:start;
+  padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.rat-row:last-child{border-bottom:none}
+.rat-system{font-size:11px;color:var(--t2)}
+.rat-system span{font-size:9px;color:var(--t3);display:block;margin-top:1px}
+.rat-action{font-size:9px;padding:2px 7px;border-radius:10px;font-family:var(--f-mono);flex-shrink:0;align-self:start}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="logo">
+    <div class="logo-mark">BX</div>
+    <div>
+      <div class="logo-text">Baxter Healthcare</div>
+      <div class="logo-sub">R&D Trusted Intelligence Platform</div>
+    </div>
+  </div>
+  <div class="hdiv"></div>
+  <nav id="nav">
+    <div class="nav-btn active" onclick="showView('exec')">Executive Summary</div>
+    <div class="nav-btn" onclick="showView('stk')">Stakeholder Impact</div>
+    <div class="nav-btn" onclick="showView('road')">Implementation Roadmap</div>
+  </nav>
+  <div class="hdr-right">
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3)">
+      <div class="status-dot"></div>Platform in design
+    </div>
+    <div class="badge badge-gold">Phase 1 Ready</div>
+    <div class="badge badge-green">Open Standards</div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ══════════════════════════════════════════════
+     EXECUTIVE SUMMARY
+══════════════════════════════════════════════ -->
+<div id="view-exec" class="view active">
+<div id="exec-view">
+
+  <!-- Hero -->
+  <div class="exec-hero">
+    <div class="exec-hero-tag">Strategic Program · May 2026</div>
+    <div class="exec-hero-title">Baxter R&D as the <span>Trusted Engine</span> for Growth</div>
+    <div class="exec-hero-sub">A semantically governed, AI-ready intelligence platform that connects R&D knowledge across all four business lines, accelerates programs from discovery to market, and positions Baxter ahead of FDA AI/ML guidance and EU AI Act requirements — at 75–80% lower cost than the nearest commercial equivalent.</div>
+    <div class="exec-hero-metrics">
+      <div class="ehm"><div class="ehm-val" style="color:var(--green)">$6–13M</div><div class="ehm-lbl">Annual savings vs. Palantir</div></div>
+      <div class="ehm"><div class="ehm-val" style="color:var(--accent)">75–80%</div><div class="ehm-lbl">TCO reduction</div></div>
+      <div class="ehm"><div class="ehm-val" style="color:var(--gold)">12 wks</div><div class="ehm-lbl">Time to first R&D insight</div></div>
+      <div class="ehm"><div class="ehm-val" style="color:var(--violet)">3 phases</div><div class="ehm-lbl">36-month roadmap</div></div>
+      <div class="ehm"><div class="ehm-val" style="color:var(--teal)">0</div><div class="ehm-lbl">Source systems displaced Ph1–2</div></div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="exec-grid">
+
+    <!-- Left: Value drivers -->
+    <div class="card">
+      <div class="card-title" style="color:var(--accent)">Value drivers across the enterprise</div>
+      <div id="vd-list"></div>
+    </div>
+
+    <!-- Right column -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <!-- TCO Comparison -->
+      <div class="card">
+        <div class="card-title" style="color:var(--gold)">Platform TCO — annual steady state</div>
+        <div id="tco-list"></div>
+        <div style="font-size:10px;color:var(--t3);margin-top:8px;font-style:italic">Rationalization savings partially offset FABRIC operating cost. Net TCO advantage by end of Phase 2.</div>
+      </div>
+
+      <!-- Readiness -->
+      <div class="card">
+        <div class="card-title" style="color:var(--green)">Regulatory readiness index</div>
+        <div id="readiness-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Pillars + gate summary -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+    <div class="card">
+      <div class="card-title" style="color:var(--violet)">Four strategic pillars</div>
+      <div class="pillar-grid" id="pillar-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:var(--teal)">Phase gate criteria at a glance</div>
+      <div id="gate-summary"></div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     STAKEHOLDER IMPACT
+══════════════════════════════════════════════ -->
+<div id="view-stk" class="view">
+  <div id="stk-tabs"></div>
+  <div id="stk-body"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     ROADMAP
+══════════════════════════════════════════════ -->
+<div id="view-road" class="view">
+  <div class="road-top">
+    <div class="phase-selector" id="phase-selector"></div>
+  </div>
+  <div class="road-detail" id="road-detail"></div>
+</div>
+
+</main>
+
+<div id="sbar">
+  <div class="si"><div class="sd" style="background:var(--green)"></div>FABRIC Architecture v2.0 · RDSG · Wymore Model M</div>
+  <div class="si"><div class="sd" style="background:var(--accent)"></div>847M triples · 6 named graphs · 200+ SHACL shapes</div>
+  <div class="si"><div class="sd" style="background:var(--violet)"></div>MTBH avg: 97.6% · EU AI Act Article 9 in design</div>
+  <div style="margin-left:auto;font-family:var(--f-mono);font-size:9px;color:var(--t3)">The Value Enablement Group, LLC · May 2026 · CONFIDENTIAL</div>
+</div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────────
+
+const VALUE_DRIVERS = [
+  {label:'Tech transfer cycle time reduction',sub:'R&D → Manufacturing BOP',before:'8–12 weeks manual',after:'2–4 weeks (semantic)',pct:73,color:'var(--accent)'},
+  {label:'R&D cross-BL formulation query',sub:'Scientist insight latency',before:'Days of manual search',after:'< 5 minutes via KG',pct:90,color:'var(--green)'},
+  {label:'Failed experiment knowledge indexed',sub:'Institutional memory activated',before:'~0% findable',after:'2,847 records searchable',pct:85,color:'var(--violet)'},
+  {label:'eCTD section auto-population',sub:'Regulatory Affairs productivity',before:'100% manual assembly',after:'67% automated via LangGraph',pct:67,color:'var(--gold)'},
+  {label:'IMP chain-of-custody completeness',sub:'Clinical trial material governance',before:'~60% traceable',after:'100% all new programs',pct:100,color:'var(--teal)'},
+  {label:'Supplier concentration risk visibility',sub:'Supply chain anticipatory posture',before:'Discovered during shortage',after:'45-day advance warning',pct:80,color:'var(--orange)'},
+  {label:'Annual platform TCO vs. Palantir',sub:'Open standards; no lock-in',before:'$8–15M / year (Palantir)',after:'$750K–1.5M / year (FABRIC)',pct:88,color:'var(--green)'},
+];
+
+const TCO_DATA = [
+  {label:'Palantir Foundry (equivalent scope)',val:'$8M – $15M / yr',pct:100,color:'rgba(232,69,69,.7)',textColor:'#FF8080'},
+  {label:'FABRIC Platform (steady state)',val:'$750K – $1.5M / yr',pct:12,color:'rgba(0,200,122,.7)',textColor:'#00C87A'},
+  {label:'Year 1 rationalization savings (Wave 1–2)',val:'$70K – $160K',pct:5,color:'rgba(240,165,0,.5)',textColor:'var(--gold)'},
+];
+
+const READINESS = [
+  {label:'21 CFR Part 11 (Electronic Records)',pct:96,color:'var(--green)'},
+  {label:'GxP Process Governance (SHACL)',pct:94,color:'var(--green)'},
+  {label:'FDA AI/ML Guidance Readiness',pct:72,color:'var(--gold)'},
+  {label:'EU AI Act Article 9 (High-Risk AI)',pct:58,color:'var(--gold)'},
+  {label:'ICH Q10 Pharmaceutical Quality System',pct:88,color:'var(--green)'},
+  {label:'CDISC SEND/SDTM Clinical Alignment',pct:81,color:'var(--accent)'},
+];
+
+const PILLARS = [
+  {icon:'◎',title:'Semantic Connectivity',desc:'847M triples connecting R&D, Clinical, Manufacturing, and Supply Chain in a single governed knowledge fabric.',color:'rgba(0,153,255,.12)',border:'rgba(0,153,255,.2)',tc:'var(--accent)'},
+  {icon:'⬡',title:'Governed AI',desc:'MTBH Circuit Breaker, 5-dimensional trust scoring, and mandatory HITL gates for all patient-safety decisions.',color:'rgba(240,165,0,.1)',border:'rgba(240,165,0,.2)',tc:'var(--gold)'},
+  {icon:'◈',title:'Open Standards',desc:'OWL 2, SHACL, AAS/IEC 63278, W3C RDF — no proprietary lock-in. Baxter owns the semantic investment.',color:'rgba(155,114,240,.1)',border:'rgba(155,114,240,.2)',tc:'var(--violet)'},
+  {icon:'◇',title:'Zero Disruption',desc:'Read-only integration in Ph1–2. No source system displaced. No GxP validation invalidated. No lab workflow changed.',color:'rgba(0,180,160,.1)',border:'rgba(0,180,160,.2)',tc:'var(--teal)'},
+];
+
+const GATE_SUMMARY = [
+  {phase:'Phase 1 → 2',criteria:['20+ weekly active R&D users','DQS >90% for R&D domain','Governance baseline approved','Phase 2 Steering Committee funding'],color:'var(--accent)'},
+  {phase:'Phase 2 → 3',criteria:['All 6 apps at >60% weekly adoption','80%+ Tier 1 supplier digital twin','MTBH active for all production AI','Wave 1–2 decommissions confirmed'],color:'var(--gold)'},
+  {phase:'Phase 3 Complete',criteria:['EU AI Act readiness >85%','100% lineage completeness','$720K–$1.7M annualized savings','Full governance maturity (Level 3)'],color:'var(--green)'},
+];
+
+// ─── STAKEHOLDERS ─────────────────────────────────────────────────────────────
+
+const STAKEHOLDERS = [
+  {
+    id:'rd', label:'R&D', color:'#0099FF', dot:'#0099FF',
+    heroLabel:'Research & Development',
+    heroTitle:'From fragmented knowledge to compounding intelligence',
+    heroBg:'linear-gradient(135deg,rgba(0,85,204,.2),rgba(0,153,255,.08))',
+    heroBorder:'rgba(0,153,255,.2)',
+    heroSub:'R&D gains capabilities that didn\'t previously exist — not faster versions of existing tools, but a cross-BL knowledge fabric that surfaces institutional memory, governs emergent AI discoveries, and reduces tech transfer from months to weeks.',
+    benefits:[
+      {icon:'◎',title:'Cross-BL Formulation Intelligence',desc:'Every prior formulation attempt across all four business lines — including failures — searchable in under 5 minutes. Failed experiments become institutional assets, not lost knowledge.',metric:'4.2 min',mlbl:'avg cross-BL query time (target <5 min)',color:'rgba(0,153,255,.12)',bc:'rgba(0,153,255,.2)',tc:'#0099FF'},
+      {icon:'⬡',title:'Governed Emergent AI',desc:'Lab robots that discover better protocols publish new best practices to the Knowledge Graph automatically — after RDSG validation and HITL sign-off. Emergent capabilities propagate; governance doesn\'t break.',metric:'3',mlbl:'emergent behaviors detected this cycle (2 validated, 1 pending HITL)',color:'rgba(240,165,0,.1)',bc:'rgba(240,165,0,.2)',tc:'var(--gold)'},
+      {icon:'◈',title:'Semantic Tech Transfer',desc:'SWRL inference rules map R&D parameters to manufacturing constraints automatically. AAS semantic normalization makes any Siemens-connected site ready to receive a transfer.',metric:'3.2 wks',mlbl:'avg tech transfer cycle time (target <4 weeks)',color:'rgba(0,180,160,.1)',bc:'rgba(0,180,160,.2)',tc:'var(--teal)'},
+      {icon:'◇',title:'Regulatory-Ready Data',desc:'Every experiment is natively structured as RDF against the governed ontology. CMC evidence packages for FDA submissions are a SPARQL query, not a weeks-long assembly exercise.',metric:'96.8%',mlbl:'CMC traceability: dev batch to regulatory submission',color:'rgba(155,114,240,.1)',bc:'rgba(155,114,240,.2)',tc:'var(--violet)'},
+    ],
+    baRows:[
+      {b:'Days to find prior formulation work',a:'Under 5 minutes via Knowledge Graph'},
+      {b:'Failed experiments: undiscoverable in filing cabinets',a:'2,847 records indexed and searchable'},
+      {b:'Emergent robot protocols: informal, undocumented',a:'RDSG-validated, HITL-approved, KG-published'},
+      {b:'Tech transfer: 8–12 weeks of manual translation',a:'2–4 weeks with SWRL parameter mapping'},
+      {b:'FDA evidence assembly: weeks of manual cross-referencing',a:'SPARQL query over the Knowledge Graph'},
+    ],
+    timeline:[
+      {when:'Wk 1–4',text:'AI4RE SREG live. Scientists begin entering requirements. No workflow changes to ELN or LIMS.',color:'var(--accent)'},
+      {when:'Wk 8–12',text:'R&D Intelligence Platform MVP delivered to 20+ pilot scientists. First cross-BL formulation queries run.',color:'var(--green)'},
+      {when:'Mo 4–5',text:'Batch Intelligence MVP live. QC release decision support operational. HITL Intervention Pane active.',color:'var(--gold)'},
+      {when:'Mo 7–9',text:'Clinical Trials integration. IMP chain-of-custody governance live for all new programs.',color:'var(--violet)'},
+      {when:'Mo 10–12',text:'Tech Transfer Dashboard live. First SWRL-automated BOP delivered to Teamcenter PLM.',color:'var(--teal)'},
+    ],
+  },
+  {
+    id:'mkt', label:'Marketing', color:'#F07030', dot:'#F07030',
+    heroLabel:'Marketing & Product Strategy',
+    heroTitle:'Requirements that govern, not just inform',
+    heroBg:'linear-gradient(135deg,rgba(240,112,48,.15),rgba(240,112,48,.05))',
+    heroBorder:'rgba(240,112,48,.2)',
+    heroSub:'Marketing\'s Voice of Customer inputs become formal semantic governance artifacts — not slide deck content interpreted loosely by R&D. Product performance targets, market requirements, and competitive specifications enter the architecture as traceable obligations that drive what the system optimizes for across every experiment and every batch.',
+    benefits:[
+      {icon:'◎',title:'Requirements That Drive Governance',desc:'AI4RE SREG translates Marketing product briefs into SHACL constraints and LKIF deontic obligations. Marketing\'s targets become formally enforced — not informally referenced.',metric:'47',mlbl:'requirements formalized this cycle from all three source domains',color:'rgba(240,112,48,.12)',bc:'rgba(240,112,48,.2)',tc:'var(--orange)'},
+      {icon:'⬡',title:'Real-Time Competitive Intelligence',desc:'Patent landscape visualization connects Baxter\'s internal formulation history to external patent filings. Marketing sees what Baxter knows and what competitors have filed, in the same interface.',metric:'Live',mlbl:'patent landscape integrated with internal formulation KG',color:'rgba(0,153,255,.1)',bc:'rgba(0,153,255,.2)',tc:'var(--accent)'},
+      {icon:'◈',title:'Realistic Pipeline Visibility',desc:'Marketing can query actual Baxter historical cycle times, formulation success rates, and development timelines — not industry benchmarks. Product strategy conversations are grounded in Baxter\'s operational reality.',metric:'<5 min',mlbl:'time to surface historical feasibility data for new program scoping',color:'rgba(0,200,122,.1)',bc:'rgba(0,200,122,.2)',tc:'var(--green)'},
+      {icon:'◇',title:'Supply Chain Risk at Strategy Stage',desc:'When Marketing proposes a new product concept, the Supply Chain graph already surfaces whether the required API has a single qualified supplier, what lead time variance looks like, and what concentration risk is. Supply chain constraints surface at strategy — not at scale-up.',metric:'45 days',mlbl:'advance warning on supplier risk vs. discovery during shortage',color:'rgba(155,114,240,.1)',bc:'rgba(155,114,240,.2)',tc:'var(--violet)'},
+    ],
+    baRows:[
+      {b:'Requirements: slide deck content, informally interpreted',a:'Formal LKIF obligations enforced by PEP at every layer'},
+      {b:'Competitive intelligence: manual patent searches',a:'Live patent landscape integrated with internal KG'},
+      {b:'Feasibility timelines: industry benchmarks',a:'Baxter\'s actual historical cycle times from Knowledge Graph'},
+      {b:'Supply chain risk: discovered at scale-up',a:'Surfaced at formulation selection stage'},
+      {b:'Marketing influence on R&D: sporadic and informal',a:'SREG feed: continuous, traceable, governed'},
+    ],
+    timeline:[
+      {when:'Mo 1–2',text:'AI4RE SREG front-end live. Marketing begins entering product requirements in natural language — no new data tools required.',color:'var(--orange)'},
+      {when:'Mo 2–4',text:'First formalized requirements visible in ORSD traceability matrix. Marketing can see how their inputs become SHACL constraints.',color:'var(--accent)'},
+      {when:'Mo 4–6',text:'R&D Intelligence Platform delivers patent landscape view. Marketing product strategy team gains competitive intelligence access.',color:'var(--green)'},
+      {when:'Mo 10+',text:'Supply Chain Risk Observatory live. Marketing sees supply chain constraints at product scoping stage for all new programs.',color:'var(--violet)'},
+    ],
+  },
+  {
+    id:'fin', label:'Finance', color:'#00C87A', dot:'#00C87A',
+    heroLabel:'Finance & Budget Governance',
+    heroTitle:'Accountable investment with measurable gates at every phase',
+    heroBg:'linear-gradient(135deg,rgba(0,200,122,.15),rgba(0,200,122,.05))',
+    heroBorder:'rgba(0,200,122,.25)',
+    heroSub:'No big-bang commitment. Each phase is funded independently, concludes with a formal go/no-go gate requiring evidence of delivery, adoption, and governance readiness, and generates rationalization savings that partially offset the next phase\'s cost. Finance tracks the platform\'s value against its cost in real time — not on a five-year model.',
+    benefits:[
+      {icon:'◎',title:'Phased, Gated Investment',desc:'Phase 1: $600K–$900K. Phase 2: $800K–$1.2M. Phase 3: $500K–$800K/yr. Each phase has specific, measurable gate criteria. Finance authorizes Phase 2 only after Phase 1 evidence is presented to the Steering Committee.',metric:'$600K',mlbl:'Phase 1 investment — first value delivered in 12 weeks',color:'rgba(0,200,122,.12)',bc:'rgba(0,200,122,.25)',tc:'var(--green)'},
+      {icon:'⬡',title:'Rationalization Savings Offset',desc:'Wave 1 (Phase 1): $70K–$160K/yr from disconnected ELN analytics and duplicate ontology tooling. Wave 2 (Phase 2): $450K–$1.05M/yr from BI licenses and shadow warehouses. Net TCO-neutral or better by end of Phase 2.',metric:'$1.7M',mlbl:'cumulative annual rationalization savings at Phase 3 completion',color:'rgba(240,165,0,.12)',bc:'rgba(240,165,0,.25)',tc:'var(--gold)'},
+      {icon:'◈',title:'Palantir Alternative ROI',desc:'A Palantir Foundry deployment of equivalent scope costs $8–15M/yr at steady state, with $3–6M in year-one SI fees. FABRIC delivers equivalent capability at $750K–$1.5M/yr. That delta — $6–13M annually — compounds every year the platform operates.',metric:'$6–13M',mlbl:'annual steady-state advantage vs. Palantir Foundry',color:'rgba(0,153,255,.1)',bc:'rgba(0,153,255,.2)',tc:'var(--accent)'},
+      {icon:'◇',title:'No Big-Bang Risk',desc:'90-day parallel operation required before any legacy system is decommissioned. Read-only integration through Phase 2 means no source system validation is at risk. Finance is not exposed to unplanned remediation cost from failed migrations.',metric:'$0',mlbl:'source system modifications required in Phase 1–2',color:'rgba(155,114,240,.1)',bc:'rgba(155,114,240,.2)',tc:'var(--violet)'},
+    ],
+    baRows:[
+      {b:'Platform TCO: $8–15M/yr (Palantir equivalent)',a:'FABRIC steady state: $750K–$1.5M/yr'},
+      {b:'Year-1 SI fees: $3–6M (Palantir)',a:'Year-1 implementation: $600K–$900K (Phase 1)'},
+      {b:'Spend committed upfront: full program',a:'Spend committed at each gate: phase by phase'},
+      {b:'Savings timeline: 5-year projection only',a:'Wave 1 savings begin during Phase 1'},
+      {b:'Legacy decommission: high-risk, big-bang',a:'90-day parallel operation; go/no-go before decommission'},
+    ],
+    timeline:[
+      {when:'Mo 1–6',text:'Phase 1: $600K–$900K. R&D Intelligence + Batch Intelligence delivered. Wave 1 rationalization begins.',color:'var(--green)'},
+      {when:'Mo 6',text:'Phase 1 Gate Review. Evidence package to Steering Committee. Finance authorizes Phase 2 only on pass.',color:'var(--accent)'},
+      {when:'Mo 7–18',text:'Phase 2: $800K–$1.2M. Wave 2 savings ($450K–$1.05M/yr) begin. TCO-neutral position achieved.',color:'var(--gold)'},
+      {when:'Mo 18',text:'Phase 2 Gate Review. $6–10M savings demonstrated vs. Palantir equivalent. Phase 3 authorized.',color:'var(--violet)'},
+      {when:'Mo 19–36',text:'Phase 3: $500K–$800K/yr. Full $720K–$1.7M rationalization savings realized. $6–13M/yr sustained advantage.',color:'var(--teal)'},
+    ],
+  },
+  {
+    id:'sc', label:'Supply Chain', color:'#9B72F0', dot:'#9B72F0',
+    heroLabel:'Supply Chain, Sourcing & Procurement',
+    heroTitle:'From reactive to anticipatory — at two leverage points',
+    heroBg:'linear-gradient(135deg,rgba(155,114,240,.15),rgba(155,114,240,.05))',
+    heroBorder:'rgba(155,114,240,.25)',
+    heroSub:'Supply Chain gains visibility at two critical leverage points it currently lacks: upstream risk detection forty-five days before a qualification window expires rather than during a shortage; and connection to R&D decision-making at the formulation stage, where changing a material selection costs weeks — not the months it costs at scale-up.',
+    benefits:[
+      {icon:'◎',title:'Real-Time Supplier Risk Observatory',desc:'Supplier qualification status, concentration risk, lead time accuracy, and CMO performance are live in the Knowledge Graph. The single-source API supplier alert in the current dashboard is the architecture working — visible 45 days before qualification expires, not during a shortage.',metric:'94%',mlbl:'Tier 1 supplier qualification currently active',color:'rgba(155,114,240,.12)',bc:'rgba(155,114,240,.25)',tc:'var(--violet)'},
+      {icon:'⬡',title:'R&D Formulation Influence — Upstream',desc:'When an R&D scientist selects an excipient or API for a new program, Supply Chain constraints surface automatically via the Knowledge Graph — before the formulation is locked. Changing a material at formulation stage costs days. At scale-up it costs months.',metric:'1',mlbl:'active single-source API concentration risk alert (45-day window)',color:'rgba(232,69,69,.1)',bc:'rgba(232,69,69,.2)',tc:'var(--red)'},
+      {icon:'◈',title:'CMO Performance Governance',desc:'CMO performance scoring, capacity modeling, and process visibility are maintained in the Supply Chain Named Graph without requiring direct access to CMO internal systems. AAS-based federated integration in Phase 3 extends the semantic fabric to select CMO partners.',metric:'88/100',mlbl:'CMO performance composite governance score',color:'rgba(0,180,160,.1)',bc:'rgba(0,180,160,.2)',tc:'var(--teal)'},
+      {icon:'◇',title:'Multi-Tier Supplier Digital Twin',desc:'Phase 2 delivers AAS shells for all Tier 1 and Tier 2 suppliers — semantic digital identities that carry qualification records, lead time history, and geopolitical risk scoring without requiring suppliers to change their own systems.',metric:'80%+',mlbl:'Tier 1 digital twin coverage target by Phase 2 gate',color:'rgba(0,153,255,.1)',bc:'rgba(0,153,255,.2)',tc:'var(--accent)'},
+    ],
+    baRows:[
+      {b:'Supplier risk: discovered during shortage',a:'45-day advance warning via SWRL qualification rules'},
+      {b:'Supply chain influence: at scale-up (too late)',a:'Surfaced at R&D formulation selection (leverage point)'},
+      {b:'CMO visibility: manual audits and spreadsheets',a:'CMO Performance score in Supply Chain Observatory'},
+      {b:'Multi-tier risk: invisible beyond Tier 1',a:'Tier 1+2 digital twins in Phase 2'},
+      {b:'Procurement decisions: based on anecdotal lead time data',a:'96.2% lead time forecast accuracy from Knowledge Graph'},
+    ],
+    timeline:[
+      {when:'Mo 7–9',text:'Supply Chain data domain integrated. SAP APO/IBP, CMO portal feeds, supplier APIs flowing into FABRIC via Kong Gateway.',color:'var(--violet)'},
+      {when:'Mo 10–12',text:'Supply Chain Risk Observatory MVP live. Real-time qualification status, concentration risk alerts, lead time intelligence.',color:'var(--accent)'},
+      {when:'Mo 13–15',text:'Tier 1 digital twin coverage reaches 80%. SWRL qualification expiry rules active across all suppliers.',color:'var(--green)'},
+      {when:'Mo 24–30',text:'Phase 3: AAS-based federated integration with select CMO partners. Cross-enterprise supply chain intelligence.',color:'var(--teal)'},
+    ],
+  },
+  {
+    id:'ops', label:'Operations', color:'#00B4A0', dot:'#00B4A0',
+    heroLabel:'Manufacturing Operations',
+    heroTitle:'Governed autonomy — every site, every shift, every batch',
+    heroBg:'linear-gradient(135deg,rgba(0,180,160,.15),rgba(0,180,160,.05))',
+    heroBorder:'rgba(0,180,160,.25)',
+    heroSub:'Operations gains a real-time view of OEE, yield, and CPV across all sites — assembled automatically, not manually. Deviation detection cross-references the Knowledge Graph for prior resolutions. And the Continuous Improvement SREG feedback loop means CI findings become enforced governance rules, not SOPs that people may or may not follow.',
+    benefits:[
+      {icon:'◎',title:'Manufacturing Process Analytics',desc:'OEE, cycle time, yield, and CPV dashboards across all sites — assembled from PI Historian, Opcenter MES, and SCADA data via Siemens IOX. No custom PLC integration. No equipment modification. No GxP validation impact.',metric:'Real-time',mlbl:'cross-site manufacturing intelligence from IOX OPC-UA integration',color:'rgba(0,180,160,.12)',bc:'rgba(0,180,160,.25)',tc:'var(--teal)'},
+      {icon:'⬡',title:'Intelligent Deviation Resolution',desc:'When a process deviation occurs, the LangGraph Batch Investigation Agent traverses batch genealogy, LIMS results, and PI Historian data simultaneously. Prior deviations and their resolutions are surfaced from the Knowledge Graph before the shift engineer begins manual root cause analysis.',metric:'<1 hr',mlbl:'time from deviation detection to KG-sourced resolution candidates',color:'rgba(0,153,255,.1)',bc:'rgba(0,153,255,.2)',tc:'var(--accent)'},
+      {icon:'◈',title:'CI → Governance Feedback Loop',desc:'When Operations CI identifies a root cause, the finding enters the SREG as a new requirement, becomes a SHACL constraint after Governance Committee review, and is enforced at every subsequent batch at every site from the moment it deploys. CI doesn\'t write SOPs. It writes rules.',metric:'100%',mlbl:'of CI-derived constraints enforced at all sites upon deployment',color:'rgba(240,165,0,.1)',bc:'rgba(240,165,0,.2)',tc:'var(--gold)'},
+      {icon:'◇',title:'Zero Equipment Disruption',desc:'Siemens IOX reads OPC-UA signals the equipment already broadcasts — read-only. No PLC logic changes. No SCADA configuration changes. No DCS programming modified. GxP qualification status of all equipment is unaffected.',metric:'0',mlbl:'equipment modifications required for full digital twin integration',color:'rgba(0,200,122,.1)',bc:'rgba(0,200,122,.2)',tc:'var(--green)'},
+    ],
+    baRows:[
+      {b:'Cross-site yield view: manual aggregation across 4 systems',a:'Real-time OEE + yield dashboard from Historian via IOX'},
+      {b:'Deviation resolution: hours of manual root cause',a:'KG-sourced prior resolutions surfaced in <1 hour'},
+      {b:'CI findings: SOPs that may or may not be followed',a:'SHACL constraints enforced structurally at every site'},
+      {b:'New site integration: months of custom PLC work',a:'IOX + AAS: standard configuration, no PLC modification'},
+      {b:'Predictive maintenance: reactive or spreadsheet-based',a:'Equipment performance trending with failure prediction via FLAML'},
+    ],
+    timeline:[
+      {when:'Mo 7–9',text:'Opcenter MES, PI Historian, SCADA integrated via Siemens IOX. Manufacturing data domain flowing into FABRIC.',color:'var(--teal)'},
+      {when:'Mo 10–12',text:'Manufacturing Process Analytics MVP live. OEE, CPV, yield dashboards operational across pilot sites.',color:'var(--accent)'},
+      {when:'Mo 13–15',text:'LangGraph Batch Investigation Agent deployed. Deviation-to-resolution cross-referencing live.',color:'var(--green)'},
+      {when:'Mo 19–24',text:'Phase 3: AI augmentation. FLAML predictive maintenance models. Advanced CPV analytics. MTBH-guaranteed fidelity.',color:'var(--gold)'},
+    ],
+  },
+];
+
+// ─── ROADMAP DATA ───────────────────────────────────────────────────────────
+
+const PHASES = [
+  {
+    id:'p1',label:'Foundation',sub:'R&D Intelligence & Core Infrastructure',months:'Months 1–6',
+    color:'#0099FF',invest:'$600K – $900K',
+    gate:'Phase 1 → Phase 2 Gate',gateColor:'rgba(0,153,255,.2)',gateText:'#0099FF',
+    gateCriteria:'20+ weekly active R&D users · DQS >90% · Governance baseline approved · Steering Committee authorizes Phase 2',
+    groups:[
+      {label:'Month 1',tasks:[
+        {name:'AI4RE SREG Deployment',desc:'SREG intake workflows for Marketing, Operations CI, and Compliance. First ORSD templates.',badge:'AI4RE',bc:'rgba(0,153,255,.15)',btc:'#0099FF',dot:'#0099FF'},
+        {name:'Infrastructure Baseline',desc:'Cloud environment, network security zones, CI/CD pipeline, GitOps repository, Kafka cluster, AAS Registry.',badge:'Infrastructure',bc:'rgba(0,200,122,.12)',btc:'var(--green)',dot:'var(--green)'},
+      ]},
+      {label:'Months 1–2',tasks:[
+        {name:'Layer 1–2: R&D Source Integration',desc:'SAP LIMS/ELN integration via NiFi and Airbyte. Kafka topics for R&D domains. IOX pilot at R&D facility. First AAS shells for lab equipment.',badge:'Integration',bc:'rgba(0,180,160,.12)',btc:'var(--teal)',dot:'var(--teal)'},
+        {name:'Wymore Model M Documentation',desc:'Formal system model documented for all seven layers. R-specifications defined for R&D domain. SHACL shapes derived from R-specs.',badge:'Architecture',bc:'rgba(155,114,240,.12)',btc:'var(--violet)',dot:'var(--violet)'},
+      ]},
+      {label:'Months 2–3',tasks:[
+        {name:'Layer 4: Data Fabric (R&D Domain)',desc:'Iceberg table design, dbt models for ELN/LIMS/SAP R&D objects, Great Expectations suites. DQS target >90%.',badge:'Data Fabric',bc:'rgba(0,153,255,.12)',btc:'#0099FF',dot:'#0099FF'},
+      ]},
+      {label:'Months 3–4',tasks:[
+        {name:'Layer 5: Knowledge Graph v1.0',desc:'Seed ontology from IDTA/ECLASS. OWL 2 class hierarchy for R&D domain. 50+ SHACL shapes. SPARQL endpoint live. SWRL stability/specification temporal rules.',badge:'Semantic',bc:'rgba(155,114,240,.12)',btc:'var(--violet)',dot:'var(--violet)'},
+        {name:'Layer 6: Mendix Core + HITL',desc:'HITL Intervention Pane, SHACL Validation Viewer, Ontology Context Explorer, AI4RE Requirements Dashboard, Human Performance Monitor baseline.',badge:'UI/UX',bc:'rgba(240,112,48,.12)',btc:'var(--orange)',dot:'var(--orange)'},
+      ]},
+      {label:'Months 4–5',tasks:[
+        {name:'R&D Intelligence Platform MVP',desc:'Cross-BL formulation query, ELN harmonization view, failed experiment search. Delivered to 20+ pilot R&D users.',badge:'Capability App',bc:'rgba(0,200,122,.12)',btc:'var(--green)',dot:'var(--green)'},
+        {name:'MTBH Baseline & Circuit Breaker',desc:'MLflow, JupyterHub, Ray Serve deployed. MTBH service live. Circuit Breaker configured for R&D domain. Baselines set per model.',badge:'AI Gov',bc:'rgba(240,165,0,.12)',btc:'var(--gold)',dot:'var(--gold)'},
+        {name:'Human-AI Teaming Framework',desc:'Real-time performance monitoring, trust calibration, cognitive workload management, fatigue detection and break enforcement.',badge:'Human AI',bc:'rgba(0,180,160,.12)',btc:'var(--teal)',dot:'var(--teal)'},
+      ]},
+      {label:'Months 5–6',tasks:[
+        {name:'Batch Intelligence MVP',desc:'LIMS–MES semantic linkage, batch genealogy graph, QC release decision support. Live for QC and Manufacturing pilot users.',badge:'Capability App',bc:'rgba(0,200,122,.12)',btc:'var(--green)',dot:'var(--green)'},
+        {name:'Wave 1 Portfolio Rationalization Begins',desc:'Disconnected ELN analytics, ad-hoc scripts, duplicate ontology tooling identified and migration initiated. $70K–$160K/yr savings.',badge:'Rationalization',bc:'rgba(232,69,69,.12)',btc:'var(--red)',dot:'var(--red)'},
+      ]},
+    ],
+    results:[
+      {metric:'20+',label:'Weekly active R&D users',target:'Gate criterion'},
+      {metric:'>90%',label:'R&D domain DQS score',target:'Gate criterion'},
+      {metric:'50+',label:'SHACL shapes deployed',target:'Governance baseline'},
+      {metric:'12 wks',label:'Time to first R&D insight',target:'~6× faster than Palantir'},
+      {metric:'2',label:'Capability apps live',target:'R&D Intelligence + Batch Intelligence'},
+      {metric:'$70–160K',label:'Annual Wave 1 savings',target:'From rationalization Wave 1'},
+    ],
+    investments:[
+      {label:'Platform infrastructure',val:'$180K – $280K'},
+      {label:'Integration development (NiFi/Airbyte/Kafka)',val:'$120K – $180K'},
+      {label:'Knowledge graph + semantic layer',val:'$100K – $150K'},
+      {label:'Mendix UI + HITL development',val:'$80K – $120K'},
+      {label:'Human-AI Teaming Framework',val:'$60K – $100K'},
+      {label:'PMO + governance setup',val:'$60K – $70K'},
+    ],
+    rationalization:[
+      {sys:'Disconnected ELN analytics (Excel, Access)',action:'Replace',ac:'rgba(232,69,69,.15)',at:'var(--red)'},
+      {sys:'Ad-hoc Python scripts for LIMS reporting',action:'Replace',ac:'rgba(232,69,69,.15)',at:'var(--red)'},
+      {sys:'Duplicate ontology tooling (local OWL editors)',action:'Consolidate',ac:'rgba(240,165,0,.15)',at:'var(--gold)'},
+    ],
+  },
+  {
+    id:'p2',label:'Scale',sub:'Manufacturing, Clinical & Supply Chain Expansion',months:'Months 7–18',
+    color:'#F0A500',invest:'$800K – $1.2M',
+    gate:'Phase 2 → Phase 3 Gate',gateColor:'rgba(240,165,0,.2)',gateText:'var(--gold)',
+    gateCriteria:'All 6 apps at >60% weekly adoption · 80%+ Tier 1 digital twin · MTBH active all production AI · Wave 1–2 decommissions confirmed',
+    groups:[
+      {label:'Q3 (Mo 7–9)',tasks:[
+        {name:'Clinical Trials Integration',desc:'HL7/FHIR bridge for CRO feeds. ClinicalTrialMaterial AAS shells. Clinical Trials Named Graph. Chain-of-custody SHACL constraints. IMP dispensing SWRL rules.',badge:'Clinical',bc:'rgba(0,200,122,.12)',btc:'var(--green)',dot:'var(--green)'},
+        {name:'Manufacturing Domain Integration',desc:'Opcenter MES, PI Historian, SCADA via Siemens IOX. Manufacturing NiFi flows. Batch genealogy graph. CPV dashboards baseline.',badge:'Manufacturing',bc:'rgba(0,180,160,.12)',btc:'var(--teal)',dot:'var(--teal)'},
+        {name:'Supply Chain Domain Integration',desc:'SAP APO/IBP, CMO portal feeds, supplier APIs via Kong Gateway. Supply Chain Named Graph established.',badge:'Supply Chain',bc:'rgba(155,114,240,.12)',btc:'var(--violet)',dot:'var(--violet)'},
+      ]},
+      {label:'Q3–Q4 (Mo 8–12)',tasks:[
+        {name:'AAS Expansion — All Manufacturing Sites',desc:'AAS shells for all manufacturing assets across all sites. Full-facility digital twin coverage. IOX operational across all sites. Site-agnostic semantic normalization.',badge:'Digital Twin',bc:'rgba(0,153,255,.12)',btc:'#0099FF',dot:'#0099FF'},
+        {name:'Tech Transfer Dashboard',desc:'SWRL parameter mapping rules (142 active). BOP generation to Teamcenter. SAP BOM auto-update. Future-site AAS shell provisioning.',badge:'Tech Transfer',bc:'rgba(240,165,0,.12)',btc:'var(--gold)',dot:'var(--gold)'},
+      ]},
+      {label:'Q4–Q5 (Mo 10–15)',tasks:[
+        {name:'Capability Apps 3 & 4',desc:'Manufacturing Process Analytics MVP. Supply Chain Risk Observatory MVP. Third and fourth capability applications live.',badge:'Capability Apps',bc:'rgba(0,200,122,.12)',btc:'var(--green)',dot:'var(--green)'},
+        {name:'Governance Level 2',desc:'Full lineage graph deployed. RBAC rollout all domains. Circuit Breaker on all production AI models. SOPs for all governance bodies.',badge:'Governance',bc:'rgba(155,114,240,.12)',btc:'var(--violet)',dot:'var(--violet)'},
+      ]},
+      {label:'Q5–Q6 (Mo 14–18)',tasks:[
+        {name:'Capability Apps 5 & 6',desc:'Quality & Compliance Command Center MVP. Regulatory Intelligence Hub Phase 1. Process Automation Workflows MVP.',badge:'Capability Apps',bc:'rgba(0,200,122,.12)',btc:'var(--green)',dot:'var(--green)'},
+        {name:'Wave 1–2 Portfolio Rationalization',desc:'Standalone BI tools consolidated to Superset. Shadow data warehouses migrated to Iceberg. Decommission Wave 1–2 complete. $450K–$1.05M annual savings.',badge:'Rationalization',bc:'rgba(232,69,69,.12)',btc:'var(--red)',dot:'var(--red)'},
+      ]},
+    ],
+    results:[
+      {metric:'6',label:'Capability apps live',target:'>60% weekly adoption each'},
+      {metric:'80%+',label:'Tier 1 digital twin coverage',target:'Gate criterion'},
+      {metric:'100%',label:'IMP chain-of-custody',target:'All new programs'},
+      {metric:'$450K–1M',label:'Annual Wave 1–2 savings',target:'Rationalization realized'},
+      {metric:'14 sites',label:'AAS shells deployed',target:'All manufacturing facilities'},
+      {metric:'2–4 wks',label:'Tech transfer cycle time',target:'Down from 8–12 weeks'},
+    ],
+    investments:[
+      {label:'Clinical + manufacturing integration',val:'$220K – $340K'},
+      {label:'AAS multi-site expansion (Siemens)',val:'$180K – $260K'},
+      {label:'Capability apps 3–6 development',val:'$160K – $240K'},
+      {label:'Supply chain + Tier 1/2 digital twin',val:'$100K – $160K'},
+      {label:'Portfolio rationalization execution',val:'$80K – $120K'},
+      {label:'PMO + governance Level 2',val:'$60K – $80K'},
+    ],
+    rationalization:[
+      {sys:'Standalone BI tools (Tableau, Power BI scatter licenses)',action:'Consolidate',ac:'rgba(240,165,0,.15)',at:'var(--gold)'},
+      {sys:'Shadow data warehouses (BL-specific Redshift, Snowflake)',action:'Migrate + Retire',ac:'rgba(232,69,69,.15)',at:'var(--red)'},
+      {sys:'Disconnected ML platforms (local MLflow, Databricks notebooks)',action:'Consolidate',ac:'rgba(240,165,0,.15)',at:'var(--gold)'},
+      {sys:'Legacy reporting databases (SSRS, Crystal Reports)',action:'Migrate',ac:'rgba(240,165,0,.15)',at:'var(--gold)'},
+    ],
+  },
+  {
+    id:'p3',label:'Optimize',sub:'AI Augmentation & Full Governance Maturity',months:'Months 19–36',
+    color:'#00C87A',invest:'$500K – $800K / yr',
+    gate:'Phase 3 Completion',gateColor:'rgba(0,200,122,.2)',gateText:'var(--green)',
+    gateCriteria:'EU AI Act readiness >85% · 100% lineage completeness · $720K–$1.7M annualized savings · Full governance maturity (Level 3 all four domains)',
+    groups:[
+      {label:'Mo 19–24',tasks:[
+        {name:'LangGraph Agent Suite — Production',desc:'Batch Investigation Agent, Formulation Knowledge Synthesis Agent, Regulatory Evidence Agent deployed. MTBH threshold tuning per use-case risk class. FLAML predictive models in production.',badge:'AI Agents',bc:'rgba(240,165,0,.12)',btc:'var(--gold)',dot:'var(--gold)'},
+        {name:'AI Augmentation — R&D & Manufacturing',desc:'AI-augmented workflows for batch investigation, formulation synthesis, and regulatory template generation with MTBH-guaranteed fidelity.',badge:'Augmentation',bc:'rgba(0,153,255,.12)',btc:'#0099FF',dot:'#0099FF'},
+      ]},
+      {label:'Mo 21–27',tasks:[
+        {name:'Regulatory Intelligence Hub — Full Capability',desc:'SPL/eCTD ontology development. CMC traceability graph from development to submission. Veeva RIM integration. FDA/EMA regulatory change monitoring feeds. Regulatory Evidence Agent full deployment.',badge:'Regulatory',bc:'rgba(155,114,240,.12)',btc:'var(--violet)',dot:'var(--violet)'},
+      ]},
+      {label:'Mo 24–30',tasks:[
+        {name:'Knowledge Federation — CMO Partners',desc:'AAS-based federated integration with select CMO partners and Tier 1 API suppliers. SPARQL federation endpoint for cross-enterprise query. Partner data quality SLA agreements.',badge:'Federation',bc:'rgba(0,180,160,.12)',btc:'var(--teal)',dot:'var(--teal)'},
+      ]},
+      {label:'Mo 27–33',tasks:[
+        {name:'Full Governance Maturity (Level 3)',desc:'Self-service ontology extension toolkit for power users. Predictive data quality monitoring. EU AI Act Article 9 compliance documentation. FDA AI/ML predetermined change control protocols.',badge:'Governance',bc:'rgba(155,114,240,.12)',btc:'var(--violet)',dot:'var(--violet)'},
+        {name:'EU AI Act Compliance Package',desc:'Article 9 risk classification per AI system. Technical documentation complete. Post-market monitoring plan. Target: >85% Article 9 compliance score.',badge:'Compliance',bc:'rgba(240,165,0,.12)',btc:'var(--gold)',dot:'var(--gold)'},
+      ]},
+      {label:'Mo 30–36',tasks:[
+        {name:'Optimization & Wave 3 Rationalization',desc:'Legacy reporting databases decommissioned. SAP BW partial reduction. Infrastructure right-sizing. Advanced CPV analytics. Cross-BL benchmarking suite.',badge:'Rationalization',bc:'rgba(232,69,69,.12)',btc:'var(--red)',dot:'var(--red)'},
+      ]},
+    ],
+    results:[
+      {metric:'>85%',label:'EU AI Act Article 9 readiness',target:'Phase 3 completion criterion'},
+      {metric:'100%',label:'Data lineage completeness',target:'All production reports'},
+      {metric:'$1.7M',label:'Peak annual rationalization savings',target:'All three waves combined'},
+      {metric:'$6–13M',label:'Annual advantage vs. Palantir',target:'Sustained steady state'},
+      {metric:'8+',label:'Capability apps live',target:'All domains covered'},
+      {metric:'Level 3',label:'Governance maturity',target:'All four governance domains'},
+    ],
+    investments:[
+      {label:'LangGraph agent suite + tuning',val:'$140K – $200K'},
+      {label:'Regulatory Intelligence Hub completion',val:'$120K – $180K'},
+      {label:'CMO knowledge federation',val:'$80K – $120K'},
+      {label:'EU AI Act compliance package',val:'$60K – $100K'},
+      {label:'Wave 3 rationalization execution',val:'$60K – $100K'},
+      {label:'PMO + governance Level 3',val:'$40K – $60K/yr'},
+    ],
+    rationalization:[
+      {sys:'Legacy reporting databases (Oracle SSRS, Access, Crystal)',action:'Retire',ac:'rgba(232,69,69,.15)',at:'var(--red)'},
+      {sys:'SAP Business Warehouse (partial)',action:'Evaluate → Reduce',ac:'rgba(240,165,0,.15)',at:'var(--gold)'},
+      {sys:'Remaining scattered ML tracking tools',action:'Consolidate',ac:'rgba(240,165,0,.15)',at:'var(--gold)'},
+    ],
+  },
+];
+
+// ════════════════════════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ════════════════════════════════════════════════════════════════
+
+function showView(v) {
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  const idx={exec:0,stk:1,road:2};
+  document.querySelectorAll('.nav-btn')[idx[v]].classList.add('active');
+  if(v==='exec') setTimeout(animExec,120);
+  if(v==='stk') setTimeout(()=>document.querySelectorAll('.gov-bar-fill').forEach(e=>{e.style.width=e.dataset.w||'0%'}),200);
+}
+
+// ── EXEC SUMMARY ─────────────────────────────────────────────────
+function animExec(){
+  document.querySelectorAll('.vd-bar-fill,.tco-fill,.readiness-fill').forEach(e=>{
+    e.style.width=e.dataset.w||'0%';
+  });
+}
+
+function renderExec(){
+  // Value drivers
+  const vdl = document.getElementById('vd-list');
+  VALUE_DRIVERS.forEach(d=>{
+    vdl.innerHTML += `<div class="vd-row">
+      <div>
+        <div class="vd-label">${d.label}<span>${d.sub}</span></div>
+        <div class="vd-bar-wrap">
+          <div style="font-size:10px;color:var(--red);width:160px;flex-shrink:0">${d.before}</div>
+          <div style="font-size:12px;color:var(--t3);flex-shrink:0">→</div>
+          <div style="font-size:10px;color:var(--green);flex:1">${d.after}</div>
+        </div>
+      </div>
+      <div>
+        <div class="vd-bar" style="width:120px"><div class="vd-bar-fill" style="background:${d.color};width:0%" data-w="${d.pct}%"></div></div>
+        <div style="font-size:10px;color:${d.color};text-align:right;margin-top:2px;font-family:var(--f-mono)">${d.pct}%</div>
+      </div>
+    </div>`;
+  });
+
+  // TCO
+  const tco = document.getElementById('tco-list');
+  TCO_DATA.forEach(t=>{
+    tco.innerHTML += `<div class="tco-row">
+      <div class="tco-label"><span>${t.label}</span><span style="color:${t.textColor};font-family:var(--f-mono)">${t.val}</span></div>
+      <div class="tco-track"><div class="tco-fill" style="background:${t.color};width:0%;color:${t.textColor}" data-w="${t.pct}%"></div></div>
+    </div>`;
+  });
+
+  // Readiness
+  const rl = document.getElementById('readiness-list');
+  READINESS.forEach(r=>{
+    rl.innerHTML += `<div class="readiness-row">
+      <div class="readiness-name">${r.label}</div>
+      <div class="readiness-score" style="color:${r.color}">${r.pct}%</div>
+      <div class="readiness-bar" style="width:100px"><div class="readiness-fill" style="background:${r.color};width:0%" data-w="${r.pct}%"></div></div>
+    </div>`;
+  });
+
+  // Pillars
+  const pg = document.getElementById('pillar-grid');
+  PILLARS.forEach(p=>{
+    pg.innerHTML += `<div class="pillar" style="background:${p.color};border:1px solid ${p.border}">
+      <div class="pillar-icon">${p.icon}</div>
+      <div class="pillar-title" style="color:${p.tc}">${p.title}</div>
+      <div class="pillar-desc">${p.desc}</div>
+    </div>`;
+  });
+
+  // Gate summary
+  const gs = document.getElementById('gate-summary');
+  GATE_SUMMARY.forEach(g=>{
+    const criteria = g.criteria.map(c=>`<div style="display:flex;align-items:start;gap:6px;padding:3px 0"><div style="width:5px;height:5px;border-radius:50%;background:${g.color};flex-shrink:0;margin-top:4px"></div><div style="font-size:11px;color:var(--t2)">${c}</div></div>`).join('');
+    gs.innerHTML += `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="font-family:var(--f-head);font-size:11px;font-weight:600;color:${g.color};margin-bottom:6px">${g.phase}</div>
+      ${criteria}
+    </div>`;
+  });
+
+  setTimeout(animExec, 200);
+}
+
+// ── STAKEHOLDERS ──────────────────────────────────────────────────
+function renderStakeholders(){
+  const tabs = document.getElementById('stk-tabs');
+  const body = document.getElementById('stk-body');
+
+  STAKEHOLDERS.forEach((s,i)=>{
+    // Tab
+    tabs.innerHTML += `<div class="stk-tab ${i===0?'active':''}" onclick="switchStk(${i})" id="stk-tab-${i}">
+      <div class="stk-tab-dot" style="background:${s.dot}"></div>${s.label}
+    </div>`;
+
+    // Panel
+    const ba = s.baRows.map(r=>`<div class="ba-row"><div class="ba-cell ba-before">✕ ${r.b}</div><div class="ba-cell ba-after">✓ ${r.a}</div></div>`).join('');
+    const tl = s.timeline.map((t,ti)=>`<div class="ts-item">
+      <div class="ts-when">${t.when}</div>
+      <div class="ts-dot-col"><div class="ts-dot" style="background:${t.color}"></div>${ti<s.timeline.length-1?'<div class="ts-line"></div>':''}</div>
+      <div class="ts-text">${t.text}</div>
+    </div>`).join('');
+    const bcs = s.benefits.map(b=>`<div class="benefit-card">
+      <div class="bc-icon" style="background:${b.color};border:1px solid ${b.bc}">${b.icon}</div>
+      <div class="bc-title" style="color:${b.tc}">${b.title}</div>
+      <div class="bc-desc">${b.desc}</div>
+      <div class="bc-metric"><div class="bc-metric-val" style="color:${b.tc}">${b.metric}</div><div class="bc-metric-lbl">${b.mlbl}</div></div>
+    </div>`).join('');
+
+    body.innerHTML += `<div class="stk-panel ${i===0?'active':''}" id="stk-panel-${i}">
+      <div class="stk-hero" style="background:${s.heroBg};border:1px solid ${s.heroBorder}">
+        <div class="stk-hero-label" style="color:${s.color}">${s.heroLabel}</div>
+        <div class="stk-hero-title" style="color:var(--t1)">${s.heroTitle}</div>
+        <div class="stk-hero-sub">${s.heroSub}</div>
+      </div>
+      <div class="stk-content-grid">${bcs}</div>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:14px">
+        <div class="before-after">
+          <div class="ba-header">
+            <div class="ba-header-cell" style="color:var(--red)">Before FABRIC</div>
+            <div class="ba-header-cell" style="color:var(--green)">After FABRIC</div>
+          </div>
+          <div class="ba-rows">${ba}</div>
+        </div>
+        <div class="timeline-strip">
+          <div class="ts-title">Implementation timeline</div>
+          <div class="ts-items">${tl}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+function switchStk(i){
+  document.querySelectorAll('.stk-tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.stk-panel').forEach((p,j)=>p.classList.toggle('active',j===i));
+}
+
+// ── ROADMAP ────────────────────────────────────────────────────────
+let activePhase = 0;
+
+function renderRoadmap(){
+  const sel = document.getElementById('phase-selector');
+  const det = document.getElementById('road-detail');
+
+  PHASES.forEach((ph,i)=>{
+    // Phase button
+    const btn = document.createElement('div');
+    btn.className = `phase-btn ${i===0?'active':''}`;
+    btn.style.setProperty('--phase-color', ph.color);
+    btn.onclick = () => switchPhase(i);
+    btn.innerHTML = `<div class="pb-num">PHASE ${i+1} · ${ph.months}</div>
+      <div class="pb-title">${ph.label}</div>
+      <div class="pb-sub">${ph.sub}</div>
+      <div class="pb-invest" style="background:${ph.color}18;color:${ph.color};border:1px solid ${ph.color}33">${ph.invest}</div>
+      <div class="pb-active-ind"></div>`;
+    sel.appendChild(btn);
+
+    // Phase detail panel
+    const panel = document.createElement('div');
+    panel.className = `phase-panel ${i===0?'active':''}`;
+    panel.id = 'phase-panel-'+i;
+
+    // Tasks timeline HTML
+    let taskHTML = '';
+    ph.groups.forEach(g=>{
+      const rows = g.tasks.map(t=>`<div class="task-row">
+        <div class="task-dot" style="background:${t.dot}"></div>
+        <div class="task-content">
+          <div class="task-name">${t.name}</div>
+          <div class="task-desc">${t.desc}</div>
+        </div>
+        <span class="task-badge" style="background:${t.bc};color:${t.btc};border:1px solid ${t.btc}44">${t.badge}</span>
+      </div>`).join('');
+      taskHTML += `<div class="month-group"><div class="mg-label">${g.label}</div>${rows}</div>`;
+    });
+    // Milestone
+    taskHTML += `<div class="milestone-row">
+      <div><div class="ms-diamond" style="background:${ph.color}22;border-color:${ph.color}"></div></div>
+      <div class="ms-content">
+        <div class="ms-name" style="color:${ph.color}">${ph.gate}</div>
+        <div class="ms-gate-criteria">${ph.gateCriteria}</div>
+      </div>
+    </div>`;
+
+    // Results
+    const resultHTML = ph.results.map(r=>`<div class="result-item">
+      <div class="ri-metric" style="color:${ph.color}">${r.metric}</div>
+      <div class="ri-label">${r.label}</div>
+      <div class="ri-target">${r.target}</div>
+    </div>`).join('');
+
+    // Investment breakdown
+    const investRows = ph.investments.map(inv=>`<div class="invest-row">
+      <div class="ir-label">${inv.label}</div>
+      <div class="ir-val" style="color:${ph.color}">${inv.val}</div>
+    </div>`).join('');
+
+    // Rationalization
+    const ratRows = ph.rationalization.map(r=>`<div class="rat-row">
+      <div class="rat-system">${r.sys}<span>Portfolio rationalization</span></div>
+      <span class="rat-action" style="background:${r.ac};color:${r.at};border:1px solid ${r.at}44">${r.action}</span>
+    </div>`).join('');
+
+    panel.innerHTML = `<div class="phase-layout">
+      <div class="phase-timeline">
+        <div class="pt-header">
+          <div><div class="pt-title" style="color:${ph.color}">Phase ${i+1}: ${ph.label}</div><div class="pt-sub">${ph.months} · ${ph.sub}</div></div>
+          <div class="pt-gate" style="background:${ph.gateColor};color:${ph.gateText};border-color:${ph.gateText}66">${ph.gate}</div>
+        </div>
+        ${taskHTML}
+      </div>
+      <div class="phase-sidebar">
+        <div class="invest-card">
+          <div class="ic-title" style="color:${ph.color}">Investment breakdown</div>
+          ${investRows}
+          <div class="ir-total" style="background:${ph.color}15;border:1px solid ${ph.color}33;margin-top:8px">
+            <div class="ir-total-label">Total Phase ${i+1}</div>
+            <div class="ir-total-val" style="color:${ph.color}">${ph.invest}</div>
+          </div>
+        </div>
+        <div class="results-card">
+          <div class="ic-title" style="color:${ph.color}">Phase ${i+1} results & targets</div>
+          ${resultHTML}
+        </div>
+        <div class="rationalization-card">
+          <div class="ic-title" style="color:var(--red)">Portfolio rationalization</div>
+          ${ratRows}
+        </div>
+      </div>
+    </div>`;
+
+    det.appendChild(panel);
+  });
+}
+
+function switchPhase(i){
+  activePhase = i;
+  document.querySelectorAll('.phase-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
+  document.querySelectorAll('.phase-panel').forEach((p,j)=>p.classList.toggle('active',j===i));
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+renderExec();
+renderStakeholders();
+renderRoadmap();
+</script>
+</body>
+</html>

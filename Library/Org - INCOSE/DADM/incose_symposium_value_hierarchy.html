@@ -1,0 +1,236 @@
+
+<style>
+h2.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.root-node{background:var(--color-background-secondary);border:1px solid var(--color-border-primary);border-radius:var(--border-radius-lg);padding:12px 20px;text-align:center;font-size:14px;font-weight:500;color:var(--color-text-primary);margin-bottom:8px}
+.root-label{font-size:11px;color:var(--color-text-tertiary);margin-top:3px;letter-spacing:.5px;text-transform:uppercase}
+.connector-row{display:flex;justify-content:center;gap:0;margin-bottom:0;position:relative;height:24px}
+.connector-row::before{content:'';position:absolute;top:0;left:12.5%;right:12.5%;height:1px;background:var(--color-border-secondary)}
+.connector-down{width:25%;display:flex;justify-content:center}
+.connector-down::after{content:'';width:1px;height:24px;background:var(--color-border-secondary)}
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.pillar{border-radius:var(--border-radius-lg);border:1px solid;overflow:hidden;cursor:pointer;transition:box-shadow .15s}
+.pillar:hover{box-shadow:0 0 0 2px var(--color-border-primary)}
+.pillar-header{padding:12px 12px 10px;border-bottom:1px solid}
+.pillar-icon{font-size:18px;margin-bottom:6px;display:block}
+.pillar-title{font-size:12px;font-weight:500;line-height:1.35}
+.pillar-tag{font-size:10px;margin-top:4px;opacity:.7;letter-spacing:.3px}
+.pillar-body{padding:10px 12px;display:none}
+.pillar-body.open{display:block}
+.dim-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;opacity:.6;margin-bottom:6px;margin-top:10px}
+.dim-label:first-child{margin-top:0}
+.dim-item{font-size:11.5px;line-height:1.5;padding:4px 0;border-bottom:1px solid;display:flex;align-items:flex-start;gap:6px}
+.dim-item:last-child{border-bottom:none}
+.dim-dot{width:5px;height:5px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.crit-item{font-size:11px;color:var(--color-text-secondary);padding:3px 0;padding-left:11px;line-height:1.45;position:relative}
+.crit-item::before{content:'→';position:absolute;left:0;font-size:10px;opacity:.6}
+.chevron{float:right;font-size:13px;transition:transform .2s;line-height:1.4}
+.chevron.open{transform:rotate(180deg)}
+
+.p1{border-color:#9FE1CB;background:linear-gradient(180deg,#E1F5EE 0%,#f8fdfb 100%)}
+.p1 .pillar-header{background:#E1F5EE;border-color:#9FE1CB}
+.p1 .pillar-title{color:#085041}
+.p1 .pillar-tag{color:#0F6E56}
+.p1 .dim-dot{background:#1D9E75}
+.p1 .dim-item{border-color:#9FE1CB40}
+.p1 .crit-item::before{color:#0F6E56}
+
+.p2{border-color:#AFA9EC;background:linear-gradient(180deg,#EEEDFE 0%,#fafafe 100%)}
+.p2 .pillar-header{background:#EEEDFE;border-color:#AFA9EC}
+.p2 .pillar-title{color:#26215C}
+.p2 .pillar-tag{color:#3C3489}
+.p2 .dim-dot{background:#534AB7}
+.p2 .dim-item{border-color:#AFA9EC40}
+.p2 .crit-item::before{color:#534AB7}
+
+.p3{border-color:#B5D4F4;background:linear-gradient(180deg,#E6F1FB 0%,#f7fbff 100%)}
+.p3 .pillar-header{background:#E6F1FB;border-color:#B5D4F4}
+.p3 .pillar-title{color:#042C53}
+.p3 .pillar-tag{color:#185FA5}
+.p3 .dim-dot{background:#378ADD}
+.p3 .dim-item{border-color:#B5D4F440}
+.p3 .crit-item::before{color:#185FA5}
+
+.p4{border-color:#FAC775;background:linear-gradient(180deg,#FAEEDA 0%,#fffdf7 100%)}
+.p4 .pillar-header{background:#FAEEDA;border-color:#FAC775}
+.p4 .pillar-title{color:#412402}
+.p4 .pillar-tag{color:#854F0B}
+.p4 .dim-dot{background:#BA7517}
+.p4 .dim-item{border-color:#FAC77540}
+.p4 .crit-item::before{color:#BA7517}
+
+@media(prefers-color-scheme:dark){
+.p1{background:#04342C;border-color:#085041}.p1 .pillar-header{background:#085041;border-color:#0F6E56}.p1 .pillar-title{color:#9FE1CB}.p1 .pillar-tag{color:#5DCAA5}.p1 .dim-item{border-color:#0F6E5640}
+.p2{background:#26215C;border-color:#3C3489}.p2 .pillar-header{background:#3C3489;border-color:#534AB7}.p2 .pillar-title{color:#CECBF6}.p2 .pillar-tag{color:#AFA9EC}.p2 .dim-item{border-color:#534AB740}
+.p3{background:#042C53;border-color:#0C447C}.p3 .pillar-header{background:#0C447C;border-color:#185FA5}.p3 .pillar-title{color:#B5D4F4}.p3 .pillar-tag{color:#85B7EB}.p3 .dim-item{border-color:#185FA540}
+.p4{background:#412402;border-color:#633806}.p4 .pillar-header{background:#633806;border-color:#854F0B}.p4 .pillar-title{color:#FAC775}.p4 .pillar-tag{color:#EF9F27}.p4 .dim-item{border-color:#854F0B40}
+}
+
+.tradeoff-section{background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-top:4px}
+.tradeoff-title{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:10px}
+.tradeoff-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tradeoff-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:9px 11px}
+.tradeoff-scenario{font-size:11.5px;font-weight:500;color:var(--color-text-primary);margin-bottom:5px}
+.tradeoff-tension{font-size:10.5px;color:var(--color-text-secondary);margin-bottom:5px;line-height:1.4}
+.tradeoff-resolve{font-size:11px;color:var(--color-text-primary);background:var(--color-background-secondary);border-radius:4px;padding:4px 7px;line-height:1.4}
+.resolve-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--color-text-tertiary);display:block;margin-bottom:2px}
+
+.priority-bar{display:flex;gap:6px;margin-top:10px;align-items:center}
+.priority-label{font-size:10.5px;color:var(--color-text-tertiary);white-space:nowrap}
+.priority-chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:500}
+.chip-1{background:#EEEDFE;color:#26215C}.chip-2{background:#E6F1FB;color:#042C53}.chip-3{background:#E1F5EE;color:#085041}.chip-4{background:#FAEEDA;color:#412402}
+@media(prefers-color-scheme:dark){
+.chip-1{background:#3C3489;color:#CECBF6}.chip-2{background:#0C447C;color:#B5D4F4}.chip-3{background:#085041;color:#9FE1CB}.chip-4{background:#633806;color:#FAC775}
+}
+</style>
+
+<h2 class="sr-only">INCOSE International Symposium value hierarchy model — four strategic pillars with value dimensions and decision criteria</h2>
+
+<div style="padding:1rem 0">
+  <div class="root-node">
+    INCOSE International Symposium — Value Framework
+    <div class="root-label">Strategic Decision Hierarchy</div>
+  </div>
+
+  <div class="connector-row">
+    <div class="connector-down"></div>
+    <div class="connector-down"></div>
+    <div class="connector-down"></div>
+    <div class="connector-down"></div>
+  </div>
+
+  <div class="pillars">
+
+    <div class="pillar p2" onclick="toggle('p2')">
+      <div class="pillar-header">
+        <i class="ti ti-award pillar-icon" aria-hidden="true"></i>
+        <div class="pillar-title">Trusted Authority on Systems Engineering <span class="chevron" id="chevron-p2">›</span></div>
+        <div class="pillar-tag">Reputation & Credibility</div>
+      </div>
+      <div class="pillar-body" id="p2">
+        <div class="dim-label">Value dimensions</div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Technical rigor & content excellence</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Thought leadership positioning</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Expert & practitioner credibility</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Contribution to SE body of knowledge</span></div>
+        <div class="dim-label">Decision criteria</div>
+        <div class="crit-item">Does this reinforce INCOSE as the definitive SE voice?</div>
+        <div class="crit-item">Does content meet peer-review or editorial standards?</div>
+        <div class="crit-item">Do keynotes & panels reflect recognized SE leaders?</div>
+        <div class="crit-item">Does output produce citable, referenceable knowledge?</div>
+        <div class="crit-item">Does this differentiate IS from competing venues?</div>
+      </div>
+    </div>
+
+    <div class="pillar p3" onclick="toggle('p3')">
+      <div class="pillar-header">
+        <i class="ti ti-school pillar-icon" aria-hidden="true"></i>
+        <div class="pillar-title">Professional Development & SE Competencies <span class="chevron" id="chevron-p3">›</span></div>
+        <div class="pillar-tag">Competency & Growth</div>
+      </div>
+      <div class="pillar-body" id="p3">
+        <div class="dim-label">Value dimensions</div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Learning outcome quality & depth</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>INCOSE competency framework alignment</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Mentorship & knowledge transfer</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Career pathway & CPD recognition</span></div>
+        <div class="dim-label">Decision criteria</div>
+        <div class="crit-item">Does this measurably advance practitioner competency?</div>
+        <div class="crit-item">Does content align with INCOSE SE Handbook/CSEP?</div>
+        <div class="crit-item">Does this support early-career and mid-career professionals?</div>
+        <div class="crit-item">Is there a structured mentoring or knowledge exchange path?</div>
+        <div class="crit-item">Can attendees earn CPD/PDU credit for participation?</div>
+      </div>
+    </div>
+
+    <div class="pillar p1" onclick="toggle('p1')">
+      <div class="pillar-header">
+        <i class="ti ti-world pillar-icon" aria-hidden="true"></i>
+        <div class="pillar-title">Expand SE Community & Grow INCOSE <span class="chevron" id="chevron-p1">›</span></div>
+        <div class="pillar-tag">Reach & Membership</div>
+      </div>
+      <div class="pillar-body" id="p1">
+        <div class="dim-label">Value dimensions</div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Geographic & sector diversity</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Accessibility (cost, language, format)</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Non-member & first-time attendee pipeline</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Membership conversion & long-term retention</span></div>
+        <div class="dim-label">Decision criteria</div>
+        <div class="crit-item">Does this increase first-time or non-member attendance?</div>
+        <div class="crit-item">Does this reduce systemic barriers to participation?</div>
+        <div class="crit-item">Does this attract underrepresented sectors or regions?</div>
+        <div class="crit-item">Does this generate measurable membership conversion?</div>
+        <div class="crit-item">Does the IS format (hybrid, virtual, in-person) maximize reach?</div>
+      </div>
+    </div>
+
+    <div class="pillar p4" onclick="toggle('p4')">
+      <div class="pillar-header">
+        <i class="ti ti-settings pillar-icon" aria-hidden="true"></i>
+        <div class="pillar-title">Achieve Operational Excellence <span class="chevron" id="chevron-p4">›</span></div>
+        <div class="pillar-tag">Quality & Stewardship</div>
+      </div>
+      <div class="pillar-body" id="p4">
+        <div class="dim-label">Value dimensions</div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Process reliability & participant experience</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Financial stewardship & sustainability</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Volunteer & organizer effectiveness</span></div>
+        <div class="dim-item"><span class="dim-dot"></span><span>Continuous improvement & innovation</span></div>
+        <div class="dim-label">Decision criteria</div>
+        <div class="crit-item">Is this financially sustainable across IS planning cycles?</div>
+        <div class="crit-item">Does this improve net promoter / participant satisfaction?</div>
+        <div class="crit-item">Does this reduce complexity or burden on organizers?</div>
+        <div class="crit-item">Does this build repeatable, scalable capability?</div>
+        <div class="crit-item">Does this use data to drive improvement decisions?</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tradeoff-section">
+    <div class="tradeoff-title"><i class="ti ti-scale" aria-hidden="true" style="margin-right:5px;vertical-align:-1px"></i>Value tension resolution — sample decision scenarios</div>
+    <div class="tradeoff-grid">
+      <div class="tradeoff-card">
+        <div class="tradeoff-scenario">Venue cost vs. accessibility</div>
+        <div class="tradeoff-tension">High-prestige venue strengthens reputation but raises attendance cost, limiting community reach.</div>
+        <div class="tradeoff-resolve"><span class="resolve-label">Resolution guidance</span>Preserve authority signal at flagship IS; offset access via hybrid/virtual track with reduced pricing or grant funding.</div>
+      </div>
+      <div class="tradeoff-card">
+        <div class="tradeoff-scenario">Open submissions vs. curated quality</div>
+        <div class="tradeoff-tension">Broad call for papers grows participation but may dilute technical rigor and IS reputation.</div>
+        <div class="tradeoff-resolve"><span class="resolve-label">Resolution guidance</span>Tier the program — peer-reviewed technical track for authority; practitioner/case study track for community growth.</div>
+      </div>
+      <div class="tradeoff-card">
+        <div class="tradeoff-scenario">Workshops vs. plenary scale</div>
+        <div class="tradeoff-tension">Deep workshops serve competency development but reduce session breadth and reach metrics.</div>
+        <div class="tradeoff-resolve"><span class="resolve-label">Resolution guidance</span>Measure outcomes per objective separately; workshops map to Obj 3, plenaries map to Obj 2 — both are valid IS investments.</div>
+      </div>
+      <div class="tradeoff-card">
+        <div class="tradeoff-scenario">Volunteer capacity vs. innovation</div>
+        <div class="tradeoff-tension">New format ideas (AI-assisted matching, virtual networking) strain volunteer bandwidth and risk quality.</div>
+        <div class="tradeoff-resolve"><span class="resolve-label">Resolution guidance</span>Pilot innovations in bounded tracks before full deployment; operational excellence requires protecting core reliability first.</div>
+      </div>
+    </div>
+    <div class="priority-bar">
+      <span class="priority-label">Priority when objectives conflict:</span>
+      <div class="priority-chips">
+        <span class="chip chip-1">① Trusted authority</span>
+        <span class="chip chip-2">② Professional development</span>
+        <span class="chip chip-3">③ Community expansion</span>
+        <span class="chip chip-4">④ Operational excellence</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggle(id){
+  var body=document.getElementById(id);
+  var chev=document.getElementById('chevron-'+id);
+  var isOpen=body.classList.toggle('open');
+  chev.textContent=isOpen?'˅':'›';
+  chev.classList.toggle('open',isOpen);
+}
+</script>

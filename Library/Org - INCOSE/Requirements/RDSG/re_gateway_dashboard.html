@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RE Gateway · End-to-End Flow & Deliverables</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&display=swap');
+:root{
+  --navy:#1B3A6B;--blue:#1F6FBF;--teal:#0A6E6E;--purple:#534AB7;
+  --amber:#C55A11;--green:#375623;--red:#C00000;
+  --bg:#0F1B2D;--bg2:#162033;--bg3:#1D2B42;--border:#2A3F5F;
+  --f-rdsg:#1F6FBF;--f-stamp:#C55A11;--f-zone6:#E07020;--f-incose:#0A9A9A;--f-iso:#7A6FE0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:#E2ECF8;min-height:100vh;overflow-x:hidden;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#0B1628 0%,#1B3A6B 60%,#0A4E8A 100%);border-bottom:1px solid var(--border);padding:20px 32px 16px;position:relative;overflow:hidden;}
+.hdr::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(31,111,191,.18) 0%,transparent 70%);pointer-events:none;}
+.hdr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.hdr-title h1{font-family:'DM Serif Display',serif;font-size:24px;color:#fff;line-height:1.2;letter-spacing:-.3px;}
+.hdr-title p{font-size:11px;color:#8BAFD4;margin-top:3px;font-weight:300;}
+.stats{display:flex;gap:24px;flex-wrap:wrap;}
+.stat{display:flex;flex-direction:column;gap:2px;}
+.stat-v{font-family:'DM Serif Display',serif;font-size:22px;color:#fff;line-height:1;}
+.stat-l{font-size:9px;color:#6B8BAE;text-transform:uppercase;letter-spacing:.8px;}
+
+/* FILTER ROW */
+.frow{display:flex;gap:7px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07);flex-wrap:wrap;align-items:center;}
+.flabel{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#3A5A7A;margin-right:4px;}
+.fbtn{font-size:10px;font-weight:600;padding:5px 12px;border-radius:20px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;border:1px solid transparent;transition:all .18s;user-select:none;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.04);color:#4A6B8A;border-color:rgba(255,255,255,.08);}
+.fbtn:hover{background:rgba(255,255,255,.09);color:#7AABCA;}
+.fbtn .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.fbtn.on-rdsg  {background:rgba(31,111,191,.22);color:#7BB8E8;border-color:#2A5A9A;}
+.fbtn.on-stamp {background:rgba(197,90,17,.22); color:#F5A165;border-color:#8B4020;}
+.fbtn.on-zone6 {background:rgba(224,112,32,.2);  color:#FFAA60;border-color:#9A4010;}
+.fbtn.on-incose{background:rgba(10,154,154,.2);  color:#5ADADA;border-color:#0A6A6A;}
+.fbtn.on-iso   {background:rgba(122,111,224,.2); color:#C0BBFF;border-color:#5A50B0;}
+.fclr{font-size:10px;color:#3A5A7A;cursor:pointer;padding:4px 8px;border-radius:4px;transition:color .15s;display:none;}
+.fclr:hover{color:#7AABCA;}
+
+/* FILTER BAR */
+.fbar{height:0;overflow:hidden;transition:height .2s;background:rgba(197,90,17,.08);border-bottom:1px solid rgba(197,90,17,.2);display:flex;align-items:center;gap:10px;padding:0 32px;font-size:11px;color:#D4874A;}
+.fbar.on{height:32px;}
+.fbar strong{color:#F5A165;}
+.ftag{display:inline-flex;align-items:center;gap:3px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:8px;}
+
+/* LAYOUT */
+.main{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 192px);min-height:540px;}
+
+/* FLOW PANEL */
+.fpanel{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:3px;}
+.fp-title{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:#4A6B8A;margin-bottom:10px;padding-left:4px;}
+.fnode{position:relative;border-radius:8px;padding:9px 11px;cursor:pointer;transition:all .18s;border:1px solid transparent;display:flex;align-items:center;gap:9px;}
+.fnode:hover{transform:translateX(3px);}
+.fnode.is-active{box-shadow:0 0 0 1px var(--nc);}
+.fnode.is-hit{box-shadow:0 0 0 1.5px rgba(197,90,17,.6) !important;}
+.fnode.is-dim{opacity:.3;}
+.fnode-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.fnode-txt{flex:1;min-width:0;}
+.fnode-lbl{font-size:11px;font-weight:600;color:#D0E4F8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fnode-sub{font-size:9px;color:#5A7B9A;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fnode-ct{font-size:9px;font-weight:700;padding:2px 6px;border-radius:9px;flex-shrink:0;}
+.fnode-match{font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:7px;background:rgba(197,90,17,.25);color:#F5A165;border:1px solid rgba(197,90,17,.4);flex-shrink:0;}
+.connector{display:flex;align-items:center;justify-content:center;height:14px;color:#2A4A6A;font-size:12px;margin-left:24px;}
+.split-wrap{display:flex;gap:4px;margin-top:4px;}
+.split-wrap .fnode{flex:1;}
+.split-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#3A5A7A;text-align:center;margin-bottom:3px;margin-left:24px;}
+
+/* DETAIL PANEL */
+.dpanel{overflow-y:auto;background:var(--bg);display:flex;flex-direction:column;}
+.dplaceholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#2A4A6A;padding:40px;text-align:center;}
+.dplaceholder h3{font-family:'DM Serif Display',serif;font-size:20px;color:#3A6A8A;}
+.dplaceholder p{font-size:12px;max-width:300px;line-height:1.6;}
+
+/* DETAIL HEADER */
+.dhdr{padding:22px 26px 16px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:10;}
+.dhdr-top{display:flex;align-items:flex-start;gap:13px;}
+.d-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
+.d-title h2{font-family:'DM Serif Display',serif;font-size:19px;color:#fff;line-height:1.2;}
+.d-title p{font-size:11px;color:#6B8BAE;margin-top:2px;}
+.dbadges{display:flex;gap:5px;margin-top:10px;flex-wrap:wrap;}
+.badge{font-size:9px;font-weight:600;padding:2px 8px;border-radius:16px;letter-spacing:.4px;text-transform:uppercase;}
+.b-navy{background:rgba(27,58,107,.7);color:#8BAFD4;border:1px solid #2A4A7A;}
+.b-zone{color:#fff;}
+.fstatus{display:none;margin-top:8px;padding:6px 11px;border-radius:6px;background:rgba(197,90,17,.1);border:1px solid rgba(197,90,17,.25);font-size:10.5px;color:#D4874A;align-items:center;gap:7px;flex-wrap:wrap;}
+.fstatus.on{display:flex;}
+.fstatus strong{color:#F5A165;}
+
+/* DETAIL BODY */
+.dbody{padding:18px 26px;display:flex;flex-direction:column;gap:18px;}
+.sec-hdr{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:#4A6B8A;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.sec-hdr::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* DELIVERABLE CARDS */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:9px;}
+.dcard{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:11px 13px;position:relative;transition:all .2s;}
+.dcard:hover{border-color:var(--ca,#2A4A6A);}
+.dcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:9px 0 0 9px;background:var(--ca,#2A4A6A);}
+.dcard.is-hit{border-color:var(--ca) !important;box-shadow:0 0 0 1px color-mix(in srgb,var(--ca) 40%,transparent);}
+.dcard.is-dim{opacity:.18;pointer-events:none;}
+.dcard.is-dim::before{background:#2A3F5F !important;}
+.d-type{font-size:9px;color:#4A6B8A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.d-name{font-size:11px;font-weight:600;color:#C8DCEF;margin-bottom:5px;}
+.d-desc{font-size:10px;color:#7A98B8;line-height:1.55;}
+.d-owner{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:2px 6px;border-radius:9px;margin-top:7px;}
+.d-fpills{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px;}
+.d-fpill{font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:1px 5px;border-radius:7px;opacity:.7;transition:opacity .15s;}
+.d-fpill.pill-active{opacity:1;box-shadow:0 0 0 1px currentColor;}
+
+/* RESP TABLE */
+.rtable{width:100%;border-collapse:collapse;font-size:11px;}
+.rtable th{background:var(--bg3);color:#5A7B9A;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.rtable td{padding:7px 10px;border-bottom:1px solid rgba(42,63,95,.5);color:#9BBAD8;vertical-align:top;}
+.rtable tr:last-child td{border-bottom:none;}
+.rpill{display:inline-block;font-size:8.5px;font-weight:700;padding:2px 6px;border-radius:9px;letter-spacing:.3px;text-transform:uppercase;}
+
+/* INSIGHTS */
+.igrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.icard{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 12px;}
+.ic-t{font-size:9.5px;font-weight:600;color:#A8C4E0;margin-bottom:4px;}
+.ic-b{font-size:10px;color:#6B8BAE;line-height:1.5;}
+
+/* EMPTY */
+.fempty{padding:28px;text-align:center;color:#3A5A7A;font-size:12px;font-style:italic;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#2A4A6A;border-radius:3px;}
+
+/* ANIMATIONS */
+@keyframes fsi{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.dbody>*{animation:fsi .2s ease both;}
+.dbody>*:nth-child(2){animation-delay:.04s;}
+.dbody>*:nth-child(3){animation-delay:.08s;}
+.dbody>*:nth-child(4){animation-delay:.12s;}
+.dbody>*:nth-child(5){animation-delay:.16s;}
+@keyframes cardpop{from{transform:scale(.97);opacity:.6;}to{transform:scale(1);opacity:1;}}
+.dcard.is-hit{animation:cardpop .18s ease;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="hdr-title">
+      <h1>Requirements Engineering Gateway &nbsp;·&nbsp; End-to-End Flow &amp; Deliverables</h1>
+      <p>The Value Enablement Group, LLC &nbsp;·&nbsp; RDSG STPA/STAMP Edition v2.0 &nbsp;·&nbsp; Click a stage to explore &nbsp;·&nbsp; Use filter lenses to highlight artifacts across the pipeline</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="stat-v">11</span><span class="stat-l">Stages</span></div>
+      <div class="stat"><span class="stat-v">48</span><span class="stat-l">Deliverables</span></div>
+      <div class="stat"><span class="stat-v">5</span><span class="stat-l">Zones</span></div>
+      <div class="stat"><span class="stat-v">4</span><span class="stat-l">UCA Types</span></div>
+      <div class="stat"><span class="stat-v">10</span><span class="stat-l">AcceptCriteria</span></div>
+    </div>
+  </div>
+  <div class="frow">
+    <span class="flabel">Filter:</span>
+    <button class="fbtn" id="btn-rdsg"   onclick="toggle('rdsg')"   title="Show RDSG v2.0 additions — new artifacts in the STPA/STAMP hardened edition"><span class="dot" style="background:var(--f-rdsg);"></span>RDSG v2.0</button>
+    <button class="fbtn" id="btn-stamp"  onclick="toggle('stamp')"  title="Show STAMP/STPA artifacts — UCA records, hazard events, safety constraints"><span class="dot" style="background:var(--f-stamp);"></span>STAMP / STPA</button>
+    <button class="fbtn" id="btn-zone6"  onclick="toggle('zone6')"  title="Show Zone 6 / Simplex Gateway artifacts — reversibility classification, handshake protocol, audit log"><span class="dot" style="background:var(--f-zone6);"></span>Zone 6 Hardened</button>
+    <button class="fbtn" id="btn-incose" onclick="toggle('incose')" title="Show INCOSE RM artifacts — traceability records, verification criteria, ICD ownership, stakeholder needs"><span class="dot" style="background:var(--f-incose);"></span>INCOSE RM</button>
+    <button class="fbtn" id="btn-iso"    onclick="toggle('iso')"    title="Show ISO Standards artifacts — ISO 8000, ISO/IEC 25010, ISO/IEC/IEEE 24765 constraint mappings"><span class="dot" style="background:var(--f-iso);"></span>ISO 8000 · 25010</button>
+    <span class="fclr" id="fclr" onclick="clearFilters()">✕ Clear</span>
+  </div>
+</div>
+
+<div class="fbar" id="fbar"><span id="fbar-txt"></span></div>
+
+<div class="main">
+  <div class="fpanel">
+    <div class="fp-title">Pipeline Stages</div>
+    <div id="flow"></div>
+  </div>
+  <div class="dpanel" id="dpanel">
+    <div class="dplaceholder">
+      <svg width="52" height="52" viewBox="0 0 64 64" fill="none"><rect x="8" y="8" width="48" height="48" rx="8" stroke="#2A4A6A" stroke-width="2" stroke-dasharray="4 3"/><circle cx="32" cy="28" r="8" stroke="#2A4A6A" stroke-width="2"/><path d="M20 46c0-6.627 5.373-12 12-12s12 5.373 12 12" stroke="#2A4A6A" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>Select a stage</h3>
+      <p>Click any stage to explore its deliverables, or use the filter lenses above to highlight specific artifact types across the whole pipeline.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── FILTER CONFIG ─────────────────────────────────────────────────────────────
+const F={
+  rdsg:  {label:'RDSG v2.0',    color:'#7BB8E8',bg:'rgba(31,111,191,.18)',  border:'#2A5A9A', pill:'rgba(31,111,191,.25)'},
+  stamp: {label:'STAMP/STPA',   color:'#F5A165',bg:'rgba(197,90,17,.18)',   border:'#8B4020', pill:'rgba(197,90,17,.25)'},
+  zone6: {label:'Zone 6',       color:'#FFAA60',bg:'rgba(224,112,32,.18)',  border:'#9A4010', pill:'rgba(224,112,32,.25)'},
+  incose:{label:'INCOSE RM',    color:'#5ADADA',bg:'rgba(10,154,154,.18)',  border:'#0A6A6A', pill:'rgba(10,154,154,.25)'},
+  iso:   {label:'ISO Standards',color:'#C0BBFF',bg:'rgba(122,111,224,.18)', border:'#5A50B0', pill:'rgba(122,111,224,.25)'},
+};
+
+let active=new Set(), stageId=null;
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const STAGES=[
+  {id:'spo',label:'Structured Prompt Object',sub:'Entry point · Zone 1',icon:'📨',color:'#64748B',bg:'rgba(100,116,139,.15)',zone:'Zone 1',
+   stamp:'Initiating input — typed metadata for RCB construction',
+   desc:'The SPO is the formal input contract between a persona and the Semantic Gateway. It carries identity, intent, domain, and scenario context as typed metadata fields — enabling Stage 0 to execute triplestore queries rather than interpret free text.',
+   uca:'JTBD mismatch between intent tag and SPO content triggers Human-System Misalignment detection (H-RDSG-HSM-001) before the pipeline proceeds.',
+   resp:[{team:'RE Gateway',role:'O',act:'Defines SPO schema and required fields per the holonic interface specification'},{team:'Domain Gov',role:'I',act:'Provides domain signal taxonomy and scenario context vocabulary'},{team:'CoE',role:'E',act:'Implements SPO construction in the elicitation interface'},{team:'Practice Leaders',role:'I',act:'Provides practitioner-grounded intent tag vocabulary'}],
+   incose:'Stakeholder interaction layer — the elicitation interface is the requirements capture surface where persona-holon WHO intents originate.',
+   dels:[
+     {name:'Persona Identity Token',type:'Input Artifact',owner:'RE Gateway',desc:'Authenticated persona ID — Stage 0 queries all active PersonaRequirements, JobRequirements, and UCA profiles.',accent:'#1F6FBF',tags:['incose']},
+     {name:'Intent Tag',type:'Input Artifact',owner:'RE Gateway',desc:'Resolved semantic label mapped to a FunctionalJob class. Determines which DesiredOutcome metrics become AI success criteria in the CAD.',accent:'#1F6FBF',tags:['incose']},
+     {name:'Domain Signal',type:'Input Artifact',owner:'RE Gateway',desc:'Business domain context activating relevant SHACL shapes, vector DB partitions, and ComplianceRequirements.',accent:'#1F6FBF',tags:['incose','iso']},
+     {name:'Scenario Context',type:'Input Artifact',owner:'RE Gateway',desc:'Situational metadata matched against active ScenarioRequirements. When matched, REQ-006 fires and scenario-pinned chunks are priority-retrieved.',accent:'#534AB7',tags:['incose']},
+     {name:'req_context_query Flag',type:'v2.0 Addition',owner:'RE Gateway',desc:'New in v2.0: signals Stage 0 to load the full UCA profile for the matched FunctionalJob — all four UCA types with timeouts, safe-state actions, and reversibility flags.',accent:'#C55A11',tags:['rdsg','stamp']},
+   ]},
+
+  {id:'stage0',label:'Stage 0 — Requirement Resolution',sub:'Process model construction · Zones 2–3',icon:'🔍',color:'#534AB7',bg:'rgba(83,74,183,.15)',zone:'Zones 2–3',
+   stamp:'Process model construction — synchronizes controller\'s view with current triplestore state',
+   desc:'Stage 0 fires three simultaneous triplestore queries to build the Requirement Context Bundle (RCB) — the complete set of active requirements, UCA profiles, and safe-state indexes governing every subsequent stage. In STAMP terms, this is where the controller\'s process model is constructed.',
+   uca:'If the resolved FunctionalJob does not match the SPO\'s semantic content (JTBD mismatch), Stage 0 fires H-RDSG-HSM-001 and presents the conflict to the persona before proceeding.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns RCB assembly protocol and triplestore query specification'},{team:'RE Gateway',role:'O',act:'Owns UCA profile loading specification and safe-state index protocol'},{team:'Domain Gov',role:'C',act:'Maintains active Requirements and UCARecord individuals in triplestore'},{team:'CoE',role:'E',act:'Executes triplestore queries and assembles RCB at runtime'}],
+   incose:'L1 Stakeholder Need resolution. The RCB is the active requirements baseline for this interaction — analogous to the requirements baseline document in INCOSE RM.',
+   dels:[
+     {name:'Requirement Context Bundle (RCB)',type:'Core Artifact',owner:'RE Gateway',desc:'Complete set of active Requirement individuals — PersonaRequirements, JobRequirements, ComplianceRequirements, ControlRequirements, ScenarioRequirements — governing this interaction. Travels through all stages.',accent:'#534AB7',tags:['rdsg','incose']},
+     {name:'UCA Profile',type:'v2.0 Safety Addition',owner:'RE Gateway',desc:'All four UCARecord individuals for the matched FunctionalJob: Missing, Hazardous, MisTimed, WrongDuration — each with context description, timeout value, safe-state action, and reversibility classification.',accent:'#C55A11',tags:['rdsg','stamp']},
+     {name:'Safe-State Index',type:'v2.0 Safety Addition',owner:'RE Gateway',desc:'Pre-fetched SafeStateDefinition URIs. Enables instant safe-state guidance retrieval if a TMP or UCA rule fires mid-pipeline without additional triplestore roundtrip.',accent:'#C55A11',tags:['rdsg','stamp']},
+     {name:'JTBD Mismatch Report',type:'Exception Artifact',owner:'RE Gateway',desc:'Generated when the resolved FunctionalJob\'s embedding diverges from the SPO semantic content beyond threshold. Presented to persona for confirmation before pipeline proceeds.',accent:'#0A6E6E',tags:['stamp','incose']},
+     {name:'Human-System Misalignment Event (H-RDSG-HSM-001)',type:'Hazard Record',owner:'RE Gateway',desc:'Formal hazard event raised when stakeholder intent does not match the active control structure. Routes to governance queue for domain steward resolution.',accent:'#C00000',tags:['rdsg','stamp']},
+   ]},
+
+  {id:'step1',label:'Step 1 — Ontology Resolution',sub:'Entity grounding · Zone 3',icon:'🧩',color:'#1F6FBF',bg:'rgba(31,111,191,.12)',zone:'Zone 3',
+   stamp:'Entity grounding — establishes factual basis for constraint evaluation',
+   desc:'Step 1 resolves every entity reference in the SPO against the federated ontology stack. The RCB drives three behavioral modifications: property visibility filtering, outcome priority weighting, and barrier context elevation with UCA-002 watch placement.',
+   uca:'Entities flagged by a JobBarrier with barrier_type=TerminologyInconsistency receive UCA-002 watch markers that persist through all stages and into the Service Facade.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns entity resolution protocol, visibility filter specification, and UCA-002 watch placement rules'},{team:'Domain Gov',role:'C',act:'Maintains domain ontology individuals and JobBarrier definitions driving filter and watch logic'},{team:'CoE',role:'E',act:'Executes ontology resolution and annotated map construction at runtime'}],
+   incose:'System Requirement verification preparation — entity resolution confirms the system can interpret requirements in the current ontological context.',
+   dels:[
+     {name:'Annotated Entity Map',type:'Stage Output',owner:'RE Gateway / Domain Gov',desc:'Every entity reference replaced with its ontology URI, property profile, domain membership, and job-context visibility filters applied.',accent:'#1F6FBF',tags:['incose','iso']},
+     {name:'Property Visibility Filters',type:'Governance Artifact',owner:'RE Gateway',desc:'JobContext-derived filters suppressing entity properties outside the active job context from reaching the agent. Prevents context bleed across persona/job boundaries.',accent:'#1F6FBF',tags:['incose']},
+     {name:'HIGH_RELEVANCE Flags',type:'Governance Artifact',owner:'RE Gateway',desc:'Priority markers on entity properties corresponding to active DesiredOutcome metric labels. Used by Zone 5 RDQE to bias vector DB retrieval toward outcome-relevant chunks.',accent:'#375623',tags:['incose']},
+     {name:'UCA-002 Watch Records',type:'v2.0 Hazard Artifact',owner:'RE Gateway',desc:'Watch markers on entities flagged by TerminologyInconsistency barriers. Persist through all stages. Service Facade SPARQL ASK query checks these — failure triggers ONTOLOGY_RESOLUTION_FAILURE.',accent:'#C55A11',tags:['rdsg','stamp']},
+     {name:'Disambiguation Tags',type:'Governance Artifact',owner:'RE Gateway',desc:'Tags on barrier-flagged entities requiring forced ontology disambiguation before SHACL evaluation proceeds. Ensures shapes evaluate against canonical form.',accent:'#0A6E6E',tags:['iso','incose']},
+   ]},
+
+  {id:'step2',label:'Step 2 — SHACL Evaluation',sub:'Constraint enforcement · Zone 3',icon:'🛡️',color:'#1F6FBF',bg:'rgba(31,111,191,.12)',zone:'Zone 3',
+   stamp:'Safety constraint enforcement — checks entity map against active constraint set before directive compilation',
+   desc:'Step 2 evaluates the annotated entity map against a dynamically-built constraint set drawn from the RCB. Only shapes relevant to this persona/job/domain are loaded. Must-priority failures halt the pipeline; Should-priority failures produce governance warnings.',
+   uca:'UCAConstraint individuals from the v2.0 UCA profile inject targeted hazard-specific SHACL shapes — testing for the exact structural conditions constituting a hazardous control action for this job.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns active constraint set construction protocol, evaluation ordering, and GOVERNANCE_GAP detection specification'},{team:'RE Gateway',role:'O',act:'Owns ISO standard → SHACL constraint mappings (ISO 8000, ISO/IEC 25010, ISO/IEC/IEEE 24765)'},{team:'Domain Gov',role:'C',act:'Authors domain-specific SHACL invariants and maintains shape library'},{team:'CoE',role:'E',act:'Executes SHACL evaluation engine and validates ISO conformance claims at Steps 1–4'},{team:'CoE',role:'V',act:'Validates that ISO conformance claims are expressed as testable shapes'}],
+   incose:'L3 Verification criterion execution — SHACL shapes are the engineering specification; evaluation is the verification criterion pass/fail in the INCOSE RM traceability model.',
+   dels:[
+     {name:'Active Constraint Set',type:'Stage Artifact',owner:'RE Gateway',desc:'Dynamically assembled SHACL shapes for this interaction, drawn from ControlRequirement enforcedBy linkages, UCAConstraint individuals, and ScenarioRequirement AcceptanceCriteria.',accent:'#1F6FBF',tags:['incose','iso']},
+     {name:'Shape Evaluation Record',type:'Traceability Artifact',owner:'RE Gateway',desc:'Pass/fail result for every shape evaluated, each annotated with the Requirement ID that activated it. Foundational traceability artifact linking response constraint to stakeholder need.',accent:'#1F6FBF',tags:['incose','iso']},
+     {name:'GOVERNANCE_GAP Flags',type:'Governance Artifact',owner:'RE Gateway',desc:'Generated when a Must-priority FunctionalRequirement in the RCB has no enforcedBy linkage. Attached to the CAD and surfaced to the user. Routes to domain steward for remediation.',accent:'#C55A11',tags:['incose']},
+     {name:'Violation Reports',type:'Exception Artifact',owner:'RE Gateway',desc:'Structured violation reports for Must-priority shape failures: which shape, which entity, which ControlRequirement activated it, and required corrective action.',accent:'#C00000',tags:['incose','iso']},
+     {name:'UCA-Derived Shape Activations',type:'v2.0 Hazard Artifact',owner:'RE Gateway',desc:'Shape results from UCAConstraint-derived shapes annotated with the originating UCARecord. Full chain: hazard analysis → constraint enforcement.',accent:'#C55A11',tags:['rdsg','stamp']},
+   ]},
+
+  {id:'step3',label:'Step 3 — SWRL Rule Execution',sub:'Behavioral governance · Zone 3',icon:'⚡',color:'#1F6FBF',bg:'rgba(31,111,191,.12)',zone:'Zone 3',
+   stamp:'Behavioral control — translates requirement class membership into active governance instructions',
+   desc:'Step 3 fires three rule families: REQ series (requirement-driven behaviors, 8 rules), TMP series (temporal safety monitors, 6 rules, new in v2.0), and UCA series (unsafe control action enforcement, 5 rules, new in v2.0).',
+   uca:'TMP-001 through TMP-006 govern time-based UCA failure modes (Missing, MisTimed, WrongDuration). UCA-001 through UCA-005 directly encode STPA UCA constraints as runtime enforcement logic.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns REQ, TMP, and UCA rule specifications; owns rule firing priority order'},{team:'RE Gateway',role:'O',act:'Owns temporal constraint calibration thresholds and MTBH_WHEN trip conditions'},{team:'Domain Gov',role:'C',act:'Authors domain-specific SWRL rule declarations within Gateway-defined rule patterns'},{team:'CoE',role:'E',act:'Executes SWRL inference engine; monitors TMP rule fires for calibration feedback'}],
+   incose:'System behavior derivation — SWRL rules translate requirements into behavioral specifications, mirroring INCOSE functional decomposition from system requirements to behavioral allocations.',
+   dels:[
+     {name:'REQ Rule Firing Record',type:'Governance Artifact',owner:'RE Gateway',desc:'Record of all REQ-001 through REQ-008 rule firings, consequences inferred, and behavioral instructions written. Includes REQUIREMENT_CONFLICT records when REQ-008 fires.',accent:'#1F6FBF',tags:['incose']},
+     {name:'Temporal Monitor Declarations (TMP Series)',type:'v2.0 Safety Artifact',owner:'RE Gateway',desc:'TMP-001 through TMP-006 activations with timeout values, sequence constraints, governing job steps, safe-state actions — embedded in the CAD for Zone 5 runtime enforcement without gateway roundtrips.',accent:'#C55A11',tags:['rdsg','stamp']},
+     {name:'UCA Enforcement Activations',type:'v2.0 Hazard Artifact',owner:'RE Gateway',desc:'UCA-001 through UCA-005 activations encoding identified unsafe control action constraints as behavioral governors — each maps a UCA context pattern to a consequence.',accent:'#C00000',tags:['rdsg','stamp']},
+     {name:'DesiredOutcome Success Criteria',type:'Governance Artifact',owner:'RE Gateway',desc:'REQ-001 output: each active DesiredOutcome metric formalized as a named criterion. Agent must address all; Service Facade checks coverage as an AcceptanceCriterion.',accent:'#375623',tags:['incose']},
+     {name:'Scenario Retrieval Priority Instructions',type:'Governance Artifact',owner:'RE Gateway',desc:'REQ-006 output: scenario-specific vector DB retrieval priority instructions written into the CAD. Scenario-pinned chunks retrieved first regardless of similarity rank.',accent:'#0A6E6E',tags:['incose']},
+     {name:'REQUIREMENT_CONFLICT Records',type:'Exception Artifact',owner:'RE Gateway',desc:'Generated by REQ-008 when two active Must-priority requirements conflict. Halts pipeline compilation and routes to governance queue for domain steward resolution with SLA.',accent:'#C00000',tags:['incose']},
+   ]},
+
+  {id:'step4',label:'Step 4 — PEP Orchestration',sub:'Authorization & reversibility · Zone 2',icon:'🔐',color:'#1F6FBF',bg:'rgba(31,111,191,.12)',zone:'Zone 2',
+   stamp:'Authorization control — evaluates compliance posture and gates Irreversible Zone 6 actions at compile time',
+   desc:'Step 4 evaluates whether the system is authorized to proceed and transforms any Irreversible Zone 6 execution instructions into HANDSHAKE_REQUIRED flags before the CAD is compiled. The Reversibility PEP (new in v2.0) enforces the Simplex Architecture principle at compile time.',
+   uca:'The Reversibility PEP enforces irreversibility constraints at compile time (Step 4), not just execution time (UCA-005). This is the first defense-in-depth layer — prevention before dispatch.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns reversibility classification framework and Reversibility PEP specification'},{team:'RE Gateway',role:'O',act:'Owns HANDSHAKE_REQUIRED flag specification and handshake protocol design'},{team:'Domain Gov',role:'I',act:'Populates req:reversibilityClass on Zone 6 ControlRequirements; designates owner roles'},{team:'CoE',role:'E',act:'Executes PEP evaluation engine; maintains approver role registry in Identity Ontology'}],
+   incose:'Interface control — PEP orchestration enforces the ICD boundary conditions the RE Gateway Team owns as Systems Architect of the L2-to-L3 interface.',
+   dels:[
+     {name:'PEP Verdict Record',type:'Core Artifact',owner:'RE Gateway',desc:'ALLOW, DENY, or ALLOW_WITH_CONDITIONS verdict from each PEP (Compliance, Identity, Data Governance, AI Governance, Reversibility), each annotated with the activating Requirement.',accent:'#1F6FBF',tags:['incose']},
+     {name:'HANDSHAKE_REQUIRED Flags',type:'v2.0 Safety Artifact',owner:'RE Gateway',desc:'Reversibility PEP output for Irreversible Zone 6 actions: designates authorized approver role, token specification, consequence payload, and audit log destination.',accent:'#C55A11',tags:['rdsg','stamp','zone6']},
+     {name:'CONDITIONALLY_REVERSIBLE Notifications',type:'v2.0 Artifact',owner:'RE Gateway',desc:'ALLOW_WITH_CONDITIONS for Conditionally-Reversible actions: undo window TTL, notification target, and undo mechanism. Action proceeds while authorized role is informed.',accent:'#0A6E6E',tags:['rdsg','zone6']},
+     {name:'IRREVERSIBLE_UNOWNED Gap Record',type:'Exception Artifact',owner:'RE Gateway',desc:'Generated when an Irreversible ControlRequirement has no designated owner or unrecognized role. Halts CAD compilation — an unowned irreversible action cannot be governed.',accent:'#C00000',tags:['rdsg','stamp','zone6']},
+   ]},
+
+  {id:'step5',label:'Step 5 — CAD Compilation',sub:'Control action assembly · Zone 2',icon:'📋',color:'#534AB7',bg:'rgba(83,74,183,.15)',zone:'Zone 2',
+   stamp:'Control action issuance — the CAD is the gateway\'s formal control action dispatched to the controlled process',
+   desc:'Step 5 assembles all upstream pipeline products into the Compiled AI Directive — a formally structured, requirement-anchored governance object. Every element is traceable to the requirement that mandated it. The CAD is the architectural expression of controllability rather than reliability.',
+   uca:'The CAD carries the complete UCA monitoring profile, temporal constraint declarations, and Zone 6 reversibility flags — making Zone 5 and Zone 6 self-governing without gateway roundtrips.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns CAD schema, assembly protocol, and all mandatory CAD elements'},{team:'RE Gateway',role:'O',act:'Owns RDQE specification and Zone 6 reversibility flag protocol'},{team:'CoE',role:'E',act:'Executes CAD assembly and dispatches to Service Facade'}],
+   incose:'ORSD instantiation — the CAD is the operational instantiation of the ORSD for this specific interaction, carrying system requirements as executable constraints.',
+   dels:[
+     {name:'Compiled AI Directive (CAD)',type:'Core Deliverable',owner:'RE Gateway',desc:'The primary gateway output: a formally structured, requirement-anchored governance object specifying how the interaction must be executed, validated, and constrained. Every element traceable to a requirement individual.',accent:'#534AB7',tags:['rdsg','incose']},
+     {name:'Requirements-Derived Query Envelope (RDQE)',type:'Core Artifact',owner:'RE Gateway',desc:'Zone 5 retrieval governance: job embedding bias, outcome keyword boosts, scenario pinning, compliance mandatory fetch, barrier suppression, persona access filters, and NFR retrieval budget.',accent:'#1F6FBF',tags:['rdsg','incose']},
+     {name:'UCA Monitoring Profile',type:'v2.0 Safety Artifact',owner:'RE Gateway',desc:'Complete set of active UCARecords with context descriptions, timeouts, safe-state actions, and RequirementsFinding templates. The runtime hazard watch embedded in the CAD.',accent:'#C55A11',tags:['rdsg','stamp']},
+     {name:'Temporal Constraint Declarations',type:'v2.0 Safety Artifact',owner:'RE Gateway',desc:'All TMP rule activations with timeout values, sequence constraints, and safe-state actions embedded in the CAD so Zone 5 is self-governing in time.',accent:'#C55A11',tags:['rdsg','stamp']},
+     {name:'AcceptanceCriteria Pipeline',type:'Governance Artifact',owner:'RE Gateway',desc:'Ordered set of 10 AcceptanceCriteria for Service Facade evaluation: Structural Completeness, Ontology Consistency, Outcome Metric Coverage, Compliance Citation, Persona Scope, UCA-Missing, UCA-MisTimed, UCA-WrongDuration, Irreversibility Gate, NFR Quality.',accent:'#375623',tags:['rdsg','incose','iso']},
+     {name:'Zone 6 Reversibility Flags',type:'v2.0 Safety Artifact',owner:'RE Gateway',desc:'Every Zone 6 dispatch instruction labeled PROCEED, PROCEED_WITH_NOTIFICATION, or HANDSHAKE_REQUIRED. Simplex Action Gateway reads these without making its own reversibility judgment.',accent:'#C00000',tags:['rdsg','stamp','zone6']},
+     {name:'CAD Provenance Record',type:'Traceability Artifact',owner:'RE Gateway',desc:'Full RCB attached as audit provenance. Every downstream validation and Zone 6 action is traceable to requirements individuals in the triplestore via this record.',accent:'#0A6E6E',tags:['incose']},
+   ]},
+
+  {id:'facade',label:'Service Facade',sub:'Delivery gate · Zone 4',icon:'✅',color:'#0A6E6E',bg:'rgba(10,110,110,.12)',zone:'Zone 4',
+   stamp:'Feedback actuator — evaluates agent outputs against AcceptanceCriteria; closes the STAMP control loop',
+   desc:'The Service Facade is the last enforcement boundary before a response reaches the user. It executes the 10-criterion AcceptanceCriteria pipeline, recycles failures with structured correction objects, and gates all Irreversible Zone 6 dispatches. In STAMP terms, it closes the control loop.',
+   uca:'UCA-type criteria enforce timing and scope safety: UCA-Missing triggers TMP-001 safe-state on timeout; UCA-MisTimed blocks premature delivery; Irreversibility Gate validates human approval tokens before Zone 6 dispatch.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns AcceptanceCriteria specification, correction object schema, and RequirementsReview trigger thresholds'},{team:'RE Gateway',role:'O',act:'Owns failure classification by UCA type and MTBH dimensional attribution'},{team:'CoE',role:'E',act:'Executes AcceptanceCriteria pipeline at runtime and maintains RequirementsFindings log'},{team:'Domain Gov',role:'C',act:'Authors domain-specific AcceptanceCriteria content within Gateway-defined criterion types'}],
+   incose:'L4 Validation Measure execution — AcceptanceCriteria evaluation provides the operational verification that maps to MTBH dimensional scores in the INCOSE RM traceability model.',
+   dels:[
+     {name:'Validation Record',type:'Core Artifact',owner:'RE Gateway / CoE',desc:'Pass/fail result for every AcceptanceCriterion evaluated, each annotated with the Requirement ID that mandated it. Primary audit evidence for compliance officers reviewing delivered responses.',accent:'#0A6E6E',tags:['incose','iso']},
+     {name:'Structured Correction Objects',type:'Governance Artifact',owner:'RE Gateway',desc:'Typed correction instructions returned to the agent on criterion failure: criterion type, specific finding, Requirement ID, correction instruction, and failure count. Machine-interpretable.',accent:'#1F6FBF',tags:['incose']},
+     {name:'RequirementsFindings Log',type:'Governance Artifact',owner:'RE Gateway',desc:'UCA-classified failure records. After 3 Must-priority failures within 30 days, a RequirementsReview is automatically triggered with root cause triage options.',accent:'#C55A11',tags:['rdsg','stamp','incose']},
+     {name:'RequirementsReview Trigger',type:'Governance Artifact',owner:'RE Gateway',desc:'Formal review initiated when Must-priority criterion failure threshold is reached. Routes to domain steward: requirements specification defect, AI capability defect, or operational calibration issue.',accent:'#C55A11',tags:['incose']},
+     {name:'Delivery Package',type:'Core Deliverable',owner:'RE Gateway / CoE',desc:'Validated response with governance context block (provenance summary, validation certification, governance gap flags), retrieval provenance record, UCA monitoring log, and Zone 6 audit trail.',accent:'#0A6E6E',tags:['incose','iso']},
+     {name:'Safe-State Response',type:'v2.0 Safety Artifact',owner:'RE Gateway',desc:'Delivered when TMP-001 fires on timeout (Missing UCA). Governed partial output with explicit completion status — delivered immediately from pre-fetched safe-state index.',accent:'#C00000',tags:['rdsg','stamp']},
+   ]},
+
+  {id:'zone5',label:'AI Agents + Vector DBs',sub:'Controlled process · Zone 5',icon:'🤖',color:'#375623',bg:'rgba(55,86,35,.12)',zone:'Zone 5',
+   stamp:'Controlled process — executes under CAD directive; retrieval governed by RDQE; monitored by UCA profile',
+   desc:'Zone 5 is where governed intent becomes executed intelligence. The AI agent translates the CAD into operational instructions. The execution environment monitors agent behavior against the UCA monitoring profile independently of the agent itself.',
+   uca:'The Missing UCA monitor fires TMP-001 if no response token arrives within req:timeout — independently of the agent. Hazardous UCA monitor checks entity references near-real-time. WrongDuration monitor injects SCOPE_EXCEEDED at the defined scope boundary.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns RDQE specification governing all vector DB retrieval — embedding bias, scenario pinning, compliance mandatory fetch, persona access filters, NFR budget'},{team:'RE Gateway',role:'O',act:'Owns UCA monitoring profile specification and scope boundary enforcement protocol'},{team:'CoE',role:'E',act:'Deploys and operates AI agents and vector DB infrastructure; executes RDQE-governed retrieval'},{team:'Domain Gov',role:'C',act:'Maintains vector DB content with required requirements metadata envelope (persona_classes, job_ids, uca_type_tags, safe_state_ids)'}],
+   incose:'Component execution under governed interface — AI agents are controlled components operating under the interface specification the RE Gateway Team owns as Systems Architect.',
+   dels:[
+     {name:'Agent Response',type:'Primary Output',owner:'AI Agents (governed)',desc:'The agent\'s generated response, produced under CAD directive. Not delivered to user until Service Facade validates it against all active AcceptanceCriteria.',accent:'#375623',tags:[]},
+     {name:'Retrieval Provenance Record',type:'Traceability Artifact',owner:'RE Gateway (spec) / CoE (exec)',desc:'Which chunks were retrieved, from which vector DB partitions, under which RDQE modifications, tagged with which Requirement IDs. Enables compliance officers to trace any response claim to its knowledge source.',accent:'#0A6E6E',tags:['incose','iso']},
+     {name:'UCA Monitoring Log',type:'v2.0 Safety Artifact',owner:'RE Gateway (spec) / CoE (exec)',desc:'Record of all UCA monitoring events during agent execution — timeouts, entity resolution failures, scope boundary hits. Enriches Service Facade correction instructions with generation-point context.',accent:'#C55A11',tags:['rdsg','stamp']},
+     {name:'Scope Boundary Status',type:'v2.0 Artifact',owner:'RE Gateway (specified)',desc:'Explicit Complete/Partial marker when WrongDuration UCA scope boundary is reached. Feeds directly into UCA-WrongDuration AcceptanceCriterion at the Service Facade.',accent:'#1F6FBF',tags:['rdsg','stamp']},
+   ]},
+
+  {id:'zone6',label:'Simplex Action Gateway',sub:'Irreversibility enforcement · Zone 6',icon:'🔒',color:'#C55A11',bg:'rgba(197,90,17,.12)',zone:'Zone 6',
+   stamp:'Actuator boundary — enforces Simplex Architecture principle: no Irreversible action executes without verified human authorization',
+   desc:'Zone 6 is where the RDSG control structure meets the physical world. The Simplex Action Gateway enforces Prof. Leveson\'s principle: once an irreversible action executes, post-action feedback is useless. The five-step handshake ensures no Irreversible action executes without verified human authorization.',
+   uca:'UCA-005 is the runtime backstop: if an Irreversible Zone 6 call arrives without a HANDSHAKE_REQUIRED flag (Step 4 PEP failure), UCA-005 fires unconditionally and generates a control structure failure alert — the second defense-in-depth layer.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns reversibility classification framework, handshake protocol specification, and immutable audit log schema'},{team:'RE Gateway',role:'O',act:'Owns UCA-005 specification and control structure failure alert when Step 4 Reversibility PEP is bypassed'},{team:'Domain Gov',role:'I',act:'Populates req:reversibilityClass and req:handshakeRequired on Zone 6 ControlRequirements; designates authorized approver roles'},{team:'CoE',role:'E',act:'Operates Simplex Action Gateway infrastructure; maintains immutable audit log; manages approval token lifecycle'}],
+   incose:'System boundary enforcement — the Simplex Action Gateway enforces the external interface contract separating the governed system from irreversible real-world consequences.',
+   dels:[
+     {name:'Reversibility Classification Decision',type:'Governance Artifact',owner:'RE Gateway (framework) / Domain Gov (classification)',desc:'Every Zone 6 action classified as Reversible, Conditionally-Reversible, or Irreversible per sh:IrreversibilityGate. Validated during requirements capture before status=Active.',accent:'#C55A11',tags:['rdsg','zone6','iso']},
+     {name:'HANDSHAKE_REQUIRED Event',type:'Safety Artifact',owner:'RE Gateway',desc:'Generated when Irreversible action is dispatched without valid token. Contains action description, ControlRequirement traceability chain, consequence payload, and designated approver role.',accent:'#C55A11',tags:['rdsg','stamp','zone6']},
+     {name:'Approval Token',type:'Authorization Artifact',owner:'Authorized Human',desc:'Issued by authorized role after reviewing consequence payload. Contains: verified identity, timestamp, mandatory attestation field, override rationale (optional). Action-specific and time-bounded (TTL).',accent:'#C00000',tags:['zone6']},
+     {name:'Immutable Audit Record',type:'Compliance Artifact',owner:'RE Gateway (spec) / CoE (maintained)',desc:'Append-only record for every Irreversible execution: approver identity, token hash, action payload hash, Zone 6 endpoint, full Requirement ID chain, timestamps, attestation content.',accent:'#0A6E6E',tags:['zone6','incose','iso']},
+     {name:'APPROVAL_INVALID Record',type:'Exception Artifact',owner:'RE Gateway',desc:'Generated on token validation failure (identity, scope, or freshness). Action remains suspended. Re-routes HANDSHAKE_REQUIRED with specific failure described. No execution under any circumstances.',accent:'#C00000',tags:['rdsg','stamp','zone6']},
+     {name:'Undo Window Record',type:'Governance Artifact',owner:'RE Gateway (specified)',desc:'For Conditionally-Reversible actions: start time, expiry, undo mechanism reference, and notification confirmation. Human cancellation within window initiates paired reversal event.',accent:'#1F6FBF',tags:['zone6']},
+   ]},
+
+  {id:'user',label:'Delivered Response → User',sub:'Governed output · End state',icon:'👤',color:'#64748B',bg:'rgba(100,116,139,.12)',zone:'End State',
+   stamp:'System output — requirement-grounded, governance-certified, auditable response',
+   desc:'A delivered RDSG response is a governed output. The user receives substantive content, a governance context block showing the requirements that shaped the response, a validation certification, governance gap flags, and for irreversible actions, a pending authorization notice with consequence payload visible before execution.',
+   uca:'Partial responses (WrongDuration UCA scope boundary) carry explicit PARTIAL_RESPONSE markers. Irreversible Zone 6 actions appear as pending authorizations — governance weight of irreversibility visible before execution, not in an audit log afterward.',
+   resp:[{team:'RE Gateway',role:'O',act:'Owns governance context block specification, gap flag surfacing policy, and partial response marker protocol'},{team:'CoE',role:'E',act:'Assembles and delivers the final response package; surfaces governance context to the user interface'},{team:'Practice Leaders',role:'I',act:'Provides input on appropriate governance context presentation for practitioner audiences'}],
+   incose:'Stakeholder delivery — closes the requirements loop from persona need to validated system output, completing the L1→L4 traceability chain.',
+   dels:[
+     {name:'Validated Response Content',type:'Primary Deliverable',owner:'RE Gateway (governed)',desc:'Substantive answer shaped by DesiredOutcome metrics, scenario-specific knowledge, and compliance citation requirements. All active DesiredOutcome metrics confirmed by Service Facade.',accent:'#64748B',tags:['incose']},
+     {name:'Governance Context Block',type:'Transparency Artifact',owner:'RE Gateway',desc:'Visible to user: (1) Requirement provenance summary, (2) Validation certification — which criteria passed, (3) Governance gap flags surfaced explicitly rather than suppressed.',accent:'#1F6FBF',tags:['incose','iso']},
+     {name:'Pending Authorization Notice',type:'v2.0 Safety Artifact',owner:'RE Gateway',desc:'For Irreversible Zone 6 actions: action not executed. User sees consequence payload, what will happen, what cannot be reversed, and who must authorize — before execution.',accent:'#C55A11',tags:['rdsg','stamp','zone6']},
+     {name:'PARTIAL_RESPONSE Marker',type:'v2.0 Artifact',owner:'RE Gateway',desc:'Explicit marker when WrongDuration UCA scope boundary reached before job completion. Includes: what was covered, what remains, scope boundary definition, and continuation path.',accent:'#C00000',tags:['rdsg','stamp']},
+   ]},
+];
+
+const RC={O:{bg:'#1B3A6B',tx:'#7AABDB',lbl:'Owns'},C:{bg:'#1F4878',tx:'#7AABDB',lbl:'Co-owns'},I:{bg:'#2A3F5F',tx:'#6B8BAE',lbl:'Input'},E:{bg:'#1A3520',tx:'#5A9A5A',lbl:'Executes'},V:{bg:'#0A3A3A',tx:'#3ABABA',lbl:'Validates'},S:{bg:'#3A2A1A',tx:'#D4874A',lbl:'Supports'},M:{bg:'#3A1A1A',tx:'#CC6666',lbl:'Monitors'}};
+
+// ── FILTER HELPERS ────────────────────────────────────────────────────────────
+function matches(d){return active.size===0||[...active].some(f=>d.tags.includes(f));}
+function stageHits(s){return s.dels.filter(d=>matches(d)).length;}
+function stageHasHit(s){return active.size>0&&stageHits(s)>0;}
+
+// ── FILTER TOGGLE ─────────────────────────────────────────────────────────────
+function toggle(k){active.has(k)?active.delete(k):active.add(k);syncUI();}
+function clearFilters(){active.clear();syncUI();}
+
+function syncUI(){
+  const has=active.size>0;
+  ['rdsg','stamp','zone6','incose','iso'].forEach(k=>{
+    const btn=document.getElementById('btn-'+k);
+    btn.className=active.has(k)?'fbtn on-'+k:'fbtn';
+  });
+  document.getElementById('fclr').style.display=has?'inline':'none';
+
+  const bar=document.getElementById('fbar');
+  const txt=document.getElementById('fbar-txt');
+  if(has){
+    bar.classList.add('on');
+    let total=0,stages=0;
+    STAGES.forEach(s=>{const h=stageHits(s);if(h>0){total+=h;stages++;}});
+    const tags=[...active].map(k=>`<span class="ftag" style="background:${F[k].bg};color:${F[k].color};border:1px solid ${F[k].border};">${F[k].label}</span>`).join(' ');
+    txt.innerHTML=`<strong>${total} deliverables</strong> across <strong>${stages} stages</strong> matching: ${tags}`;
+  } else {
+    bar.classList.remove('on');
+  }
+  renderFlow();
+  if(stageId) renderDetail(stageId);
+}
+
+// ── FLOW ─────────────────────────────────────────────────────────────────────
+function renderFlow(){
+  let h='';
+  STAGES.forEach((s,i)=>{
+    const isActive=stageId===s.id;
+    const hit=stageHasHit(s);
+    const dim=active.size>0&&!hit;
+    const mc=stageHits(s);
+
+    let cls='fnode';
+    if(isActive)cls+=' is-active';
+    if(hit)cls+=' is-hit';
+    if(dim)cls+=' is-dim';
+
+    let bgS=`background:${s.bg};`;
+    if(isActive)bgS+=`border-color:${s.color} !important;`;
+
+    if(i>0&&s.id!=='zone6'){
+      if(s.id==='zone5'){h+=`<div class="split-lbl">Dispatch split</div><div class="split-wrap">`;}
+      else h+=`<div class="connector">↓</div>`;
+    }
+
+    h+=`<div class="${cls}" style="--nc:${s.color};${bgS}" onclick="select('${s.id}')">
+      <div class="fnode-icon" style="background:${s.bg};border:1px solid ${s.color}44;">${s.icon}</div>
+      <div class="fnode-txt">
+        <div class="fnode-lbl" style="color:${isActive?s.color:'#D0E4F8'};">${s.label}</div>
+        <div class="fnode-sub">${s.sub}</div>
+      </div>
+      <div class="fnode-ct" style="background:${s.bg};color:${s.color};border:1px solid ${s.color}44;">${s.dels.length}</div>
+      ${hit?`<div class="fnode-match">${mc}✦</div>`:''}
+    </div>`;
+
+    if(s.id==='zone6')h+=`</div>`;
+  });
+  document.getElementById('flow').innerHTML=h;
+}
+
+// ── DETAIL ────────────────────────────────────────────────────────────────────
+function select(id){stageId=id;renderFlow();renderDetail(id);}
+
+function renderDetail(id){
+  const s=STAGES.find(x=>x.id===id);
+  if(!s)return;
+  const has=active.size>0;
+  const total=s.dels.length;
+  const matched=s.dels.filter(d=>matches(d)).length;
+
+  function dpill(tags){
+    return tags.map(k=>{
+      const on=active.has(k);
+      return `<span class="d-fpill${on?' pill-active':''}" style="background:${F[k].pill};color:${F[k].color};">${F[k].label}</span>`;
+    }).join('');
+  }
+
+  function dcard(d){
+    const hit=matches(d);
+    const cls='dcard'+(has?(hit?' is-hit':' is-dim'):'');
+    return `<div class="${cls}" style="--ca:${d.accent};">
+      <div class="d-type">${d.type}</div>
+      <div class="d-name">${d.name}</div>
+      <div class="d-desc">${d.desc}</div>
+      <span class="d-owner" style="background:${d.accent}22;color:${d.accent};border:1px solid ${d.accent}44;">${d.owner}</span>
+      ${d.tags.length?`<div class="d-fpills">${dpill(d.tags)}</div>`:''}
+    </div>`;
+  }
+
+  const cards=s.dels.map(dcard).join('');
+
+  const rows=s.resp.map(r=>{
+    const rc=RC[r.role]||RC.I;
+    return `<tr><td><strong style="color:#C8DCEF;">${r.team}</strong></td><td><span class="rpill" style="background:${rc.bg};color:${rc.tx};">${r.role} — ${rc.lbl}</span></td><td>${r.act}</td></tr>`;
+  }).join('');
+
+  const fstatus=has?`<div class="fstatus on">🔍 <strong>${matched} of ${total}</strong> deliverables match the active filter${matched===0?' — no matches at this stage':''}</div>`:'';
+
+  const zoneDesc={
+    'Zone 1':'Prompt Engineering — elicitation interface layer',
+    'Zones 2–3':'Semantic Gateway — requirement resolution and compilation',
+    'Zone 3':'Ontology & Rules Store — constraint enforcement engine',
+    'Zone 2':'Semantic Gateway — authorization and directive compilation',
+    'Zone 4':'Service Facade — response validation and feedback',
+    'Zone 5':'AI Agents + Vector DBs — governed execution environment',
+    'Zone 6':'Legacy Integration — external system boundary with Simplex gate',
+    'End State':'End-state — validated, governed delivery to persona',
+  };
+
+  document.getElementById('dpanel').innerHTML=`
+    <div class="dhdr">
+      <div class="dhdr-top">
+        <div class="d-icon" style="background:${s.bg};border:1px solid ${s.color}44;">${s.icon}</div>
+        <div class="d-title">
+          <h2>${s.label}</h2>
+          <p>${s.sub} &nbsp;·&nbsp; ${total} deliverables ${has&&matched>0?`· <strong style="color:${s.color};">${matched} match active filter</strong>`:''}</p>
+        </div>
+      </div>
+      <div class="dbadges">
+        <span class="badge b-zone" style="background:${s.bg};color:${s.color};border:1px solid ${s.color}44;">${s.zone}</span>
+        <span class="badge b-navy">STAMP: ${s.stamp.split('—')[0].trim()}</span>
+      </div>
+      ${fstatus}
+    </div>
+
+    <div class="dbody">
+      <div>
+        <div class="sec-hdr">Stage Overview</div>
+        <p style="font-size:12px;color:#8BAFD4;line-height:1.65;">${s.desc}</p>
+      </div>
+      <div>
+        <div class="sec-hdr">STPA / UCA Relevance</div>
+        <div style="background:rgba(197,90,17,.08);border:1px solid rgba(197,90,17,.25);border-left:3px solid #C55A11;border-radius:6px;padding:10px 13px;">
+          <p style="font-size:11px;color:#D4874A;line-height:1.6;">${s.uca}</p>
+        </div>
+      </div>
+      <div>
+        <div class="sec-hdr">${total} Deliverables ${has?`<span style="font-size:8.5px;font-weight:400;color:#4A6B8A;text-transform:none;letter-spacing:0;">(${matched} matching, ${total-matched} dimmed)</span>`:''}</div>
+        <div class="dgrid">${cards}</div>
+        ${has&&matched===0?`<div class="fempty">No deliverables at this stage match the active filter lenses. Try another stage or adjust your filters.</div>`:''}
+      </div>
+      <div>
+        <div class="sec-hdr">Team Responsibilities</div>
+        <table class="rtable"><thead><tr><th style="width:120px;">Team</th><th style="width:140px;">Role</th><th>Responsibility</th></tr></thead><tbody>${rows}</tbody></table>
+      </div>
+      <div>
+        <div class="sec-hdr">STAMP Control Structure Context</div>
+        <div class="igrid">
+          <div class="icard"><div class="ic-t">STAMP Element</div><div class="ic-b">${s.stamp}</div></div>
+          <div class="icard"><div class="ic-t">Architectural Zone</div><div class="ic-b">${s.zone} — ${zoneDesc[s.zone]||''}</div></div>
+          <div class="icard"><div class="ic-t">RE Gateway Authority</div><div class="ic-b">${s.resp.filter(r=>r.role==='O').map(r=>r.act).join(' · ')||'Specification authority carried from upstream stages.'}</div></div>
+          <div class="icard"><div class="ic-t">INCOSE RM Connection</div><div class="ic-b">${s.incose}</div></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderFlow();
+select('stage0');
+</script>
+</body>
+</html>

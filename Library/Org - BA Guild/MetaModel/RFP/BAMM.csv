@@ -1,0 +1,38 @@
+GUID,Name,Notes,Type,CSV_KEY,CSV_PARENT_KEY
+{C859C2A7-B72C-46c2-A21A-95B3427DB93F},Core,,Package,CSV1585C896,
+{2F8E710B-521E-4139-A66B-C9A6BE557AF8},Pending,,Package,CSV84DF2922,
+{065114DE-B00A-41a3-B099-E3FBD65C4A7E},Value,,Package,CSVE6A37E51,CSV1585C896
+{CC78F002-D243-486f-AFA4-DAF3C1F54E82},Capability,,Package,CSV2D24C1D0,CSV1585C896
+{6CB4E829-517C-4cc0-A932-D2CC05065D24},BusinessUnit,,Package,CSV84677A72,CSV1585C896
+{117F7A67-4FDD-4789-8276-EC4641BC49F2},ValueStream,"An end-to-end collection of activities that create a result for a customer, who may be the ultimate customer or an internal end-user of the value stream.",Class,CSV095D2ED4,CSVE6A37E51
+{2A8A270C-53FF-4f9b-971B-03CF9683EEAB},ValueStage,"A distinct, identifiable phase or step within a value stream that has a unique name, entrance criteria, exit criteria, and identifiable participating stakeholder(s)",Class,CSV85E32BC8,CSVE6A37E51
+{D08EE776-7DB8-4bc8-A592-C404422D0CAA},ValueItem,"The judgment of worth, made by an individual or organization, attached to something tangible or intangible and attained in the course of a particular interaction with one or more other parties.The ValueItem represents the value of an Outcome produced by a Capability that supports a ValueStage as seen by a Stakeholder in the context of a ValueStream that contains the ValueStage. In general, this could have a yes/no value, a number value that represents some positive or negative value judgement, or a multi-dimensional evaluation.In the absence of a stakeholder, the value item could be used to represent a ""transfer price"" that is an artificial value associated with one or more outcomes that are intermediaries in a value streamThe rationale for a value represented by a value item is expressed by the value proposition meta-model element.",Class,CSVE20F2700,CSVE6A37E51
+{96CD66EA-BD95-4ba5-B835-3A84A6FF6270},supportValueStage,,Class,CSV289C0F8E,CSVE6A37E51
+{5A481252-9CF3-4e00-986B-7A595F54B15D},successorStage,,Class,CSVE092252C,CSVE6A37E51
+{B120D159-3BAB-4936-B2E4-027F4F71699B},Text,"Constraint: each ValueStage aggregated in a ValueStream must be connected to one and only one different ValueStage in the same ValueStream by a successorStage association class that is composed by the ValueStream.Furthermore, one ValueStage is designated as the starting stage and it may not have a predecessor ValueStage. one ValueStage is designated as the ending stage and it may not have a successor ValueStage. The starting and ending stages may be the same stage.",Text,CSVF41DE662,CSVE6A37E51
+{F33319CC-331E-4454-A034-63BB7356B751},Stakeholder,An internal or external individual or organization with a vested interest in achieving value through a particular outcome.,Class,CSVE0E7B274,CSVE6A37E51
+{220D2C9B-2BFB-4807-A9ED-BE0F1B9BF192},Capability,A particular ability or capacity that a business may possess or exchange to achieve a specific purpose or outcome.,Class,CSV0E913680,CSV2D24C1D0
+{BB362EB5-FE7A-49db-8EFD-502BD5A2AE86},Outcome,,Class,CSV7BC8B958,CSV2D24C1D0
+{D74B7929-CACA-48e9-9F1A-F038CA331C37},produceOutcome,,Class,CSV24E01F7D,CSV2D24C1D0
+{67A636D3-1A5D-46fa-A126-BB7C0BA3B23E},requireOutcome,,Class,CSV2767347E,CSV2D24C1D0
+{6F20FFE6-5EDC-47ad-874C-65B1D44275AA},Information,"Data that has been verified to be accurate and timely, is specific and organized for a purpose, is presented within a context that gives it meaning and relevance, and that can lead to an increase in understanding and decrease in uncertainty.",Class,CSV644BCF31,CSV2D24C1D0
+{9041A290-F22B-41ff-BF92-25E6189E4554},CapabilityInstance,"A specific realization of a capability, as it exists or is envisioned to exist, in the context of a given business unit, value stream stage, or other situational context.",Class,CSV3418D94E,CSV2D24C1D0
+{C323897F-256F-4878-8815-FEDAA581E773},BusinessUnit,"A logical element or segment of a company (such as accounting, production, marketing) representing a specific business function, and a definite place on the organizational chart, under the domain of a manager. Also called department, division, or functional area.",Class,CSV358B6BB4,CSV84677A72
+{B4315A76-4DD0-4a8b-8F1E-6417B4EF22A1},CollaborationTeam,,Class,CSVA88E4DFE,CSV84677A72
+{AB64A438-3C44-4e26-B4AE-A434861EA473},collaborationTeamRelationship,,Class,CSV81EE1113,CSV84677A72
+{90A39D4B-CB27-47bd-AEAF-FBE105AD13EA},Strategy,,Package,CSV2527CFA5,CSV84DF2922
+{B2F6EEE7-DF5B-422d-9B0F-F32F61948770},Requirements,,Package,CSV8A6958D2,CSV84DF2922
+{59C65882-FBAE-443c-BC01-D3FE1EF3F09B},BusinessModel,"A business model describes the rationale of how an organization creates, delivers, and captures value.",Package,CSVB884275F,CSV84DF2922
+{810A0FE8-4898-4b58-8FB1-C92ADC787941},Objective,"A quantitative, measurable result that defines strategy.An Objective is a description of a state of affairs that should result from execution of the strategy.",Class,CSV26A1094C,CSV2527CFA5
+{7C25DC82-514F-43d6-955B-3C1DD175A5E3},CourseOfAction,A CourseOfAction is a description of a group of actions that should result in the achievement of the Objective. A particular Objective may possibly be achieved by many different CoursesOfAction.,Class,CSV0DFE2283,CSV2527CFA5
+{A3803376-E6C6-48f1-8B2E-905869F9F839},shouldResultIn,,Class,CSV3D5C17C6,CSV2527CFA5
+{0E2CAE40-909F-4020-B20A-F097A7BFFFFE},isNeededBy,,Class,CSV443BD009,CSV2527CFA5
+{CE7ECE5D-9590-4b8c-95FC-BF51678C91FB},Rationale,"A Rationale is an explanation of the reasoning leading to the conclusion that the CourseOfAction should result in the achievement of the Objective.A Rationale also explains why an Outcome is needed in order to be able to execute the CourseOfAction.",Class,CSV00DF4716,CSV2527CFA5
+{D9552D11-5290-487f-AAF1-1A5DA273CFA8},ActionPlan,,Class,CSVE0074A13,CSV2527CFA5
+{61E4951C-F692-455a-A377-CC7915C30136},,"A Strategy is a composition of a CourseOfAction and its decompositions, the associated ActionPlans, the Objectives, the Rationales connecting the CoursesOfAction and the Objectives, and the Associations that connect these element to form a complete Strategy, There may be multiple Strategies, and they may share any of these elements.",Note,CSV1A712A12,CSV2527CFA5
+{CB08DBDE-F2FF-4ba8-9D73-D9CE5B67FA4B},ImpactOnCapabilityInstance,,Class,CSVD2711AD7,CSV2527CFA5
+{A54581DC-9124-44d0-85EF-C319DB495187},InitiativePlan,,Class,CSV3DCFA704,CSV2527CFA5
+{3C5E5002-26E5-4786-B278-7CE17E35F7ED},Initiative,A course of action that is being executed or has been selected for execution.,Class,CSVC1F73500,CSV2527CFA5
+{7CEBCEB2-8C65-4c23-949A-ADE5AD910E35},Requirement,,Class,CSVDD55F374,CSV8A6958D2
+{CFAB211B-15CA-447b-B9E9-4F8F9C4AB4E0},ValueProposition,"<font color=""#222222""><i>An innovation, service, or feature intended to make a company, product, or service attractive to customers or related stakeholders. </i></font><font color=""#222222"">The value proposition in the business architecture meta-model is a hypothetical description of how and why a stakeholder would see a net benefit or net detriment to the overall experience of acquiring the innovation, product or service </font><font color=""#222222"">The value proposition is associated with a stakeholder by way of the value item.</font>",Class,CSVCDAF58FB,CSVB884275F
+{538C707A-9A4A-47cd-9975-CECB1FB7D1E9},ValuePropositionType,The value proposition type is a template that can be customized to create a particular value proposition.,Class,CSVE3FE2D4E,CSVB884275F
