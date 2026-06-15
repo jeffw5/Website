@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualize Model</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+    <style>
+        #network { background: #0a0f1a; }
+        .vis-tooltip {
+            background: #1f2937 !important;
+            color: #e5e7eb !important;
+            border: 1px solid #4b5563 !important;
+            font-family: monospace !important;
+            font-size: 11px !important;
+            padding: 6px 8px !important;
+            border-radius: 4px !important;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <div class="h-14 border-b border-gray-700 flex items-center justify-between px-6 bg-gray-850 flex-shrink-0">
+        <div>
+            <h1 class="text-base font-bold text-indigo-400">🕸️ Visualize Model</h1>
+            <p id="assetUri" class="text-xs text-gray-500 italic truncate max-w-md"></p>
+        </div>
+        <div class="flex gap-2 items-center">
+            <span id="nodeCount" class="text-xs text-gray-500"></span>
+            <button onclick="window.close()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-4 rounded text-sm transition">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- Control Panel -->
+        <div class="w-72 bg-gray-800 border-r border-gray-700 p-4 overflow-y-auto space-y-4 flex-shrink-0 text-sm">
+
+            <!-- View Selector -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">View</label>
+                <div class="grid grid-cols-3 gap-1">
+                    <button onclick="setView('hierarchy')" id="view-hierarchy" class="view-btn bg-indigo-600 text-white text-xs py-1.5 rounded transition">Hierarchy</button>
+                    <button onclick="setView('network')" id="view-network" class="view-btn bg-gray-700 text-gray-300 text-xs py-1.5 rounded transition">Network</button>
+                    <button onclick="setView('cloud')" id="view-cloud" class="view-btn bg-gray-700 text-gray-300 text-xs py-1.5 rounded transition">Cloud</button>
+                </div>
+            </div>
+
+            <!-- Scope -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Scope</label>
+                <select id="scopeSelect" onchange="loadGraph()" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-gray-200">
+                    <option value="asset">This asset only</option>
+                    <option value="parents">Include parent classes</option>
+                    <option value="cross">Include cross-ontology references</option>
+                </select>
+            </div>
+
+            <!-- Depth Slider -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    Traversal Depth: <span id="depthValue" class="text-indigo-400">1</span>
+                </label>
+                <input id="depthSlider" type="range" min="1" max="3" value="1" step="1"
+                       oninput="document.getElementById('depthValue').textContent=this.value"
+                       onchange="loadGraph()"
+                       class="w-full accent-indigo-500">
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>1 hop</span><span>2 hops</span><span>3 hops</span>
+                </div>
+            </div>
+
+            <!-- Node Distance / Zoom Slider -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                    Node Spacing: <span id="spacingValue" class="text-indigo-400">150</span>
+                </label>
+                <input id="spacingSlider" type="range" min="50" max="400" value="150" step="10"
+                       oninput="updateSpacing(this.value)"
+                       class="w-full accent-indigo-500">
+            </div>
+
+            <!-- Node Type Filters -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Show</label>
+                <div class="space-y-1">
+                    <label class="flex items-center gap-2 text-gray-300 cursor-pointer">
+                        <input type="checkbox" id="filterClass" checked onchange="loadGraph()" class="accent-indigo-500">
+                        Classes
+                    </label>
+                    <label class="flex items-center gap-2 text-gray-300 cursor-pointer">
+                        <input type="checkbox" id="filterProperty" checked onchange="loadGraph()" class="accent-indigo-500">
+                        Object Properties
+                    </label>
+                    <label class="flex items-center gap-2 text-gray-300 cursor-pointer">
+                        <input type="checkbox" id="filterInstance" checked onchange="loadGraph()" class="accent-indigo-500">
+                        Instances
+                    </label>
+                    <label class="flex items-center gap-2 text-gray-300 cursor-pointer">
+                        <input type="checkbox" id="filterSkos" checked onchange="loadGraph()" class="accent-indigo-500">
+                        SKOS Concepts
+                    </label>
+                </div>
+            </div>
+
+            <!-- Search / Highlight -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Search / Highlight</label>
+                <input id="searchBox" type="text" placeholder="Type a label..."
+                       oninput="highlightSearch(this.value)"
+                       class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs text-gray-200">
+            </div>
+
+            <!-- Legend -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Legend</label>
+                <div id="legend" class="space-y-1 text-xs"></div>
+            </div>
+
+            <!-- Reload -->
+            <button onclick="loadGraph()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded text-sm transition">
+                🔄 Reload Graph
+            </button>
+
+            <div id="status" class="text-xs text-gray-500 italic"></div>
+        </div>
+
+        <!-- Graph Canvas -->
+        <div class="flex-1 relative">
+            <div id="network" class="w-full h-full"></div>
+            <div id="cloudView" class="hidden w-full h-full overflow-auto p-8"></div>
+            <div id="loading" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 hidden">
+                <div class="text-gray-400 text-sm">Loading graph...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ── Params ──
+        const params = new URLSearchParams(window.location.search);
+        const assetUri = params.get('uri');
+        const repoId   = params.get('repo') || 'Value-kb';
+
+        document.getElementById('assetUri').textContent = assetUri || '(no asset)';
+        document.getElementById('assetUri').title = assetUri || '';
+
+        function getBaseUrl() {
+            return `/graphdb/repositories/${repoId}`;
+        }
+
+        let currentView = 'hierarchy';
+        let network = null;
+        let allNodes = [];
+        let allEdges = [];
+
+        // ── Color palette per ontology namespace ──
+        const NAMESPACE_COLORS = {
+            'enablingvalue.com':        '#10b981', // emerald — your work
+            'ai-governance':            '#f59e0b', // amber
+            'data-governance':          '#3b82f6', // blue
+            'semantic-governance':      '#8b5cf6', // violet
+            'analytics-governance':     '#ec4899', // pink
+            'verizon.com':              '#6b7280', // gray
+            'w3.org':                   '#374151', // dark gray (rdf/owl/rdfs core)
+            'default':                  '#4f46e5', // indigo
+        };
+
+        function colorForUri(uri) {
+            for (const [key, color] of Object.entries(NAMESPACE_COLORS)) {
+                if (uri.includes(key)) return color;
+            }
+            return NAMESPACE_COLORS.default;
+        }
+
+        function shortLabel(uri, label) {
+            if (label) return label;
+            return uri.split('#').pop().split('/').pop() || uri;
+        }
+
+        // ── View switching ──
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => {
+                b.classList.remove('bg-indigo-600', 'text-white');
+                b.classList.add('bg-gray-700', 'text-gray-300');
+            });
+            document.getElementById('view-' + view).classList.remove('bg-gray-700', 'text-gray-300');
+            document.getElementById('view-' + view).classList.add('bg-indigo-600', 'text-white');
+
+            if (view === 'cloud') {
+                document.getElementById('network').classList.add('hidden');
+                document.getElementById('cloudView').classList.remove('hidden');
+                renderCloud();
+            } else {
+                document.getElementById('network').classList.remove('hidden');
+                document.getElementById('cloudView').classList.add('hidden');
+                renderNetwork(view);
+            }
+        }
+
+        function updateSpacing(val) {
+            document.getElementById('spacingValue').textContent = val;
+            if (network) {
+                network.setOptions({
+                    physics: { repulsion: { nodeDistance: parseInt(val) } }
+                });
+            }
+        }
+
+        function highlightSearch(term) {
+            if (!network) return;
+            term = term.toLowerCase().trim();
+            const updated = allNodes.map(n => {
+                const match = term && n.label.toLowerCase().includes(term);
+                return {
+                    ...n,
+                    color: match ? { background: '#fbbf24', border: '#f59e0b' } : n._origColor,
+                    font: { color: match ? '#000' : '#e5e7eb', size: match ? 16 : 12 }
+                };
+            });
+            network.setData({ nodes: new vis.DataSet(updated), edges: new vis.DataSet(allEdges) });
+        }
+
+        // ── SPARQL: build query based on scope + depth ──
+        function buildQuery() {
+            const scope = document.getElementById('scopeSelect').value;
+            const depth = parseInt(document.getElementById('depthSlider').value);
+
+            // Base: get everything defined "in" this graph (as subject)
+            // plus subClassOf / object property relationships, traversed to `depth` hops.
+            // We use a UNION of path lengths 1..depth via property path with bounded repetition
+            // is tricky in SPARQL 1.1 without exact bounds, so we do depth via repeated OPTIONALs.
+
+            let pathPattern = '?s0';
+            for (let i = 0; i < depth; i++) {
+                pathPattern += ` (rdfs:subClassOf|^rdfs:subClassOf|skos:broader|^skos:broader|rdfs:domain|rdfs:range|^rdfs:domain|^rdfs:range)`;
+                pathPattern += i === depth - 1 ? ' ?target' : ` ?hop${i}`;
+                if (i < depth - 1) pathPattern = pathPattern.replace('?target', `?hop${i}`);
+            }
+
+            // Simpler, robust approach: fetch direct triples for in-graph subjects,
+            // then a second query for relationships up to `depth` hops via property paths
+            // with a fixed-length alternation (1 to depth).
+            let altPaths = [];
+            for (let d = 1; d <= depth; d++) {
+                const hop = '(rdfs:subClassOf|skos:broader)';
+                altPaths.push(Array(d).fill(hop).join('/'));
+            }
+            const pathExpr = altPaths.join('|');
+
+            const crossClause = scope === 'cross' ? '' : `FILTER(STRSTARTS(STR(?s0), STRBEFORE(STR(?asset), "#")) || STRSTARTS(STR(?s0), STRBEFORE(STR(?asset), "/")) )`;
+
+            return `
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+SELECT DISTINCT ?s ?sLabel ?sType ?p ?o ?oLabel ?oType WHERE {
+  {
+    # Nodes/edges directly in the selected graph
+    GRAPH <${assetUri}> {
+      ?s ?p ?o .
+    }
+    FILTER(?p IN (rdfs:subClassOf, skos:broader, rdf:type) || isIRI(?o))
+  }
+  UNION
+  {
+    # Extended relationships up to N hops via subClassOf/broader from any node in this graph
+    GRAPH <${assetUri}> { ?s0 a ?anyType . }
+    ?s0 (${pathExpr}) ?o .
+    BIND(?s0 AS ?s)
+    BIND(rdfs:subClassOf AS ?p)
+  }
+  OPTIONAL { ?s rdfs:label ?sLabelRaw }
+  OPTIONAL { ?s a ?sType }
+  OPTIONAL { ?o rdfs:label ?oLabelRaw }
+  OPTIONAL { ?o a ?oType }
+  BIND(COALESCE(?sLabelRaw, "") AS ?sLabel)
+  BIND(COALESCE(?oLabelRaw, "") AS ?oLabel)
+  FILTER(isIRI(?s) && (isIRI(?o) || isLiteral(?o)))
+}
+LIMIT 500
+`;
+        }
+
+        // ── Fetch and process graph data ──
+        async function loadGraph() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('status').textContent = 'Querying GraphDB...';
+
+            const query = buildQuery();
+
+            try {
+                const response = await fetch(getBaseUrl(), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/sparql-results+json'
+                    },
+                    body: new URLSearchParams({ query })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(errText.slice(0, 300));
+                }
+
+                const data = await response.json();
+                processBindings(data.results.bindings);
+                document.getElementById('status').textContent = `Loaded ${allNodes.length} nodes, ${allEdges.length} edges`;
+                document.getElementById('nodeCount').textContent = `${allNodes.length} nodes / ${allEdges.length} edges`;
+
+                if (currentView === 'cloud') {
+                    renderCloud();
+                } else {
+                    renderNetwork(currentView);
+                }
+
+            } catch (err) {
+                document.getElementById('status').textContent = 'Error: ' + err.message;
+                console.error(err);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        // ── Convert SPARQL bindings into vis-network nodes/edges ──
+        function processBindings(bindings) {
+            const nodeMap = new Map();
+            const edges = [];
+            const seenEdges = new Set();
+
+            const filterClass    = document.getElementById('filterClass').checked;
+            const filterProperty = document.getElementById('filterProperty').checked;
+            const filterInstance = document.getElementById('filterInstance').checked;
+            const filterSkos     = document.getElementById('filterSkos').checked;
+
+            const TYPE_OWL_CLASS = 'http://www.w3.org/2002/07/owl#Class';
+            const TYPE_OWL_PROP  = 'http://www.w3.org/2002/07/owl#ObjectProperty';
+            const TYPE_SKOS      = 'http://www.w3.org/2004/02/skos/core#Concept';
+
+            function typeAllowed(typeUri) {
+                if (!typeUri) return true; // unknown type, allow
+                if (typeUri === TYPE_OWL_CLASS) return filterClass;
+                if (typeUri === TYPE_OWL_PROP) return filterProperty;
+                if (typeUri === TYPE_SKOS) return filterSkos;
+                return filterInstance;
+            }
+
+            function addNode(uri, label, typeUri) {
+                if (nodeMap.has(uri)) {
+                    // upgrade label/type if we now have better info
+                    const existing = nodeMap.get(uri);
+                    if (!existing.title.includes(label) && label) {
+                        existing.label = shortLabel(uri, label);
+                    }
+                    return existing;
+                }
+                const color = colorForUri(uri);
+                const node = {
+                    id: uri,
+                    label: shortLabel(uri, label),
+                    title: uri,
+                    color: { background: color, border: color },
+                    _origColor: { background: color, border: color },
+                    font: { color: '#e5e7eb', size: 12 },
+                    shape: typeUri === TYPE_OWL_PROP ? 'diamond' : 'dot',
+                    size: typeUri === TYPE_OWL_CLASS ? 14 : 10,
+                };
+                nodeMap.set(uri, node);
+                return node;
+            }
+
+            for (const b of bindings) {
+                const sUri = b.s?.value;
+                const oUri = b.o?.value;
+                const pUri = b.p?.value;
+                const sLabel = b.sLabel?.value;
+                const oLabel = b.oLabel?.value;
+                const sType  = b.sType?.value;
+                const oType  = b.oType?.value;
+
+                if (!sUri || !oUri || !b.o || b.o.type === 'literal') continue;
+
+                if (!typeAllowed(sType) || !typeAllowed(oType)) continue;
+
+                addNode(sUri, sLabel, sType);
+                addNode(oUri, oLabel, oType);
+
+                const edgeKey = `${sUri}|${pUri}|${oUri}`;
+                if (!seenEdges.has(edgeKey)) {
+                    seenEdges.add(edgeKey);
+                    const predLabel = pUri ? shortLabel(pUri, null) : '';
+                    edges.push({
+                        from: sUri,
+                        to: oUri,
+                        label: predLabel,
+                        font: { color: '#9ca3af', size: 9, strokeWidth: 0 },
+                        color: { color: '#4b5563', highlight: '#fbbf24' },
+                        arrows: 'to',
+                        title: pUri
+                    });
+                }
+            }
+
+            allNodes = Array.from(nodeMap.values());
+            allEdges = edges;
+
+            buildLegend();
+        }
+
+        function buildLegend() {
+            const usedColors = new Set(allNodes.map(n => n._origColor.background));
+            const legend = document.getElementById('legend');
+            legend.innerHTML = '';
+            for (const [key, color] of Object.entries(NAMESPACE_COLORS)) {
+                if (usedColors.has(color)) {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center gap-2 text-gray-400';
+                    row.innerHTML = `<span class="w-3 h-3 rounded-full inline-block" style="background:${color}"></span> ${key}`;
+                    legend.appendChild(row);
+                }
+            }
+        }
+
+        // ── Render vis-network (hierarchy or network layout) ──
+        function renderNetwork(view) {
+            const nodesDS = new vis.DataSet(allNodes);
+            const edgesDS = new vis.DataSet(allEdges);
+
+            const options = {
+                interaction: { hover: true, tooltipDelay: 100, navigationButtons: true, keyboard: true },
+                physics: {
+                    enabled: view !== 'hierarchy',
+                    repulsion: {
+                        nodeDistance: parseInt(document.getElementById('spacingSlider').value)
+                    },
+                    solver: 'repulsion'
+                },
+                layout: view === 'hierarchy' ? {
+                    hierarchical: {
+                        direction: 'UD',
+                        sortMethod: 'directed',
+                        levelSeparation: 120,
+                        nodeSpacing: parseInt(document.getElementById('spacingSlider').value)
+                    }
+                } : {},
+                edges: { smooth: { type: 'continuous' } }
+            };
+
+            const container = document.getElementById('network');
+            network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, options);
+        }
+
+        // ── Render cloud view (custom, sized by connection count) ──
+        function renderCloud() {
+            const container = document.getElementById('cloudView');
+            container.innerHTML = '';
+
+            // Count connections per node
+            const connCount = new Map();
+            for (const n of allNodes) connCount.set(n.id, 0);
+            for (const e of allEdges) {
+                connCount.set(e.from, (connCount.get(e.from) || 0) + 1);
+                connCount.set(e.to, (connCount.get(e.to) || 0) + 1);
+            }
+
+            const maxConn = Math.max(1, ...connCount.values());
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex flex-wrap gap-3 items-center justify-center content-start';
+
+            // Sort by connection count descending
+            const sorted = [...allNodes].sort((a, b) => (connCount.get(b.id) || 0) - (connCount.get(a.id) || 0));
+
+            for (const n of sorted) {
+                const count = connCount.get(n.id) || 0;
+                const sizeRatio = count / maxConn;
+                const fontSize = 12 + Math.round(sizeRatio * 36); // 12px - 48px
+
+                const tag = document.createElement('span');
+                tag.textContent = n.label;
+                tag.title = `${n.title}\n${count} connections`;
+                tag.style.fontSize = fontSize + 'px';
+                tag.style.color = n._origColor.background;
+                tag.className = 'font-semibold cursor-default hover:opacity-75 transition px-2';
+                wrapper.appendChild(tag);
+            }
+
+            container.appendChild(wrapper);
+        }
+
+        // ── Init ──
+        if (assetUri) {
+            loadGraph();
+        } else {
+            document.getElementById('status').textContent = 'No asset URI provided.';
+        }
+    </script>
+</body>
+</html>

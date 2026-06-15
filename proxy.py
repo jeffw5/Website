@@ -99,8 +99,9 @@ class ProxyHandler(SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization')
 
     def log_message(self, format, *args):
-        # Suppress favicon noise
-        if 'favicon' not in args[0]:
+        # Suppress favicon noise; guard against non-string args (e.g. HTTPStatus)
+        first = str(args[0]) if args else ''
+        if 'favicon' not in first:
             super().log_message(format, *args)
 
 

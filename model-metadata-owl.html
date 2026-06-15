@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OWL Metadata Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans h-screen flex flex-col">
+
+<!-- Header -->
+<div class="border-b border-gray-700 flex items-center justify-between px-6 flex-shrink-0" style="min-height:56px;background:#1e2030;">
+    <div>
+        <div class="flex items-center gap-3">
+            <h1 class="text-base font-bold text-indigo-400">📝 OWL Metadata Editor</h1>
+            <span class="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-900 text-indigo-300">Ontology</span>
+        </div>
+        <p id="assetUri" class="text-xs text-gray-500 italic truncate max-w-lg mt-0.5"></p>
+    </div>
+    <div class="flex gap-2 flex-shrink-0">
+        <button onclick="openRenameModal()" class="bg-violet-700 hover:bg-violet-600 text-white font-bold py-1.5 px-3 rounded text-sm transition">✏️ Rename URI</button>
+        <button onclick="saveAndClose()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-3 rounded text-sm transition">💾 Save &amp; Close</button>
+        <button onclick="window.close()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded text-sm transition">Cancel</button>
+    </div>
+</div>
+
+<div id="status" class="hidden px-6 py-2 text-sm flex-shrink-0"></div>
+
+<div class="flex-1 overflow-y-auto p-6 max-w-3xl w-full space-y-4">
+
+    <!-- Identity block -->
+    <div class="border border-gray-700 rounded p-3 space-y-3" style="background:#1a1d2e;">
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Asset URI</label>
+            <div id="display_uri" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-indigo-300 break-all select-all"></div>
+        </div>
+        <div>
+            <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Named Graph</label>
+                <button onclick="openSetGraphModal()" class="text-xs bg-violet-800 hover:bg-violet-700 text-white px-2 py-0.5 rounded transition">⊕ Set Named Graph</button>
+            </div>
+            <div id="display_graph" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono break-all select-all"></div>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Repository</label>
+            <div id="display_repo" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-gray-400"></div>
+        </div>
+    </div>
+
+    <!-- Core labels -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">rdfs:label</label>
+            <input id="f_label" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:title</label>
+            <input id="f_title" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:description</label>
+        <textarea id="f_description" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+    </div>
+
+    <!-- Creators -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:creator <span class="text-gray-600 normal-case">(comma-separated)</span></label>
+            <input id="f_creator" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:contributor <span class="text-gray-600 normal-case">(comma-separated)</span></label>
+            <input id="f_contributor" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+    </div>
+
+    <!-- Dates -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:created</label>
+            <input id="f_created" type="text" placeholder="2026-01-01T00:00:00Z" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-mono focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:modified <span class="text-gray-600 normal-case">(auto on save)</span></label>
+            <input id="f_modified" type="text" readonly class="w-full rounded p-2 text-sm font-mono text-gray-500" style="background:#0f1117;border:1px solid #374151;">
+        </div>
+    </div>
+
+    <!-- OWL-specific -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">owl:versionInfo</label>
+            <input id="f_version" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">vaem:namespace</label>
+            <input id="f_namespace" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-mono focus:outline-none focus:border-indigo-500">
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">owl:imports <span class="text-gray-600 normal-case">(comma-separated URIs)</span></label>
+        <input id="f_imports" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-mono focus:outline-none focus:border-indigo-500">
+    </div>
+
+    <!-- Status & Change -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">bibo:status</label>
+            <select id="f_status" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+                <option value="">(none)</option>
+                <option value="http://purl.org/spar/pso/draft">draft</option>
+                <option value="http://purl.org/spar/pso/submitted">submitted</option>
+                <option value="http://purl.org/spar/pso/under-review">under-review</option>
+                <option value="http://purl.org/spar/pso/published">published</option>
+                <option value="http://purl.org/spar/pso/deprecated">deprecated</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">skos:changeNote</label>
+            <input id="f_changeNote" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+    </div>
+
+</div>
+
+<!-- Rename URI Modal -->
+<div id="renameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:#1a1d2e;border:1px solid #3730a3;border-radius:10px;padding:28px;width:580px;max-width:95vw;">
+        <h2 style="color:#818cf8;font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px;">✏️ Rename URI</h2>
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Current URI</label>
+            <div id="rename_old" style="background:#0f1117;border:1px solid #2d3148;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#6366f1;word-break:break-all;"></div>
+        </div>
+        <div style="margin-bottom:8px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">New URI</label>
+            <input id="rename_new" type="text" style="width:100%;background:#0f1117;border:1px solid #4f46e5;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#e2e8f0;outline:none;">
+        </div>
+        <div id="rename_preview" style="margin-bottom:16px;font-size:11px;color:#6b7280;font-style:italic;line-height:1.6;"></div>
+        <div id="rename_status" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:4px;font-size:12px;"></div>
+        <div style="background:#1e2035;border:1px solid #374151;border-radius:6px;padding:10px;margin-bottom:16px;font-size:11px;color:#9ca3af;line-height:1.6;">
+            ⚠️ Updates all triples where this URI appears as subject, object, or named graph across the entire repository.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeRenameModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
+            <button onclick="previewRename()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Preview Impact</button>
+            <button id="rename_confirm_btn" onclick="executeRename()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Execute Rename</button>
+        </div>
+    </div>
+</div>
+
+<!-- Set Named Graph Modal -->
+<div id="setGraphModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:#1a1d2e;border:1px solid #5b21b6;border-radius:10px;padding:28px;width:580px;max-width:95vw;">
+        <h2 style="color:#a78bfa;font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px;">⊕ Set Named Graph</h2>
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Asset URI</label>
+            <div id="sg_asset_uri" style="background:#0f1117;border:1px solid #2d3148;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#6366f1;word-break:break-all;"></div>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Named Graph URI</label>
+            <input id="sg_graph_uri" type="text" style="width:100%;background:#0f1117;border:1px solid #5b21b6;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#e2e8f0;outline:none;">
+            <div style="font-size:10px;color:#6b7280;margin-top:4px;">Typically the same as the Asset URI.</div>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Scope</label>
+            <select id="sg_scope" style="width:100%;background:#0f1117;border:1px solid #374151;border-radius:4px;padding:8px;font-size:11px;color:#e2e8f0;outline:none;">
+                <option value="subject">Only triples where Asset URI is subject (recommended)</option>
+                <option value="all">All triples currently in default graph</option>
+            </select>
+        </div>
+        <div id="sg_status" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:4px;font-size:12px;"></div>
+        <div style="background:#1e2035;border:1px solid #374151;border-radius:6px;padding:10px;margin-bottom:16px;font-size:11px;color:#9ca3af;line-height:1.6;">
+            ⚠️ Moves triples from default graph into named graph. Cannot be undone without re-importing.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeSetGraphModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
+            <button onclick="previewSetGraph()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Preview</button>
+            <button id="sg_confirm_btn" onclick="executeSetGraph()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Move to Named Graph</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const params  = new URLSearchParams(window.location.search);
+let assetUri  = params.get('uri');
+let repoId    = params.get('repo') || 'value-kb';
+
+document.getElementById('assetUri').textContent     = assetUri || '(no asset)';
+document.getElementById('display_uri').textContent  = assetUri || '—';
+document.getElementById('display_repo').textContent = `http://localhost:7200/repositories/${repoId}`;
+
+function getBaseUrl() { return `/graphdb/repositories/${repoId}`; }
+
+const FIELDS = [
+    { id:'f_label',       pred:'http://www.w3.org/2000/01/rdf-schema#label',       lang:'en' },
+    { id:'f_title',       pred:'http://purl.org/dc/terms/title',                   lang:'en' },
+    { id:'f_description', pred:'http://purl.org/dc/terms/description',             lang:'en' },
+    { id:'f_creator',     pred:'http://purl.org/dc/terms/creator',                 multi:true },
+    { id:'f_contributor', pred:'http://purl.org/dc/terms/contributor',             multi:true },
+    { id:'f_created',     pred:'http://purl.org/dc/terms/created',                 datatype:'http://www.w3.org/2001/XMLSchema#dateTime' },
+    { id:'f_modified',    pred:'http://purl.org/dc/terms/modified',                datatype:'http://www.w3.org/2001/XMLSchema#dateTime', readonly:true },
+    { id:'f_version',     pred:'http://www.w3.org/2002/07/owl#versionInfo' },
+    { id:'f_namespace',   pred:'http://www.linkedmodel.org/schema/vaem#namespace' },
+    { id:'f_imports',     pred:'http://www.w3.org/2002/07/owl#imports',            multi:true, isUri:true },
+    { id:'f_status',      pred:'http://purl.org/ontology/bibo/status',             isUri:true, isSelect:true },
+    { id:'f_changeNote',  pred:'http://www.w3.org/2004/02/skos/core#changeNote' },
+];
+
+async function loadMetadata() {
+    if (!assetUri) return;
+    try {
+        const query = `SELECT ?p ?o WHERE {
+            { GRAPH <${assetUri}> { <${assetUri}> ?p ?o . } }
+            UNION { <${assetUri}> ?p ?o . }
+        }`;
+        const resp = await fetch(getBaseUrl(), {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},
+            body: new URLSearchParams({query})
+        });
+        const data = await resp.json();
+        const byPred = {};
+        data.results.bindings.forEach(b => {
+            if (!byPred[b.p.value]) byPred[b.p.value] = [];
+            byPred[b.p.value].push(b.o.value);
+        });
+        FIELDS.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (!el) return;
+            const vals = byPred[f.pred] || [];
+            el.value = f.multi ? vals.join(', ') : (vals[0] || '');
+        });
+
+        const gq = `SELECT DISTINCT ?g WHERE { GRAPH ?g { <${assetUri}> ?p ?o } } LIMIT 5`;
+        const gr = await fetch(getBaseUrl(), {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},
+            body: new URLSearchParams({query:gq})
+        });
+        const gd = await gr.json();
+        const graphs = gd.results.bindings.map(b => b.g.value);
+        const gel = document.getElementById('display_graph');
+        if (graphs.length > 0) { gel.textContent = graphs.join('\n'); gel.style.color = '#34d399'; }
+        else { gel.textContent = '⚠ Default graph only — use ⊕ Set Named Graph to fix'; gel.style.color = '#f59e0b'; }
+
+    } catch(err) { showStatus('Failed to load: ' + err.message, true); }
+}
+
+async function saveAndClose() {
+    if (!assetUri) return;
+    const now = new Date().toISOString().replace(/\.\d{3}Z$/,'Z');
+    document.getElementById('f_modified').value = now;
+
+    const PREFIXES = `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
+PREFIX vaem: <http://www.linkedmodel.org/schema/vaem#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+`;
+    let del=[], ins=[], opt=[];
+    FIELDS.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (!el) return;
+        const v = el.value.trim();
+        const vn = f.id.replace('f_','');
+        del.push(`<${assetUri}> <${f.pred}> ?${vn} .`);
+        opt.push(`OPTIONAL { <${assetUri}> <${f.pred}> ?${vn} . }`);
+        if (!v) return;
+        if (f.multi) {
+            v.split(',').map(s=>s.trim()).filter(Boolean).forEach(item => {
+                if (f.isUri) ins.push(`<${assetUri}> <${f.pred}> <${item}> .`);
+                else ins.push(`<${assetUri}> <${f.pred}> "${esc(item)}" .`);
+            });
+        } else if (f.isSelect && f.isUri && v) {
+            ins.push(`<${assetUri}> <${f.pred}> <${v}> .`);
+        } else if (f.datatype) {
+            ins.push(`<${assetUri}> <${f.pred}> "${esc(v)}"^^<${f.datatype}> .`);
+        } else if (f.lang) {
+            ins.push(`<${assetUri}> <${f.pred}> "${esc(v)}"@${f.lang} .`);
+        } else {
+            ins.push(`<${assetUri}> <${f.pred}> "${esc(v)}" .`);
+        }
+    });
+
+    const update = `${PREFIXES}\nDELETE { ${del.join('\n')} }\nINSERT { ${ins.join('\n')} }\nWHERE  { ${opt.join('\n')} }`;
+    try {
+        const r = await fetch(`${getBaseUrl()}/statements`,{method:'POST',headers:{'Content-Type':'application/sparql-update'},body:update});
+        if (!r.ok) throw new Error(await r.text());
+        showStatus('✓ Saved. Closing…');
+        if (window.opener && !window.opener.closed) { try{window.opener.refreshSidebar();}catch(e){} }
+        setTimeout(()=>window.close(), 800);
+    } catch(err) { showStatus('Save failed: ' + err.message, true); }
+}
+
+function showStatus(msg, err=false) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = `px-6 py-2 text-sm flex-shrink-0 ${err?'bg-rose-900 text-rose-200':'bg-indigo-900 text-indigo-200'}`;
+    el.classList.remove('hidden');
+}
+
+function esc(s) { return s.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n'); }
+
+async function sparqlUpdate(u) {
+    const r = await fetch(`${getBaseUrl()}/statements`,{method:'POST',headers:{'Content-Type':'application/sparql-update'},body:u});
+    if (!r.ok) throw new Error(await r.text()||`HTTP ${r.status}`);
+}
+
+async function countTriples(q) {
+    const r = await fetch(getBaseUrl(),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:q})});
+    const d = await r.json();
+    return parseInt(d.results.bindings[0]?.c?.value||'0');
+}
+
+function setModalStatus(id,msg,c) {
+    const el=document.getElementById(id);
+    el.textContent=msg;
+    el.style.cssText=`display:block;padding:8px 12px;border-radius:4px;font-size:12px;background:${c==='red'?'#450a0a':c==='green'?'#052e16':c==='amber'?'#431407':'#1e1b4b'};color:${c==='red'?'#fca5a5':c==='green'?'#86efac':c==='amber'?'#fed7aa':'#a5b4fc'}`;
+}
+
+// Rename URI
+function openRenameModal() {
+    document.getElementById('rename_old').textContent=assetUri;
+    document.getElementById('rename_new').value=assetUri;
+    document.getElementById('rename_preview').textContent='';
+    document.getElementById('rename_status').style.display='none';
+    document.getElementById('rename_confirm_btn').style.display='none';
+    document.getElementById('renameModal').style.display='flex';
+    setTimeout(()=>document.getElementById('rename_new').focus(),50);
+}
+function closeRenameModal() { document.getElementById('renameModal').style.display='none'; }
+
+async function previewRename() {
+    const nu=document.getElementById('rename_new').value.trim();
+    if (!nu||nu===assetUri) { document.getElementById('rename_preview').textContent='New URI must differ.'; return; }
+    document.getElementById('rename_preview').textContent='Counting…';
+    document.getElementById('rename_confirm_btn').style.display='none';
+    try {
+        const [s,o,g]=await Promise.all([
+            countTriples(`SELECT (COUNT(*) as ?c) WHERE{<${assetUri}> ?p ?o}`),
+            countTriples(`SELECT (COUNT(*) as ?c) WHERE{?s ?p <${assetUri}>}`),
+            countTriples(`SELECT (COUNT(*) as ?c) WHERE{GRAPH<${assetUri}>{?s ?p ?o}}`)
+        ]);
+        document.getElementById('rename_preview').innerHTML=
+            `<span style="color:#e2e8f0">Impact:</span><br>• <strong style="color:#818cf8">${s}</strong> as subject<br>• <strong style="color:#10b981">${o}</strong> as object<br>• <strong style="color:#f59e0b">${g}</strong> in named graph<br>• <strong style="color:#f87171">${s+o+g} total</strong>`;
+        if (s+o+g>0) document.getElementById('rename_confirm_btn').style.display='inline-block';
+    } catch(err) { document.getElementById('rename_preview').textContent='Failed: '+err.message; }
+}
+
+async function executeRename() {
+    const nu=document.getElementById('rename_new').value.trim();
+    const btn=document.getElementById('rename_confirm_btn');
+    btn.disabled=true; btn.textContent='Renaming…';
+    try {
+        setModalStatus('rename_status','Step 1/4 — Subject triples…','blue');
+        await sparqlUpdate(`DELETE{<${assetUri}> ?p ?o}INSERT{<${nu}> ?p ?o}WHERE{<${assetUri}> ?p ?o}`);
+        setModalStatus('rename_status','Step 2/4 — Object references…','blue');
+        await sparqlUpdate(`DELETE{?s ?p <${assetUri}>}INSERT{?s ?p <${nu}>}WHERE{?s ?p <${assetUri}>}`);
+        setModalStatus('rename_status','Step 3/4 — Named graph…','blue');
+        await sparqlUpdate(`DELETE{GRAPH<${assetUri}>{?s ?p ?o}}INSERT{GRAPH<${nu}>{?s ?p ?o}}WHERE{GRAPH<${assetUri}>{?s ?p ?o}}`);
+        setModalStatus('rename_status','Step 4/4 — Cross-graph refs…','blue');
+        await sparqlUpdate(`DELETE{GRAPH ?g{?s ?p <${assetUri}>}}INSERT{GRAPH ?g{?s ?p <${nu}>}}WHERE{GRAPH ?g{?s ?p <${assetUri}>}}`);
+        setModalStatus('rename_status',`✓ Done — renamed to ${nu}`,'green');
+        assetUri=nu;
+        document.getElementById('display_uri').textContent=nu;
+        document.getElementById('assetUri').textContent=nu;
+        if(window.opener&&!window.opener.closed) try{window.opener.refreshSidebar();}catch(e){}
+        btn.textContent='✓ Done';
+        setTimeout(()=>{closeRenameModal();loadMetadata();},1500);
+    } catch(err) {
+        setModalStatus('rename_status','Failed: '+err.message,'red');
+        btn.disabled=false; btn.textContent='⚡ Execute Rename';
+    }
+}
+
+// Set Named Graph
+function openSetGraphModal() {
+    document.getElementById('sg_asset_uri').textContent=assetUri;
+    document.getElementById('sg_graph_uri').value=assetUri;
+    document.getElementById('sg_status').style.display='none';
+    document.getElementById('sg_confirm_btn').style.display='none';
+    document.getElementById('setGraphModal').style.display='flex';
+    setTimeout(()=>document.getElementById('sg_graph_uri').focus(),50);
+}
+function closeSetGraphModal() { document.getElementById('setGraphModal').style.display='none'; }
+
+async function previewSetGraph() {
+    const gu=document.getElementById('sg_graph_uri').value.trim();
+    const scope=document.getElementById('sg_scope').value;
+    document.getElementById('sg_confirm_btn').style.display='none';
+    if (!gu) { setModalStatus('sg_status','Enter a named graph URI.','red'); return; }
+    setModalStatus('sg_status','Counting…','blue');
+    try {
+        const q=scope==='subject'
+            ?`SELECT (COUNT(*) as ?c) WHERE{<${assetUri}> ?p ?o . FILTER NOT EXISTS{GRAPH ?g{<${assetUri}> ?p ?o}}}`
+            :`SELECT (COUNT(*) as ?c) WHERE{?s ?p ?o . FILTER NOT EXISTS{GRAPH ?g{?s ?p ?o}}}`;
+        const n=await countTriples(q);
+        if (n===0) setModalStatus('sg_status','⚠ No default-graph triples found.','amber');
+        else { setModalStatus('sg_status',`✓ ${n} triples will move into <${gu}>`,'green'); document.getElementById('sg_confirm_btn').style.display='inline-block'; }
+    } catch(err) { setModalStatus('sg_status','Failed: '+err.message,'red'); }
+}
+
+async function executeSetGraph() {
+    const gu=document.getElementById('sg_graph_uri').value.trim();
+    const scope=document.getElementById('sg_scope').value;
+    const btn=document.getElementById('sg_confirm_btn');
+    btn.disabled=true; btn.textContent='Moving…';
+    setModalStatus('sg_status','Moving triples…','blue');
+    try {
+        const u=scope==='subject'
+            ?`DELETE{<${assetUri}> ?p ?o}INSERT{GRAPH<${gu}>{<${assetUri}> ?p ?o}}WHERE{<${assetUri}> ?p ?o . FILTER NOT EXISTS{GRAPH ?g{<${assetUri}> ?p ?o}}}`
+            :`DELETE{?s ?p ?o}INSERT{GRAPH<${gu}>{?s ?p ?o}}WHERE{?s ?p ?o . FILTER NOT EXISTS{GRAPH ?g{?s ?p ?o}}}`;
+        await sparqlUpdate(u);
+        const v=await countTriples(`SELECT (COUNT(*) as ?c) WHERE{GRAPH<${gu}>{<${assetUri}> ?p ?o}}`);
+        setModalStatus('sg_status',`✓ Done — ${v} triples now in <${gu}>`,'green');
+        const gel=document.getElementById('display_graph');
+        gel.textContent=gu; gel.style.color='#34d399';
+        if(window.opener&&!window.opener.closed) try{window.opener.refreshSidebar();}catch(e){}
+        btn.textContent='✓ Done';
+        setTimeout(closeSetGraphModal,1500);
+    } catch(err) {
+        setModalStatus('sg_status','Failed: '+err.message,'red');
+        btn.disabled=false; btn.textContent='⚡ Move to Named Graph';
+    }
+}
+
+loadMetadata();
+</script>
+</body>
+</html>

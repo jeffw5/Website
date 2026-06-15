@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ontology Model Editor — Enabling Value</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg:         #1a1d2e;
+    --panel:      #22253a;
+    --panel2:     #2a2e47;
+    --border:     #363a5a;
+    --accent:     #7c83f5;
+    --accent2:    #a5aaff;
+    --success:    #4ade80;
+    --danger:     #f87171;
+    --warn:       #fbbf24;
+    --text:       #e2e8f0;
+    --text-dim:   #8b93b8;
+    --text-muted: #555d8a;
+    --mono:       'Cascadia Code','Fira Code','Consolas',monospace;
+    --sans:       'Inter',system-ui,sans-serif;
+    --radius:     6px;
+    --radius-lg:  10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    height: 48px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .topbar-brand {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent2);
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  .topbar-brand span { color: var(--text-dim); font-weight: 400; }
+  .topbar-sep { width: 1px; height: 24px; background: var(--border); }
+  .topbar-actions { display: flex; gap: 8px; margin-left: auto; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: var(--radius);
+    border: 1px solid transparent; cursor: pointer;
+    font-family: var(--sans); font-size: 12px; font-weight: 500;
+    transition: all .15s; white-space: nowrap;
+  }
+  .btn-primary   { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+  .btn-ghost     { background: transparent; color: var(--text-dim); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--panel2); color: var(--text); border-color: var(--accent); }
+  .btn-success   { background: transparent; color: var(--success); border-color: var(--success); }
+  .btn-success:hover { background: #166534; }
+  .btn-danger    { background: transparent; color: var(--danger); border-color: var(--danger); }
+  .btn-danger:hover { background: #7f1d1d; }
+  .btn-warn      { background: transparent; color: var(--warn); border-color: var(--warn); }
+  .btn-warn:hover { background: #78350f; }
+  .btn-sm { padding: 3px 8px; font-size: 11px; }
+  .btn svg { width: 13px; height: 13px; }
+
+  /* ── MAIN LAYOUT ── */
+  .workspace {
+    display: grid;
+    grid-template-columns: 260px 1fr 340px;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .panel:last-child { border-right: none; border-left: 1px solid var(--border); }
+
+  .panel-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text-dim);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .panel-body { flex: 1; overflow-y: auto; padding: 10px; }
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── CONNECT BAR ── */
+  .connect-bar {
+    padding: 10px 14px;
+    background: var(--panel2);
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: center;
+    flex-shrink: 0;
+  }
+  .connect-bar input, .connect-bar select {
+    flex: 1; min-width: 0;
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius);
+    padding: 5px 9px; font-family: var(--mono); font-size: 11px;
+  }
+  .connect-bar input:focus, .connect-bar select:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .conn-status {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--text-muted); flex-shrink: 0;
+    transition: background .3s;
+  }
+  .conn-status.connected { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .conn-status.error     { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .conn-status.loading   { background: var(--warn); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── SEARCH ── */
+  .search-wrap { padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .search-wrap input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius); padding: 5px 9px;
+    font-family: var(--sans); font-size: 12px;
+  }
+  .search-wrap input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── TREE ── */
+  .tree-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; border-radius: var(--radius);
+    cursor: pointer; transition: background .1s;
+    user-select: none;
+  }
+  .tree-item:hover { background: var(--panel2); }
+  .tree-item.selected { background: rgba(124,131,245,.18); color: var(--accent2); }
+  .tree-item.selected .tree-label { color: var(--accent2); }
+  .tree-toggle { width: 14px; flex-shrink: 0; color: var(--text-muted); font-size: 10px; text-align: center; }
+  .tree-icon { font-size: 13px; flex-shrink: 0; }
+  .tree-label { font-size: 12px; color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tree-badge {
+    font-size: 10px; padding: 1px 5px; border-radius: 10px;
+    background: var(--panel2); color: var(--text-muted);
+    border: 1px solid var(--border); flex-shrink: 0;
+  }
+  .tree-children { padding-left: 18px; }
+  .tree-empty { color: var(--text-muted); font-size: 11px; padding: 20px 10px; text-align: center; }
+
+  /* ── FILTER TABS ── */
+  .filter-tabs { display: flex; gap: 4px; padding: 8px 10px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+  .filter-tab {
+    font-size: 11px; padding: 3px 9px; border-radius: 20px;
+    cursor: pointer; border: 1px solid var(--border);
+    color: var(--text-dim); background: transparent; transition: all .15s;
+  }
+  .filter-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── EDITOR CENTER ── */
+  .editor-center {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── ONTOLOGY META HEADER ── */
+  .meta-section {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 18px;
+    flex-shrink: 0;
+  }
+  .meta-section summary {
+    cursor: pointer; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text-dim); list-style: none;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .meta-section summary::before { content:'▶'; font-size:9px; transition:transform .2s; }
+  .meta-section[open] summary::before { transform: rotate(90deg); }
+  .meta-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px 16px; margin-top: 12px;
+  }
+  .meta-grid .full { grid-column: 1/-1; }
+
+  /* ── FORM ELEMENTS ── */
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+  .field input, .field select, .field textarea {
+    background: var(--panel2); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius);
+    padding: 6px 9px; font-family: var(--mono); font-size: 11px;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--accent);
+  }
+  .field textarea { resize: vertical; min-height: 60px; font-family: var(--sans); font-size: 12px; }
+  .field select[multiple] { height: 90px; }
+  .field select option { padding: 3px 6px; }
+
+  /* ── NODE FORM ── */
+  .node-form {
+    flex: 1; overflow-y: auto; padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .node-form::-webkit-scrollbar { width: 4px; }
+  .node-form::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .form-section-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--text-muted);
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+
+  .placeholder-message {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--text-muted); gap: 10px;
+    font-size: 13px; text-align: center; padding: 32px;
+  }
+  .placeholder-message .big-icon { font-size: 48px; opacity: .3; }
+
+  /* ── FORM ACTIONS ── */
+  .form-actions {
+    display: flex; gap: 8px; align-items: center;
+    padding: 12px 18px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .form-actions .spacer { flex: 1; }
+
+  /* ── TTL PREVIEW ── */
+  .ttl-preview {
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .ttl-preview-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text-dim);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .ttl-code {
+    flex: 1; overflow-y: auto; padding: 12px 14px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.7;
+    color: var(--text-dim); white-space: pre-wrap; word-break: break-all;
+  }
+  .ttl-code .kw  { color: #c792ea; }
+  .ttl-code .iri { color: #82aaff; }
+  .ttl-code .lit { color: #c3e88d; }
+  .ttl-code .pfx { color: var(--warn); }
+  .ttl-code .cmt { color: var(--text-muted); font-style: italic; }
+  .ttl-code::-webkit-scrollbar { width: 4px; }
+  .ttl-code::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── TOAST ── */
+  #toast-container {
+    position: fixed; bottom: 20px; right: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 999; pointer-events: none;
+  }
+  .toast {
+    padding: 10px 16px; border-radius: var(--radius);
+    font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    animation: slide-in .2s ease; pointer-events: auto;
+    border: 1px solid;
+  }
+  .toast-success { background: #14532d; border-color: var(--success); color: var(--success); }
+  .toast-error   { background: #7f1d1d; border-color: var(--danger); color: var(--danger); }
+  .toast-info    { background: #1e1b4b; border-color: var(--accent); color: var(--accent2); }
+  @keyframes slide-in { from{transform:translateX(40px);opacity:0} to{transform:none;opacity:1} }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; display: none;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); width: 480px; max-width: 95vw;
+    padding: 24px; display: flex; flex-direction: column; gap: 16px;
+  }
+  .modal h3 { font-size: 15px; font-weight: 600; }
+  .modal p { color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+  /* ── IRI CHIP ── */
+  .iri-chip {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 2px 7px; color: var(--accent2);
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex; gap: 16px; padding: 8px 18px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .stat { display: flex; align-items: center; gap: 6px; }
+  .stat-val { font-size: 15px; font-weight: 700; color: var(--accent2); }
+  .stat-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .stat-sep { width: 1px; background: var(--border); }
+
+  /* ── TAG INPUT ── */
+  .tag-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; padding: 2px 7px; border-radius: 20px;
+    background: rgba(124,131,245,.15); color: var(--accent2);
+    border: 1px solid rgba(124,131,245,.3);
+  }
+  .tag button {
+    background: none; border: none; cursor: pointer;
+    color: var(--accent2); font-size: 12px; line-height: 1;
+    padding: 0; opacity: .6;
+  }
+  .tag button:hover { opacity: 1; }
+
+  /* ── RESPONSIVE HINT ── */
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: 220px 1fr; }
+    .panel:last-child { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">Enabling Value <span>/ Ontology Model Editor</span></div>
+  <div class="topbar-sep"></div>
+  <div id="active-ontology-label" style="font-size:11px;color:var(--text-muted);font-family:var(--mono)">No ontology loaded</div>
+  <div class="topbar-actions">
+    <button class="btn btn-ghost btn-sm" onclick="exportTTL()">⬇ Export TTL</button>
+    <button class="btn btn-ghost btn-sm" onclick="saveToLocalStorage()">💾 Save Draft</button>
+    <button class="btn btn-primary btn-sm" onclick="showNewNodeModal()">＋ New Node</button>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- LEFT: TREE PANEL -->
+  <div class="panel">
+    <!-- GraphDB Connect -->
+    <div class="connect-bar" style="flex-direction:column;gap:6px;align-items:stretch">
+      <div style="display:flex;gap:6px;align-items:center">
+        <div class="conn-status" id="conn-status"></div>
+        <span style="font-size:11px;color:var(--text-dim);font-weight:500">GraphDB Endpoint</span>
+      </div>
+      <input id="sparql-endpoint" type="text"
+        placeholder="http://localhost:7200/repositories/governance"
+        value="http://localhost:7200/repositories/governance">
+      <div style="display:flex;gap:6px">
+        <select id="named-graph" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:4px 7px;font-family:var(--mono);font-size:10px">
+          <option value="">Default graph</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="connectAndLoad()" style="flex-shrink:0">Connect</button>
+      </div>
+    </div>
+
+    <div class="panel-header">
+      Node Tree
+      <span id="tree-count" class="tree-badge">0</span>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-tabs">
+      <div class="filter-tab active" onclick="setFilter('all',this)">All</div>
+      <div class="filter-tab" onclick="setFilter('Class',this)">Classes</div>
+      <div class="filter-tab" onclick="setFilter('ObjectProperty',this)">Props</div>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <input type="text" placeholder="Search nodes…" oninput="filterTree(this.value)" id="tree-search">
+    </div>
+
+    <div class="panel-body" id="tree-panel">
+      <div class="tree-empty">Connect to GraphDB or load a draft to see nodes.</div>
+    </div>
+  </div>
+
+  <!-- CENTER: EDITOR -->
+  <div class="editor-center">
+
+    <!-- Ontology metadata (collapsible) -->
+    <div class="meta-section">
+      <details id="meta-details">
+        <summary>Ontology Metadata</summary>
+        <div class="meta-grid">
+          <div class="field full">
+            <label>Ontology IRI</label>
+            <input id="meta-iri" type="text" placeholder="https://www.enablingvalue.com/ontology-domain-governance">
+          </div>
+          <div class="field">
+            <label>Version IRI</label>
+            <input id="meta-version-iri" type="text" placeholder="…/1.0">
+          </div>
+          <div class="field">
+            <label>Version Info</label>
+            <input id="meta-version-info" type="text" placeholder="1.0">
+          </div>
+          <div class="field">
+            <label>Title</label>
+            <input id="meta-title" type="text" placeholder="Ontology | Domain | Governance">
+          </div>
+          <div class="field">
+            <label>Creator</label>
+            <input id="meta-creator" type="text" placeholder="Jeffrey Wallk">
+          </div>
+          <div class="field">
+            <label>Contributor</label>
+            <input id="meta-contributor" type="text" placeholder="wallkje">
+          </div>
+          <div class="field">
+            <label>Modified</label>
+            <input id="meta-modified" type="datetime-local">
+          </div>
+          <div class="field full">
+            <label>Description</label>
+            <textarea id="meta-description" rows="2" placeholder="Ontology description…"></textarea>
+          </div>
+          <div class="field full">
+            <label>owl:imports (select one or more)</label>
+            <select id="meta-imports" multiple>
+              <!-- enablingvalue.com domain -->
+              <optgroup label="── enablingvalue.com ──">
+                <option value="https://www.enablingvalue.com/ontology-domain-governance/1.0">ontology-domain-governance</option>
+                <option value="https://www.enablingvalue.com/ontology-domain-governance-expansion/1.0">ontology-domain-governance-expansion</option>
+                <option value="https://www.enablingvalue.com/ontology-core-lifecycle/1.0">ontology-core-lifecycle</option>
+                <option value="https://www.enablingvalue.com/ontology-core-process/1.0">ontology-core-process</option>
+                <option value="https://www.enablingvalue.com/ontology-core-event/1.0">ontology-core-event</option>
+                <option value="https://www.enablingvalue.com/ontology-domain-security/1.0">ontology-domain-security</option>
+                <option value="https://www.enablingvalue.com/taxonomy-core-lifecycle/1.0">taxonomy-core-lifecycle</option>
+                <option value="https://www.enablingvalue.com/taxonomy-core-process/1.0">taxonomy-core-process</option>
+                <option value="https://www.enablingvalue.com/taxonomy-core-compliance/1.0">taxonomy-core-compliance</option>
+                <option value="https://www.enablingvalue.com/taxonomy-core-services/1.0">taxonomy-core-services</option>
+                <option value="https://www.enablingvalue.com/taxonomy-core-services-technical/1.0">taxonomy-core-services-technical</option>
+                <option value="https://www.enablingvalue.com/vocabulary-domain-governance/1.0">vocabulary-domain-governance</option>
+                <option value="https://www.enablingvalue.com/vocabulary-core-lifecycle/1.0">vocabulary-core-lifecycle</option>
+                <option value="https://www.enablingvalue.com/vocabulary-core-compliance/1.0">vocabulary-core-compliance</option>
+                <option value="https://www.enablingvalue.com/vocabulary-core-process/1.0">vocabulary-core-process</option>
+                <option value="https://www.enablingvalue.com/vocabulary-core-services/1.0">vocabulary-core-services</option>
+                <option value="https://www.enablingvalue.com/vocabulary-core-capability/1.0">vocabulary-core-capability</option>
+                <option value="https://www.enablingvalue.com/vocabulary-core-technicalservices/1.0">vocabulary-core-technicalservices</option>
+              </optgroup>
+              <!-- Verizon source domain -->
+              <optgroup label="── ontologies.verizon.com ──">
+                <option value="https://ontologies.verizon.com/ontology-domain-governance">ontology-domain-governance (VZ)</option>
+                <option value="https://ontologies.verizon.com/taxonomy-core-lifecycle/">taxonomy-core-lifecycle (VZ)</option>
+                <option value="https://ontologies.verizon.com/taxonomy-core-process/">taxonomy-core-process (VZ)</option>
+                <option value="https://ontologies.verizon.com/taxonomy-core-compliance/">taxonomy-core-compliance (VZ)</option>
+                <option value="https://ontologies.verizon.com/taxonomy-core-services/">taxonomy-core-services (VZ)</option>
+                <option value="https://ontologies.verizon.com/upperontology/">upperontology (VZ)</option>
+                <option value="https://ontologies.verizon.com/ontology-domain-security/">ontology-domain-security (VZ)</option>
+                <option value="https://ontologies.verizon.com/taxonomy-core-businessoperations/">taxonomy-core-businessoperations (VZ)</option>
+              </optgroup>
+              <!-- Vocabularies -->
+              <optgroup label="── vocabularies.verizon.com ──">
+                <option value="https://vocabularies.verizon.com/domain-governance">vocabulary-domain-governance (VZ)</option>
+                <option value="https://vocabularies.verizon.com/core-lifecycle">vocabulary-core-lifecycle (VZ)</option>
+                <option value="https://vocabularies.verizon.com/core-compliance">vocabulary-core-compliance (VZ)</option>
+                <option value="https://vocabularies.verizon.com/core-process">vocabulary-core-process (VZ)</option>
+                <option value="https://vocabularies.verizon.com/core-services">vocabulary-core-services (VZ)</option>
+                <option value="https://vocabularies.verizon.com/core-capability">vocabulary-core-capability (VZ)</option>
+                <option value="https://vocabularies.verizon.com/core-technicalservices">vocabulary-core-technicalservices (VZ)</option>
+              </optgroup>
+            </select>
+            <span style="font-size:10px;color:var(--text-muted);margin-top:2px">Ctrl/Cmd+click to select multiple</span>
+          </div>
+          <div style="grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-top:4px">
+            <button class="btn btn-ghost btn-sm" onclick="loadMetaFromSparql()">↻ Reload from GraphDB</button>
+            <button class="btn btn-primary btn-sm" onclick="applyMeta()">Apply Metadata</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-val" id="stat-classes">0</span><span class="stat-lbl">Classes</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><span class="stat-val" id="stat-props">0</span><span class="stat-lbl">Properties</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat"><span class="stat-val" id="stat-modified">0</span><span class="stat-lbl">Unsaved</span></div>
+      <div class="stat-sep"></div>
+      <div class="stat" id="draft-indicator" style="display:none">
+        <span style="font-size:10px;color:var(--warn)">● Draft in localStorage</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadFromLocalStorage()" style="margin-left:4px">Restore</button>
+        <button class="btn btn-danger btn-sm" onclick="clearLocalStorage()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Node form or placeholder -->
+    <div id="node-form-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="placeholder-message" id="node-placeholder">
+        <div class="big-icon">⬡</div>
+        <div>Select a node from the tree to edit,<br>or click <strong>＋ New Node</strong> to create one.</div>
+      </div>
+      <div id="node-form" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <div class="node-form" id="node-form-fields">
+          <!-- dynamically populated -->
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete()" id="btn-delete">⊘ Delete</button>
+          <div class="spacer"></div>
+          <button class="btn btn-ghost btn-sm" onclick="cancelEdit()">Cancel</button>
+          <button class="btn btn-primary btn-sm" onclick="saveNode()">Save Node</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: TTL PREVIEW -->
+  <div class="panel ttl-preview">
+    <div class="ttl-preview-header">
+      TTL Preview
+      <button class="btn btn-ghost btn-sm" onclick="copyTTL()">⧉ Copy</button>
+    </div>
+    <div class="ttl-code" id="ttl-preview-panel">
+      <span class="cmt"># TTL will appear here as you edit nodes.</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <h3>Delete Node</h3>
+    <p id="delete-modal-msg">Are you sure you want to delete this node? This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn btn-danger" onclick="executeDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW NODE MODAL -->
+<div class="modal-overlay" id="new-node-modal">
+  <div class="modal">
+    <h3>New Node</h3>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="field">
+        <label>Node Type</label>
+        <select id="new-node-type">
+          <option value="Class">owl:Class</option>
+          <option value="ObjectProperty">owl:ObjectProperty</option>
+          <option value="AnnotationProperty">owl:AnnotationProperty</option>
+          <option value="DatatypeProperty">owl:DatatypeProperty</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Local Name (no prefix)</label>
+        <input id="new-node-localname" type="text" placeholder="DataGovernanceStandard">
+      </div>
+      <div class="field">
+        <label>Namespace Prefix</label>
+        <select id="new-node-prefix">
+          <option value="https://www.enablingvalue.com/ontology-domain-governance#">dg: (enablingvalue)</option>
+          <option value="https://ontologies.verizon.com/ontology-domain-governance/">dg: (verizon)</option>
+          <option value="https://ontologies.verizon.com/taxonomy-core-compliance/">tcc:</option>
+          <option value="https://ontologies.verizon.com/taxonomy-core-lifecycle/">tcl:</option>
+          <option value="https://ontologies.verizon.com/taxonomy-core-process/">tcp:</option>
+          <option value="https://ontologies.verizon.com/taxonomy-core-services/">tcs:</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('new-node-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createNewNode()">Create Node</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const state = {
+  endpoint: '',
+  namedGraph: '',
+  nodes: [],        // [{iri, type, label, comment, subClassOf, subPropertyOf, domain, range, dcSubject, creator, contributor, modified, isNew, isDirty, isDeleted}]
+  meta: {},
+  selectedIRI: null,
+  filter: 'all',
+  searchQuery: '',
+  unsavedCount: 0,
+  connected: false,
+};
+
+const PREFIXES = {
+  'owl:':  'http://www.w3.org/2002/07/owl#',
+  'rdf:':  'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  'rdfs:': 'http://www.w3.org/2000/01/rdf-schema#',
+  'xsd:':  'http://www.w3.org/2001/XMLSchema#',
+  'skos:': 'http://www.w3.org/2004/02/skos/core#',
+  'dct:':  'http://purl.org/dc/terms/',
+  'dc:':   'http://purl.org/dc/elements/1.1/',
+  'sh:':   'http://www.w3.org/ns/shacl#',
+  'dg:':   'https://www.enablingvalue.com/ontology-domain-governance#',
+  'tcl:':  'https://ontologies.verizon.com/taxonomy-core-lifecycle/',
+  'tcp:':  'https://ontologies.verizon.com/taxonomy-core-process/',
+  'tcc:':  'https://ontologies.verizon.com/taxonomy-core-compliance/',
+  'tcs:':  'https://ontologies.verizon.com/taxonomy-core-services/',
+  'vcl:':  'https://vocabularies.verizon.com/core-lifecycle/',
+  'vcp:':  'https://vocabularies.verizon.com/core-process/',
+  'vcc:':  'https://vocabularies.verizon.com/core-compliance/',
+  'vcs:':  'https://vocabularies.verizon.com/core-services/',
+  'vdg:':  'https://vocabularies.verizon.com/domain-governance/',
+};
+
+function shrinkIRI(iri) {
+  for (const [pfx, ns] of Object.entries(PREFIXES)) {
+    if (iri.startsWith(ns)) return pfx + iri.slice(ns.length);
+  }
+  return `<${iri}>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SPARQL HELPERS
+// ═══════════════════════════════════════════════════════════
+async function sparqlSelect(query) {
+  const ep = document.getElementById('sparql-endpoint').value.trim();
+  if (!ep) throw new Error('No endpoint configured');
+
+  // POST with form-encoded body — matches model-manager pattern, works through proxy.py
+  const body = new URLSearchParams({ query });
+  if (state.namedGraph) body.set('context', '<' + state.namedGraph + '>');
+
+  console.log('[sparqlSelect] POST to:', ep);
+  console.log('[sparqlSelect] query preview:', query.trim().substring(0, 100) + '...');
+
+  const r = await fetch(ep, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/sparql-results+json'
+    },
+    body
+  });
+
+  console.log('[sparqlSelect] status:', r.status);
+  if (!r.ok) {
+    const txt = await r.text();
+    console.error('[sparqlSelect] error:', txt);
+    throw new Error('SPARQL error ' + r.status + ': ' + txt);
+  }
+
+  const json = await r.json();
+  console.log('[sparqlSelect] bindings:', json && json.results ? json.results.bindings.length : 'none');
+  return json;
+}
+
+async function sparqlUpdate(update) {
+  const ep = document.getElementById('sparql-endpoint').value.trim().replace('/repositories/', '/repositories/').replace(/\/$/, '') + '/statements';
+  const r = await fetch(ep.replace('/repositories/', '/repositories/').replace(/statements\/statements/, 'statements'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'update=' + encodeURIComponent(update)
+  });
+  if (!r.ok) throw new Error(`SPARQL Update error ${r.status}: ${await r.text()}`);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONNECT & LOAD
+// ═══════════════════════════════════════════════════════════
+async function connectAndLoad() {
+  setConnStatus('loading');
+  state.endpoint = document.getElementById('sparql-endpoint').value.trim();
+  state.namedGraph = document.getElementById('named-graph').value.trim();
+  try {
+    await loadNodesFromSparql();
+    await loadMetaFromSparql();
+    setConnStatus('connected');
+    state.connected = true;
+    toast('Connected and loaded ' + state.nodes.length + ' nodes', 'success');
+  } catch (e) {
+    setConnStatus('error');
+    toast('Connection failed: ' + e.message, 'error');
+  }
+}
+
+async function loadNodesFromSparql() {
+  // ── Query 1: types + labels only — fast even across 3500+ nodes ──
+  const qTypes = `
+    SELECT DISTINCT ?iri ?type ?label
+    WHERE {
+      ?iri a ?type .
+      FILTER(?type IN (
+        <http://www.w3.org/2002/07/owl#Class>,
+        <http://www.w3.org/2002/07/owl#ObjectProperty>,
+        <http://www.w3.org/2002/07/owl#AnnotationProperty>,
+        <http://www.w3.org/2002/07/owl#DatatypeProperty>
+      ))
+      OPTIONAL {
+        ?iri <http://www.w3.org/2000/01/rdf-schema#label> ?label .
+        FILTER(lang(?label) = "en" || lang(?label) = "")
+      }
+    }
+    ORDER BY ?label
+  `;
+  const res1 = await sparqlSelect(qTypes);
+  const map = {};
+  for (const row of res1.results.bindings) {
+    const iri = row.iri.value;
+    if (!map[iri]) {
+      map[iri] = {
+        iri, isDirty: false, isNew: false, isDeleted: false,
+        type: row.type ? shortType(row.type.value) : 'Class',
+        label: row.label ? row.label.value : '',
+        comment: '', subOf: [], dcSubject: [],
+        domain: '', range: '', creator: '', modified: '',
+        detailsLoaded: false,
+      };
+    }
+  }
+  state.nodes = Object.values(map);
+
+  // Render tree immediately with what we have
+  renderTree();
+  updateStats();
+  toast('Loaded ' + state.nodes.length + ' nodes — fetching hierarchy…', 'info');
+
+  // ── Query 2: subClassOf / subPropertyOf only — separate query, much lighter ──
+  const qHierarchy = `
+    SELECT DISTINCT ?iri ?subOf
+    WHERE {
+      { ?iri <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?subOf . FILTER(isIRI(?subOf)) }
+      UNION
+      { ?iri <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?subOf . FILTER(isIRI(?subOf)) }
+    }
+  `;
+  try {
+    const res2 = await sparqlSelect(qHierarchy);
+    for (const row of res2.results.bindings) {
+      const iri = row.iri.value;
+      const parent = row.subOf.value;
+      if (map[iri] && !map[iri].subOf.includes(parent))
+        map[iri].subOf.push(parent);
+    }
+    renderTree();
+    toast('Hierarchy loaded — ' + state.nodes.length + ' nodes ready', 'success');
+  } catch(e) {
+    toast('Hierarchy load failed — tree shown flat', 'warn');
+  }
+
+  checkLocalStorageDraft();
+}
+
+// Load full details for a single node on demand (when selected)
+async function loadNodeDetails(iri) {
+  const n = state.nodes.find(x => x.iri === iri);
+  if (!n || n.detailsLoaded) return;
+  const q = `
+    SELECT ?p ?o WHERE {
+      <${iri}> ?p ?o .
+      FILTER(?p IN (
+        <http://www.w3.org/2000/01/rdf-schema#comment>,
+        <http://www.w3.org/ns/shacl#domain>,
+        <http://www.w3.org/2000/01/rdf-schema#domain>,
+        <http://www.w3.org/2000/01/rdf-schema#range>,
+        <http://purl.org/dc/elements/1.1/subject>,
+        <http://purl.org/dc/terms/creator>,
+        <http://purl.org/dc/terms/contributor>,
+        <http://purl.org/dc/terms/modified>,
+        <http://www.w3.org/2000/01/rdf-schema#isDefinedBy>
+      ))
+    }
+  `;
+  try {
+    const res = await sparqlSelect(q);
+    for (const row of res.results.bindings) {
+      const p = row.p.value.split('#').pop().split('/').pop();
+      const v = row.o.value;
+      if (p === 'comment' && !n.comment) n.comment = v;
+      else if (p === 'domain' && !n.domain) n.domain = v;
+      else if (p === 'range'  && !n.range)  n.range  = v;
+      else if (p === 'creator' && !n.creator) n.creator = v;
+      else if (p === 'contributor' && !n.contributor) n.contributor = v;
+      else if (p === 'modified' && !n.modified) n.modified = v;
+      else if (p === 'isDefinedBy' && !n.isDefinedBy) n.isDefinedBy = v;
+      else if (p === 'subject' && !n.dcSubject.includes(v)) n.dcSubject.push(v);
+    }
+    n.detailsLoaded = true;
+  } catch(e) { /* non-fatal */ }
+}
+
+function shortType(iri) {
+  return iri.split('#').pop().split('/').pop();
+}
+
+async function loadMetaFromSparql() {
+  const q = `
+    SELECT ?p ?o WHERE {
+      ?ont a owl:Ontology .
+      ?ont ?p ?o .
+      FILTER(?p IN (
+        rdfs:label, <http://purl.org/dc/terms/title>,
+        <http://purl.org/dc/terms/description>,
+        <http://purl.org/dc/terms/creator>,
+        <http://purl.org/dc/terms/contributor>,
+        <http://purl.org/dc/terms/modified>,
+        owl:versionInfo, owl:versionIRI, owl:imports
+      ))
+    }
+  `;
+  try {
+    const res = await sparqlSelect(q);
+    const meta = { imports: [] };
+    for (const row of res.results.bindings) {
+      const p = row.p.value.split('#').pop().split('/').pop();
+      const v = row.o.value;
+      if (p === 'imports') meta.imports.push(v);
+      else meta[p] = v;
+    }
+    state.meta = meta;
+    populateMetaForm(meta);
+    document.getElementById('active-ontology-label').textContent =
+      meta.title || meta.label || 'Untitled ontology';
+  } catch(e) { /* meta optional */ }
+}
+
+function populateMetaForm(meta) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  set('meta-title', meta.title || meta.label);
+  set('meta-description', meta.description);
+  set('meta-creator', meta.creator);
+  set('meta-contributor', meta.contributor);
+  set('meta-version-info', meta.versionInfo);
+  if (meta.modified) {
+    const dt = meta.modified.replace('Z','').substring(0,16);
+    set('meta-modified', dt);
+  }
+  // Select imports
+  if (meta.imports && meta.imports.length) {
+    const sel = document.getElementById('meta-imports');
+    for (const opt of sel.options)
+      opt.selected = meta.imports.includes(opt.value);
+  }
+}
+
+function applyMeta() {
+  state.meta.title = document.getElementById('meta-title').value;
+  state.meta.description = document.getElementById('meta-description').value;
+  state.meta.creator = document.getElementById('meta-creator').value;
+  state.meta.contributor = document.getElementById('meta-contributor').value;
+  state.meta.versionInfo = document.getElementById('meta-version-info').value;
+  state.meta.modified = document.getElementById('meta-modified').value;
+  const sel = document.getElementById('meta-imports');
+  state.meta.imports = Array.from(sel.selectedOptions).map(o => o.value);
+  document.getElementById('active-ontology-label').textContent = state.meta.title || 'Untitled';
+  updateTTLPreview(state.selectedIRI ? state.nodes.find(n=>n.iri===state.selectedIRI) : null);
+  toast('Metadata applied', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TREE
+// ═══════════════════════════════════════════════════════════
+function setFilter(f, el) {
+  state.filter = f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderTree();
+}
+
+function filterTree(q) {
+  state.searchQuery = q.toLowerCase();
+  renderTree();
+}
+
+function renderTree() {
+  const panel = document.getElementById('tree-panel');
+  let nodes = state.nodes.filter(n => !n.isDeleted);
+  if (state.filter !== 'all') nodes = nodes.filter(n => n.type === state.filter);
+  if (state.searchQuery) nodes = nodes.filter(n =>
+    (n.label||'').toLowerCase().includes(state.searchQuery) ||
+    n.iri.toLowerCase().includes(state.searchQuery)
+  );
+
+  document.getElementById('tree-count').textContent = nodes.length;
+
+  if (!nodes.length) {
+    panel.innerHTML = '<div class="tree-empty">No nodes match.</div>';
+    return;
+  }
+
+  // Build hierarchy
+  const byIRI = {};
+  nodes.forEach(n => byIRI[n.iri] = n);
+  const roots = [], childMap = {};
+  nodes.forEach(n => {
+    const parents = (n.subOf||[]).filter(p => byIRI[p]);
+    if (parents.length) {
+      parents.forEach(p => {
+        if (!childMap[p]) childMap[p] = [];
+        if (!childMap[p].includes(n.iri)) childMap[p].push(n.iri);
+      });
+    } else {
+      roots.push(n.iri);
+    }
+  });
+  // Any node not reachable as child
+  const allChildren = new Set(Object.values(childMap).flat());
+  nodes.forEach(n => { if (!allChildren.has(n.iri) && !roots.includes(n.iri)) roots.push(n.iri); });
+
+  panel.innerHTML = '';
+  const renderNode = (iri, depth=0) => {
+    const n = byIRI[iri]; if (!n) return;
+    const children = childMap[iri] || [];
+    const item = document.createElement('div');
+    item.innerHTML = buildTreeItem(n, children.length > 0, depth);
+    item.querySelector('.tree-item').addEventListener('click', () => selectNode(n.iri));
+    if (n.iri === state.selectedIRI) item.querySelector('.tree-item').classList.add('selected');
+    panel.appendChild(item);
+    if (children.length) {
+      const wrap = document.createElement('div');
+      wrap.className = 'tree-children';
+      children.forEach(c => renderNode(c, depth+1));
+      // Actually append children flat with indent via padding
+    }
+    children.forEach(c => {
+      const child = byIRI[c]; if (!child) return;
+      const cc = childMap[c] || [];
+      const ci = document.createElement('div');
+      ci.style.paddingLeft = ((depth+1)*16) + 'px';
+      ci.innerHTML = buildTreeItem(child, cc.length > 0, 0);
+      ci.querySelector('.tree-item').addEventListener('click', () => selectNode(child.iri));
+      if (child.iri === state.selectedIRI) ci.querySelector('.tree-item').classList.add('selected');
+      panel.appendChild(ci);
+    });
+  };
+  roots.forEach(r => renderNode(r));
+}
+
+function buildTreeItem(n, hasChildren, depth) {
+  const icon = n.type === 'Class' ? '⬡' : n.type === 'ObjectProperty' ? '⟶' : '◇';
+  const dirty = n.isDirty ? ' <span style="color:var(--warn);font-size:9px">●</span>' : '';
+  const isNew = n.isNew ? ' <span style="color:var(--success);font-size:9px">NEW</span>' : '';
+  return `<div class="tree-item">
+    <span class="tree-toggle">${hasChildren ? '▸' : ''}</span>
+    <span class="tree-icon">${icon}</span>
+    <span class="tree-label">${n.label || shrinkIRI(n.iri)}${dirty}${isNew}</span>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NODE SELECTION & FORM
+// ═══════════════════════════════════════════════════════════
+async function selectNode(iri) {
+  state.selectedIRI = iri;
+  const n = state.nodes.find(x => x.iri === iri);
+  if (!n) return;
+  renderTree();
+  if (!n.detailsLoaded && state.connected) {
+    await loadNodeDetails(iri);
+  }
+  showNodeForm(n);
+  updateTTLPreview(n);
+}
+
+function showNodeForm(n) {
+  document.getElementById('node-placeholder').style.display = 'none';
+  const form = document.getElementById('node-form');
+  form.style.display = 'flex';
+
+  const allIRIs = state.nodes.filter(x=>!x.isDeleted).map(x=>x.iri);
+
+  const subOfOptions = allIRIs.map(iri =>
+    `<option value="${iri}" ${(n.subOf||[]).includes(iri)?'selected':''}>${shrinkIRI(iri)}</option>`
+  ).join('');
+
+  form.querySelector('#node-form-fields').innerHTML = `
+    <div class="form-section-title">Identity</div>
+
+    <div class="field">
+      <label>IRI (full)</label>
+      <input type="text" id="f-iri" value="${n.iri}" ${n.isNew?'':'readonly'} style="${n.isNew?'':'opacity:.6'}">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label>Node Type</label>
+        <select id="f-type">
+          <option value="Class" ${n.type==='Class'?'selected':''}>owl:Class</option>
+          <option value="ObjectProperty" ${n.type==='ObjectProperty'?'selected':''}>owl:ObjectProperty</option>
+          <option value="AnnotationProperty" ${n.type==='AnnotationProperty'?'selected':''}>owl:AnnotationProperty</option>
+          <option value="DatatypeProperty" ${n.type==='DatatypeProperty'?'selected':''}>owl:DatatypeProperty</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>rdfs:label (en)</label>
+        <input type="text" id="f-label" value="${escHtml(n.label||'')}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>rdfs:comment (en)</label>
+      <textarea id="f-comment">${escHtml(n.comment||'')}</textarea>
+    </div>
+
+    <div class="form-section-title">Hierarchy</div>
+
+    <div class="field">
+      <label>rdfs:subClassOf / rdfs:subPropertyOf (select multiple)</label>
+      <select id="f-subof" multiple style="height:110px">
+        ${subOfOptions}
+      </select>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="prop-fields" ${n.type==='Class'?'style="display:none!important"':''}>
+      <div class="field">
+        <label>rdfs:domain</label>
+        <input type="text" id="f-domain" value="${n.domain||''}">
+      </div>
+      <div class="field">
+        <label>rdfs:range</label>
+        <input type="text" id="f-range" value="${n.range||''}">
+      </div>
+    </div>
+
+    <div class="form-section-title">Provenance & Vocabulary</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field">
+        <label>dct:creator</label>
+        <input type="text" id="f-creator" value="${escHtml(n.creator||'Jeffrey Wallk')}">
+      </div>
+      <div class="field">
+        <label>dct:modified</label>
+        <input type="datetime-local" id="f-modified" value="${(n.modified||'').replace('Z','').substring(0,16)}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>dc:subject (vocabulary concept IRIs — one per line)</label>
+      <textarea id="f-dcsubject" rows="3" style="font-family:var(--mono);font-size:10px">${(n.dcSubject||[]).join('\n')}</textarea>
+      <span style="font-size:10px;color:var(--text-muted);margin-top:2px">e.g. https://vocabularies.verizon.com/domain-governance/c9acfeb0-…</span>
+    </div>
+
+    <div class="field">
+      <label>isDefinedBy</label>
+      <input type="text" id="f-isdefby" value="${n.isDefinedBy||document.getElementById('meta-iri').value||''}">
+    </div>
+  `;
+
+  // show/hide prop fields based on type
+  document.getElementById('f-type').addEventListener('change', function() {
+    document.getElementById('prop-fields').style.display =
+      this.value === 'Class' ? 'none' : 'grid';
+  });
+  if (n.type !== 'Class') document.getElementById('prop-fields').style.display = 'grid';
+}
+
+function cancelEdit() {
+  state.selectedIRI = null;
+  document.getElementById('node-placeholder').style.display = 'flex';
+  document.getElementById('node-form').style.display = 'none';
+  document.getElementById('ttl-preview-panel').innerHTML =
+    '<span class="cmt"># Select a node to preview its TTL.</span>';
+  renderTree();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SAVE NODE
+// ═══════════════════════════════════════════════════════════
+function saveNode() {
+  const n = state.nodes.find(x => x.iri === state.selectedIRI);
+  if (!n) return;
+
+  const newIRI = document.getElementById('f-iri').value.trim();
+  n.iri = newIRI;
+  n.type = document.getElementById('f-type').value;
+  n.label = document.getElementById('f-label').value.trim();
+  n.comment = document.getElementById('f-comment').value.trim();
+  n.creator = document.getElementById('f-creator').value.trim();
+  n.modified = document.getElementById('f-modified').value || new Date().toISOString();
+  n.isDefinedBy = document.getElementById('f-isdefby').value.trim();
+
+  const subSel = document.getElementById('f-subof');
+  n.subOf = Array.from(subSel.selectedOptions).map(o => o.value);
+
+  n.domain = document.getElementById('f-domain') ? document.getElementById('f-domain').value.trim() : '';
+  n.range  = document.getElementById('f-range')  ? document.getElementById('f-range').value.trim()  : '';
+
+  const dcRaw = document.getElementById('f-dcsubject').value.trim();
+  n.dcSubject = dcRaw ? dcRaw.split('\n').map(s=>s.trim()).filter(Boolean) : [];
+
+  n.isDirty = true;
+  n.isNew = n.isNew || false;
+  state.selectedIRI = newIRI;
+
+  state.unsavedCount = state.nodes.filter(x=>x.isDirty||x.isNew).length;
+  updateStats();
+  saveToLocalStorage();
+  renderTree();
+  updateTTLPreview(n);
+  toast('Node saved to draft — export TTL or push to GraphDB', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NEW NODE
+// ═══════════════════════════════════════════════════════════
+function showNewNodeModal() {
+  document.getElementById('new-node-modal').classList.add('open');
+}
+
+function createNewNode() {
+  const type = document.getElementById('new-node-type').value;
+  const local = document.getElementById('new-node-localname').value.trim();
+  const ns = document.getElementById('new-node-prefix').value;
+  if (!local) { toast('Enter a local name', 'error'); return; }
+  const iri = ns + local;
+  if (state.nodes.find(n=>n.iri===iri)) { toast('IRI already exists', 'error'); return; }
+  const n = {
+    iri, type, label: local.replace(/([A-Z])/g,' $1').trim(),
+    comment: '', subOf: [], dcSubject: [], domain: '', range: '',
+    creator: 'Jeffrey Wallk',
+    modified: new Date().toISOString(),
+    isDefinedBy: document.getElementById('meta-iri').value || '',
+    isNew: true, isDirty: true, isDeleted: false,
+  };
+  state.nodes.push(n);
+  closeModal('new-node-modal');
+  state.selectedIRI = iri;
+  renderTree();
+  selectNode(iri);
+  updateStats();
+  toast('Node created — fill in the form and save', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DELETE
+// ═══════════════════════════════════════════════════════════
+function confirmDelete() {
+  const n = state.nodes.find(x=>x.iri===state.selectedIRI);
+  if (!n) return;
+  document.getElementById('delete-modal-msg').textContent =
+    `Delete "${n.label || shrinkIRI(n.iri)}"? This marks it for removal from the TTL. Push to GraphDB to execute.`;
+  document.getElementById('delete-modal').classList.add('open');
+}
+
+function executeDelete() {
+  const n = state.nodes.find(x=>x.iri===state.selectedIRI);
+  if (n) { n.isDeleted = true; n.isDirty = true; }
+  closeModal('delete-modal');
+  cancelEdit();
+  updateStats();
+  saveToLocalStorage();
+  toast('Node marked for deletion', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TTL GENERATION
+// ═══════════════════════════════════════════════════════════
+function updateTTLPreview(n) {
+  const panel = document.getElementById('ttl-preview-panel');
+  if (!n) { panel.innerHTML = '<span class="cmt"># Select a node to preview.</span>'; return; }
+  panel.innerHTML = syntaxHighlight(nodeTTL(n));
+}
+
+function nodeTTL(n) {
+  if (!n || n.isDeleted) return '# (deleted)';
+  const s = shrinkIRI(n.iri);
+  const typeStr = n.type === 'Class' ? 'owl:Class'
+    : n.type === 'ObjectProperty' ? 'owl:ObjectProperty'
+    : n.type === 'AnnotationProperty' ? 'owl:AnnotationProperty'
+    : 'owl:DatatypeProperty';
+  let lines = [`${s}`];
+  lines.push(`    rdf:type ${typeStr} ;`);
+  if (n.subOf && n.subOf.length) {
+    const refs = n.subOf.map(p => shrinkIRI(p)).join(' ,\n        ');
+    lines.push(`    rdfs:subClassOf ${refs} ;`);
+  }
+  if (n.label) lines.push(`    rdfs:label "${n.label}"@en ;`);
+  if (n.comment) lines.push(`    rdfs:comment "${n.comment.replace(/"/g,'\\"')}"@en ;`);
+  if (n.domain) lines.push(`    rdfs:domain ${shrinkIRI(n.domain)} ;`);
+  if (n.range)  lines.push(`    rdfs:range ${shrinkIRI(n.range)} ;`);
+  if (n.isDefinedBy) lines.push(`    rdfs:isDefinedBy <${n.isDefinedBy}> ;`);
+  if (n.creator) lines.push(`    dct:creator "${n.creator}" ;`);
+  if (n.modified) {
+    const dt = n.modified.includes('T') ? n.modified : n.modified + 'T00:00:00Z';
+    lines.push(`    dct:modified "${dt}"^^xsd:dateTime ;`);
+  }
+  if (n.dcSubject && n.dcSubject.length) {
+    n.dcSubject.forEach(s => lines.push(`    dc:subject <${s}> ;`));
+  }
+  // Replace last semicolon with period
+  lines[lines.length-1] = lines[lines.length-1].replace(/ ;$/, ' .');
+  return lines.join('\n');
+}
+
+function syntaxHighlight(ttl) {
+  return ttl
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(#[^\n]*)/g,'<span class="cmt">$1</span>')
+    .replace(/\b(rdf:type|rdfs:subClassOf|rdfs:label|rdfs:comment|rdfs:domain|rdfs:range|rdfs:isDefinedBy|dct:creator|dct:modified|dc:subject|owl:Class|owl:ObjectProperty|owl:AnnotationProperty|owl:DatatypeProperty|owl:Ontology|owl:imports|owl:versionInfo|owl:versionIRI)\b/g,'<span class="kw">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"(?:@\w+|(?:\^\^[a-z:]+))?)/g,'<span class="lit">$1</span>')
+    .replace(/\b(dg:|tcl:|tcp:|tcc:|tcs:|vcl:|vcp:|vcc:|vcs:|vdg:|owl:|rdf:|rdfs:|xsd:|skos:|dct:|dc:|sh:)/g,'<span class="pfx">$1</span>');
+}
+
+function exportTTL() {
+  const prefixBlock = Object.entries(PREFIXES)
+    .map(([p,ns]) => `@prefix ${p.slice(0,-1).padEnd(6)} <${ns}> .`)
+    .join('\n');
+
+  const metaIRI = document.getElementById('meta-iri').value || 'https://www.enablingvalue.com/ontology-domain-governance';
+  const imports = (state.meta.imports||[]).map(i=>`    owl:imports <${i}> ;`).join('\n');
+
+  const metaBlock = `
+<${metaIRI}>
+    rdf:type owl:Ontology ;
+    owl:versionIRI <${metaIRI}/${state.meta.versionInfo||'1.0'}> ;
+${imports ? imports + '\n' : ''}    rdfs:label "${state.meta.title||''}"@en ;
+    dct:title "${state.meta.title||''}"@en ;
+    dct:description "${(state.meta.description||'').replace(/"/g,'\\"')}"@en ;
+    dct:creator "${state.meta.creator||''}" ;
+    dct:contributor "${state.meta.contributor||''}" ;
+    dct:modified "${new Date().toISOString()}"^^xsd:dateTime ;
+    owl:versionInfo "${state.meta.versionInfo||'1.0'}" .`;
+
+  const nodeParts = state.nodes
+    .filter(n => !n.isDeleted)
+    .map(n => nodeTTL(n))
+    .join('\n\n');
+
+  const ttl = prefixBlock + '\n\n' + metaBlock.trim() + '\n\n\n' + nodeParts;
+
+  const blob = new Blob([ttl], {type:'text/turtle'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.meta.title||'ontology').replace(/[\s|]+/g,'-').toLowerCase() + '.ttl';
+  a.click();
+  toast('TTL exported', 'success');
+}
+
+function copyTTL() {
+  const text = document.getElementById('ttl-preview-panel').textContent;
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard', 'info'));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LOCAL STORAGE
+// ═══════════════════════════════════════════════════════════
+const LS_KEY = 'ev_model_editor_draft';
+
+function saveToLocalStorage() {
+  const draft = { nodes: state.nodes, meta: state.meta, savedAt: new Date().toISOString() };
+  localStorage.setItem(LS_KEY, JSON.stringify(draft));
+  checkLocalStorageDraft();
+}
+
+function loadFromLocalStorage() {
+  const raw = localStorage.getItem(LS_KEY);
+  if (!raw) { toast('No draft found', 'error'); return; }
+  const draft = JSON.parse(raw);
+  state.nodes = draft.nodes || [];
+  state.meta = draft.meta || {};
+  populateMetaForm(state.meta);
+  renderTree();
+  updateStats();
+  toast('Draft restored from ' + draft.savedAt, 'info');
+}
+
+function clearLocalStorage() {
+  localStorage.removeItem(LS_KEY);
+  document.getElementById('draft-indicator').style.display = 'none';
+  toast('Draft cleared', 'info');
+}
+
+function checkLocalStorageDraft() {
+  const raw = localStorage.getItem(LS_KEY);
+  document.getElementById('draft-indicator').style.display = raw ? 'flex' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════════════
+function updateStats() {
+  document.getElementById('stat-classes').textContent =
+    state.nodes.filter(n=>!n.isDeleted && n.type==='Class').length;
+  document.getElementById('stat-props').textContent =
+    state.nodes.filter(n=>!n.isDeleted && n.type!=='Class').length;
+  document.getElementById('stat-modified').textContent =
+    state.nodes.filter(n=>n.isDirty && !n.isDeleted).length;
+}
+
+function setConnStatus(s) {
+  const el = document.getElementById('conn-status');
+  el.className = 'conn-status ' + s;
+}
+
+function toast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── ESC closes modals ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open')
+    .forEach(m => m.classList.remove('open'));
+});
+
+// ── Init ──
+checkLocalStorageDraft();
+// Set modified default
+document.getElementById('meta-modified').value = new Date().toISOString().slice(0,16);
+
+// ── Auto-connect when launched from model-manager via URL params ──
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const ep = params.get('endpoint');
+  const ont = params.get('ontology');
+  const graph = params.get('graph');
+  if (ep) {
+    document.getElementById('sparql-endpoint').value = ep;
+  }
+  if (ont) {
+    document.getElementById('meta-iri').value = ont;
+    document.getElementById('active-ontology-label').textContent =
+      ont.split('/').pop().split('#').pop() || ont;
+  }
+  if (graph) {
+    // Populate named graph selector with the passed graph IRI
+    const sel = document.getElementById('named-graph');
+    const opt = document.createElement('option');
+    opt.value = graph;
+    opt.textContent = graph.split('/').pop().split('#').pop() || graph;
+    opt.selected = true;
+    sel.appendChild(opt);
+    state.namedGraph = graph;
+  }
+  if (ep && ont) {
+    // Small delay so DOM is fully ready
+    setTimeout(connectAndLoad, 150);
+  }
+})();
+</script>
+</body>
+</html>

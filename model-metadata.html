@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Metadata</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans h-screen flex flex-col">
+
+    <div class="h-14 border-b border-gray-700 flex items-center justify-between px-6 bg-gray-850">
+        <div>
+            <h1 class="text-base font-bold text-indigo-400">📝 Edit Metadata</h1>
+            <p id="assetUri" class="text-xs text-gray-500 italic truncate max-w-md"></p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="openRenameModal()" class="bg-violet-700 hover:bg-violet-600 text-white font-bold py-1.5 px-4 rounded text-sm transition">
+                ✏️ Rename URI
+            </button>
+            <button onclick="saveAndClose()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-4 rounded text-sm transition">
+                💾 Save &amp; Close
+            </button>
+            <button onclick="window.close()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-4 rounded text-sm transition">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <div id="status" class="hidden px-6 py-2 text-sm"></div>
+
+    <div class="flex-1 overflow-y-auto p-6 space-y-4 max-w-3xl">
+
+        <!-- Identity block — read only -->
+        <div class="bg-gray-850 border border-gray-700 rounded p-3 space-y-2">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Asset URI (subject)</label>
+                <div id="display_uri" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-indigo-300 break-all select-all"></div>
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Named Graph</label>
+                    <button onclick="openSetGraphModal()" class="text-xs bg-violet-800 hover:bg-violet-700 text-white px-2 py-0.5 rounded transition">⊕ Set Named Graph</button>
+                </div>
+                <div id="display_graph" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-emerald-400 break-all select-all"></div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Repository</label>
+                <div id="display_repo" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-gray-400 break-all"></div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">rdfs:label</label>
+            <input id="f_label" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:title</label>
+            <input id="f_title" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:description</label>
+            <textarea id="f_description" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:creator <span class="text-gray-600">(comma-separated)</span></label>
+                <input id="f_creator" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:contributor <span class="text-gray-600">(comma-separated)</span></label>
+                <input id="f_contributor" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:created</label>
+                <input id="f_created" type="text" placeholder="2026-01-01T00:00:00Z" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-mono focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:modified <span class="text-gray-600">(auto on save)</span></label>
+                <input id="f_modified" type="text" readonly class="w-full bg-gray-950 border border-gray-700 rounded p-2 text-sm font-mono text-gray-500">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">owl:versionInfo</label>
+                <input id="f_version" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">bibo:status</label>
+                <select id="f_status" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500">
+                    <option value="">(none)</option>
+                    <option value="http://purl.org/spar/pso/draft">draft</option>
+                    <option value="http://purl.org/spar/pso/submitted">submitted</option>
+                    <option value="http://purl.org/spar/pso/under-review">under-review</option>
+                    <option value="http://purl.org/spar/pso/published">published</option>
+                    <option value="http://purl.org/spar/pso/deprecated">deprecated</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">skos:changeNote</label>
+            <textarea id="f_changeNote" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+        </div>
+
+    </div>
+
+    <script>
+        // ── Field definitions: maps form field -> RDF predicate ──
+        const FIELD_PREDICATES = {
+            f_label:        { predicate: 'http://www.w3.org/2000/01/rdf-schema#label',        prefix: 'rdfs', name: 'label',       multi: false, lang: 'en' },
+            f_title:        { predicate: 'http://purl.org/dc/terms/title',                     prefix: 'dct',  name: 'title',       multi: false, lang: 'en' },
+            f_description:  { predicate: 'http://purl.org/dc/terms/description',               prefix: 'dct',  name: 'description', multi: false, lang: 'en' },
+            f_creator:      { predicate: 'http://purl.org/dc/terms/creator',                    prefix: 'dct',  name: 'creator',     multi: true,  lang: null },
+            f_contributor:  { predicate: 'http://purl.org/dc/terms/contributor',                prefix: 'dct',  name: 'contributor', multi: true,  lang: null },
+            f_created:      { predicate: 'http://purl.org/dc/terms/created',                    prefix: 'dct',  name: 'created',     multi: false, lang: null, datatype: 'http://www.w3.org/2001/XMLSchema#dateTime' },
+            f_modified:     { predicate: 'http://purl.org/dc/terms/modified',                   prefix: 'dct',  name: 'modified',    multi: false, lang: null, datatype: 'http://www.w3.org/2001/XMLSchema#dateTime' },
+            f_version:      { predicate: 'http://www.w3.org/2002/07/owl#versionInfo',           prefix: 'owl',  name: 'versionInfo', multi: false, lang: null },
+            f_status:       { predicate: 'http://purl.org/ontology/bibo/status',                prefix: 'bibo', name: 'status',      multi: false, lang: null, isUri: true },
+            f_changeNote:   { predicate: 'http://www.w3.org/2004/02/skos/core#changeNote',      prefix: 'skos', name: 'changeNote',  multi: false, lang: null },
+        };
+
+        let assetUri = null;
+        let repoId = null;
+
+        // Read params passed from opener window
+        const params = new URLSearchParams(window.location.search);
+        assetUri = params.get('uri');
+        repoId   = params.get('repo') || 'value-kb';
+
+        document.getElementById('assetUri').textContent = assetUri || '(no asset selected)';
+        document.getElementById('assetUri').title = assetUri || '';
+
+        // Populate identity block
+        document.getElementById('display_uri').textContent   = assetUri || '—';
+        document.getElementById('display_repo').textContent  = `http://localhost:7200/repositories/${repoId}`;
+
+        function getBaseUrl() {
+            return `/graphdb/repositories/${repoId}`;
+        }
+
+        function showStatus(msg, isError = false) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = `px-6 py-2 text-sm ${isError ? 'bg-rose-900 text-rose-200' : 'bg-emerald-900 text-emerald-200'}`;
+        }
+
+        // ── Load current metadata values via SPARQL ──
+        async function loadMetadata() {
+            if (!assetUri) {
+                showStatus('No asset URI provided', true);
+                return;
+            }
+
+            const query = `
+                SELECT ?p ?o WHERE {
+                    {
+                        GRAPH <${assetUri}> { <${assetUri}> ?p ?o . }
+                    } UNION {
+                        <${assetUri}> ?p ?o .
+                    }
+                }
+            `;
+
+            try {
+                const response = await fetch(getBaseUrl(), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/sparql-results+json'
+                    },
+                    body: new URLSearchParams({ query })
+                });
+
+                if (!response.ok) throw new Error('Query failed');
+                const data = await response.json();
+                populateForm(data.results.bindings);
+
+                // Detect which named graph this asset lives in
+                const graphQuery = `
+                    SELECT DISTINCT ?graph WHERE {
+                        GRAPH ?graph { <${assetUri}> ?p ?o . }
+                    } LIMIT 5`;
+                const graphResp = await fetch(getBaseUrl(), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/sparql-results+json'
+                    },
+                    body: new URLSearchParams({ query: graphQuery })
+                });
+                const graphData = await graphResp.json();
+                const graphs = graphData.results.bindings.map(b => b.graph.value);
+                const graphDisplay = document.getElementById('display_graph');
+                if (graphs.length > 0) {
+                    graphDisplay.textContent = graphs.join('\n');
+                    graphDisplay.style.color = '#34d399';
+                } else {
+                    graphDisplay.textContent = '⚠ Default graph (no named graph — triples not in a GRAPH context)';
+                    graphDisplay.style.color = '#f59e0b';
+                }
+
+            } catch (err) {
+                showStatus('Failed to load metadata: ' + err.message, true);
+                console.error(err);
+            }
+        }
+
+        function populateForm(bindings) {
+            // Group values by predicate (some are multi-valued)
+            const byPredicate = {};
+            for (const b of bindings) {
+                const pred = b.p.value;
+                const val  = b.o.value;
+                if (!byPredicate[pred]) byPredicate[pred] = [];
+                byPredicate[pred].push(val);
+            }
+
+            for (const [fieldId, def] of Object.entries(FIELD_PREDICATES)) {
+                const values = byPredicate[def.predicate] || [];
+                const el = document.getElementById(fieldId);
+
+                if (def.multi) {
+                    el.value = values.join(', ');
+                } else if (def.isUri) {
+                    el.value = values[0] || '';
+                } else {
+                    el.value = values[0] || '';
+                }
+            }
+        }
+
+        // ── Save: build SPARQL UPDATE (DELETE old + INSERT new) ──
+        async function saveAndClose() {
+            if (!assetUri) {
+                showStatus('No asset URI — cannot save', true);
+                return;
+            }
+
+            // Set dct:modified to now
+            const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+            document.getElementById('f_modified').value = now;
+
+            const PREFIXES = `
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dct:  <http://purl.org/dc/terms/>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX bibo: <http://purl.org/ontology/bibo/>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+`;
+
+            let deleteClauses = [];
+            let insertClauses = [];
+
+            for (const [fieldId, def] of Object.entries(FIELD_PREDICATES)) {
+                const el = document.getElementById(fieldId);
+                const rawValue = el.value.trim();
+
+                // Always delete existing triples for this predicate
+                deleteClauses.push(`<${assetUri}> <${def.predicate}> ?old_${def.name} .`);
+
+                if (!rawValue) continue; // nothing to insert if empty
+
+                if (def.multi) {
+                    // Split comma-separated values into multiple triples
+                    const items = rawValue.split(',').map(s => s.trim()).filter(Boolean);
+                    for (const item of items) {
+                        insertClauses.push(`<${assetUri}> <${def.predicate}> "${escapeLiteral(item)}" .`);
+                    }
+                } else if (def.isUri) {
+                    insertClauses.push(`<${assetUri}> <${def.predicate}> <${rawValue}> .`);
+                } else if (def.datatype) {
+                    insertClauses.push(`<${assetUri}> <${def.predicate}> "${escapeLiteral(rawValue)}"^^<${def.datatype}> .`);
+                } else if (def.lang) {
+                    insertClauses.push(`<${assetUri}> <${def.predicate}> "${escapeLiteral(rawValue)}"@${def.lang} .`);
+                } else {
+                    insertClauses.push(`<${assetUri}> <${def.predicate}> "${escapeLiteral(rawValue)}" .`);
+                }
+            }
+
+            const deleteWhere = Object.entries(FIELD_PREDICATES).map(([fieldId, def]) =>
+                `OPTIONAL { <${assetUri}> <${def.predicate}> ?old_${def.name} . }`
+            ).join('\n');
+
+            const sparqlUpdate = `${PREFIXES}
+DELETE {
+${deleteClauses.join('\n')}
+}
+INSERT {
+${insertClauses.join('\n')}
+}
+WHERE {
+${deleteWhere}
+}`;
+
+            try {
+                const response = await fetch(`${getBaseUrl()}/statements`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/sparql-update' },
+                    body: sparqlUpdate
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(errText || 'Update failed');
+                }
+
+                showStatus('✓ Metadata saved successfully. Closing...');
+
+                // Notify the opener to refresh, then close
+                if (window.opener && !window.opener.closed) {
+                    try { window.opener.loadAssetDetails(assetUri); } catch (e) {}
+                    try { window.opener.refreshSidebar(); } catch (e) {}
+                }
+
+                setTimeout(() => window.close(), 800);
+
+            } catch (err) {
+                showStatus('Save failed: ' + err.message, true);
+                console.error(err);
+            }
+        }
+
+        function escapeLiteral(s) {
+            return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        }
+
+        // Load on open
+        loadMetadata();
+    </script>
+</body>
+</html><!-- Rename URI Modal -->
+<div id="renameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:#1a1d2e;border:1px solid #3730a3;border-radius:10px;padding:28px;width:580px;max-width:95vw;">
+        <h2 style="color:#818cf8;font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px;">✏️ Rename URI</h2>
+
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Current URI</label>
+            <div id="rename_old" style="background:#0f1117;border:1px solid #2d3148;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#6366f1;word-break:break-all;"></div>
+        </div>
+
+        <div style="margin-bottom:8px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">New URI</label>
+            <input id="rename_new" type="text" style="width:100%;background:#0f1117;border:1px solid #4f46e5;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#e2e8f0;outline:none;">
+        </div>
+
+        <div id="rename_preview" style="margin-bottom:16px;font-size:11px;color:#6b7280;font-style:italic;"></div>
+
+        <div id="rename_status" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:4px;font-size:12px;"></div>
+
+        <div style="background:#1e2035;border:1px solid #374151;border-radius:6px;padding:10px;margin-bottom:16px;font-size:11px;color:#9ca3af;line-height:1.6;">
+            ⚠️ This will update <strong style="color:#e2e8f0;">all triples</strong> where this URI appears as subject, object, or named graph — across the entire repository.
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeRenameModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
+            <button onclick="previewRename()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Preview Impact</button>
+            <button id="rename_confirm_btn" onclick="executeRename()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Execute Rename</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Rename URI feature ───────────────────────────────────────────────────────
+
+function openRenameModal() {
+    if (!assetUri) { alert('No asset selected.'); return; }
+    document.getElementById('rename_old').textContent = assetUri;
+    document.getElementById('rename_new').value = assetUri;
+    document.getElementById('rename_preview').textContent = '';
+    document.getElementById('rename_status').style.display = 'none';
+    document.getElementById('rename_confirm_btn').style.display = 'none';
+    const modal = document.getElementById('renameModal');
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('rename_new').focus(), 50);
+}
+
+function closeRenameModal() {
+    document.getElementById('renameModal').style.display = 'none';
+}
+
+async function previewRename() {
+    const newUri = document.getElementById('rename_new').value.trim();
+    const oldUri = assetUri;
+
+    if (!newUri || newUri === oldUri) {
+        document.getElementById('rename_preview').textContent = 'New URI must be different from current URI.';
+        return;
+    }
+
+    const previewEl  = document.getElementById('rename_preview');
+    const statusEl   = document.getElementById('rename_status');
+    const confirmBtn = document.getElementById('rename_confirm_btn');
+
+    previewEl.textContent = 'Counting affected triples…';
+    statusEl.style.display = 'none';
+    confirmBtn.style.display = 'none';
+
+    try {
+        // Count triples where old URI is subject
+        const asSubject = await countTriples(
+            `SELECT (COUNT(*) as ?c) WHERE { <${oldUri}> ?p ?o }`);
+
+        // Count triples where old URI is object
+        const asObject = await countTriples(
+            `SELECT (COUNT(*) as ?c) WHERE { ?s ?p <${oldUri}> }`);
+
+        // Count triples in named graph
+        const asGraph = await countTriples(
+            `SELECT (COUNT(*) as ?c) WHERE { GRAPH <${oldUri}> { ?s ?p ?o } }`);
+
+        const total = asSubject + asObject + asGraph;
+
+        previewEl.innerHTML = `
+            <span style="color:#e2e8f0;">Impact preview:</span><br>
+            • <strong style="color:#818cf8;">${asSubject}</strong> triples where URI is <em>subject</em><br>
+            • <strong style="color:#10b981;">${asObject}</strong> triples where URI is <em>object</em><br>
+            • <strong style="color:#f59e0b;">${asGraph}</strong> triples in named graph<br>
+            • <strong style="color:#f87171;">${total} total triples</strong> will be updated`;
+
+        if (total > 0) {
+            confirmBtn.style.display = 'inline-block';
+        } else {
+            previewEl.innerHTML += '<br><span style="color:#f59e0b;">⚠ No triples found for this URI.</span>';
+        }
+
+    } catch (err) {
+        previewEl.textContent = 'Preview failed: ' + err.message;
+    }
+}
+
+async function countTriples(query) {
+    const resp = await fetch(getBaseUrl(), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/sparql-results+json'
+        },
+        body: new URLSearchParams({ query })
+    });
+    const data = await resp.json();
+    return parseInt(data.results.bindings[0]?.c?.value || '0');
+}
+
+async function sparqlUpdate(update) {
+    const resp = await fetch(`${getBaseUrl()}/statements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/sparql-update' },
+        body: update
+    });
+    if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(txt || `HTTP ${resp.status}`);
+    }
+}
+
+async function executeRename() {
+    const newUri = document.getElementById('rename_new').value.trim();
+    const oldUri = assetUri;
+    const statusEl   = document.getElementById('rename_status');
+    const confirmBtn = document.getElementById('rename_confirm_btn');
+
+    if (!newUri || newUri === oldUri) return;
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Renaming…';
+
+    const setStatus = (msg, color) => {
+        statusEl.textContent = msg;
+        statusEl.style.background = color === 'red' ? '#450a0a' : color === 'green' ? '#052e16' : '#1e1b4b';
+        statusEl.style.color = color === 'red' ? '#fca5a5' : color === 'green' ? '#86efac' : '#a5b4fc';
+        statusEl.style.display = 'block';
+    };
+
+    try {
+        // Step 1: Update triples where old URI is subject
+        setStatus('Step 1/4 — Updating subject triples…', 'blue');
+        await sparqlUpdate(`
+            DELETE { <${oldUri}> ?p ?o }
+            INSERT { <${newUri}> ?p ?o }
+            WHERE  { <${oldUri}> ?p ?o }
+        `);
+
+        // Step 2: Update triples where old URI is object
+        setStatus('Step 2/4 — Updating object references…', 'blue');
+        await sparqlUpdate(`
+            DELETE { ?s ?p <${oldUri}> }
+            INSERT { ?s ?p <${newUri}> }
+            WHERE  { ?s ?p <${oldUri}> }
+        `);
+
+        // Step 3: Copy named graph contents to new graph URI
+        setStatus('Step 3/4 — Migrating named graph…', 'blue');
+        await sparqlUpdate(`
+            DELETE { GRAPH <${oldUri}> { ?s ?p ?o } }
+            INSERT { GRAPH <${newUri}> { ?s ?p ?o } }
+            WHERE  { GRAPH <${oldUri}> { ?s ?p ?o } }
+        `);
+
+        // Step 4: Update any references to old URI inside named graphs
+        setStatus('Step 4/4 — Updating cross-graph references…', 'blue');
+        await sparqlUpdate(`
+            DELETE { GRAPH ?g { ?s ?p <${oldUri}> } }
+            INSERT { GRAPH ?g { ?s ?p <${newUri}> } }
+            WHERE  { GRAPH ?g { ?s ?p <${oldUri}> } }
+        `);
+
+        setStatus(`✓ Rename complete. ${oldUri} → ${newUri}`, 'green');
+
+        // Update local state
+        assetUri = newUri;
+        document.getElementById('display_uri').textContent = newUri;
+        document.getElementById('assetUri').textContent = newUri;
+        document.getElementById('rename_old').textContent = newUri;
+
+        // Notify opener to refresh
+        if (window.opener && !window.opener.closed) {
+            try { window.opener.refreshSidebar(); } catch(e) {}
+        }
+
+        confirmBtn.textContent = '✓ Done';
+        setTimeout(() => {
+            closeRenameModal();
+            loadMetadata();
+        }, 1500);
+
+    } catch (err) {
+        setStatus('Rename failed: ' + err.message, 'red');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '⚡ Execute Rename';
+    }
+}
+</script>
+
+<!-- Set Named Graph Modal -->
+<div id="setGraphModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:#1a1d2e;border:1px solid #5b21b6;border-radius:10px;padding:28px;width:580px;max-width:95vw;">
+        <h2 style="color:#a78bfa;font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px;">⊕ Set Named Graph</h2>
+
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Asset URI (subject)</label>
+            <div id="sg_asset_uri" style="background:#0f1117;border:1px solid #2d3148;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#6366f1;word-break:break-all;"></div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Named Graph URI</label>
+            <input id="sg_graph_uri" type="text"
+                style="width:100%;background:#0f1117;border:1px solid #5b21b6;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#e2e8f0;outline:none;"
+                placeholder="https://www.enablingvalue.com/your-ontology">
+            <div style="font-size:10px;color:#6b7280;margin-top:4px;">Typically the same as the Asset URI. All triples with this subject will move into this named graph.</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Scope — which triples to move</label>
+            <select id="sg_scope" style="width:100%;background:#0f1117;border:1px solid #374151;border-radius:4px;padding:8px;font-size:11px;color:#e2e8f0;outline:none;">
+                <option value="subject">Only triples where Asset URI is subject (recommended)</option>
+                <option value="all">All triples currently in default graph</option>
+            </select>
+        </div>
+
+        <div id="sg_status" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:4px;font-size:12px;"></div>
+
+        <div style="background:#1e2035;border:1px solid #374151;border-radius:6px;padding:10px;margin-bottom:16px;font-size:11px;color:#9ca3af;line-height:1.6;">
+            ⚠️ This copies matching triples into the named graph and removes them from the default graph. This cannot be undone without re-importing.
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeSetGraphModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
+            <button onclick="previewSetGraph()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Preview</button>
+            <button id="sg_confirm_btn" onclick="executeSetGraph()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Move to Named Graph</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Set Named Graph feature ──────────────────────────────────────────────────
+
+function openSetGraphModal() {
+    if (!assetUri) { alert('No asset selected.'); return; }
+    document.getElementById('sg_asset_uri').textContent = assetUri;
+    document.getElementById('sg_graph_uri').value = assetUri;
+    document.getElementById('sg_status').style.display = 'none';
+    document.getElementById('sg_confirm_btn').style.display = 'none';
+    const modal = document.getElementById('setGraphModal');
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('sg_graph_uri').focus(), 50);
+}
+
+function closeSetGraphModal() {
+    document.getElementById('setGraphModal').style.display = 'none';
+}
+
+async function previewSetGraph() {
+    const graphUri = document.getElementById('sg_graph_uri').value.trim();
+    const scope    = document.getElementById('sg_scope').value;
+    const statusEl = document.getElementById('sg_status');
+    const confirmBtn = document.getElementById('sg_confirm_btn');
+
+    if (!graphUri) {
+        showSgStatus('Please enter a named graph URI.', 'red');
+        return;
+    }
+
+    showSgStatus('Counting triples…', 'blue');
+    confirmBtn.style.display = 'none';
+
+    try {
+        let countQuery;
+        if (scope === 'subject') {
+            countQuery = `SELECT (COUNT(*) as ?c) WHERE { <${assetUri}> ?p ?o . FILTER NOT EXISTS { GRAPH ?g { <${assetUri}> ?p ?o } } }`;
+        } else {
+            countQuery = `SELECT (COUNT(*) as ?c) WHERE { ?s ?p ?o . FILTER NOT EXISTS { GRAPH ?g { ?s ?p ?o } } }`;
+        }
+
+        const count = await countTriples(countQuery);
+
+        if (count === 0) {
+            showSgStatus(`⚠ No triples found in the default graph for this scope. They may already be in a named graph.`, 'amber');
+        } else {
+            showSgStatus(`✓ ${count} triples will be moved from the default graph into <${graphUri}>`, 'green');
+            confirmBtn.style.display = 'inline-block';
+        }
+    } catch(err) {
+        showSgStatus('Preview failed: ' + err.message, 'red');
+    }
+}
+
+async function executeSetGraph() {
+    const graphUri   = document.getElementById('sg_graph_uri').value.trim();
+    const scope      = document.getElementById('sg_scope').value;
+    const confirmBtn = document.getElementById('sg_confirm_btn');
+
+    if (!graphUri) return;
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Moving…';
+    showSgStatus('Step 1/2 — Copying triples into named graph…', 'blue');
+
+    try {
+        let moveUpdate;
+        if (scope === 'subject') {
+            // Move only triples where assetUri is subject
+            moveUpdate = `
+                DELETE { <${assetUri}> ?p ?o }
+                INSERT { GRAPH <${graphUri}> { <${assetUri}> ?p ?o } }
+                WHERE  {
+                    <${assetUri}> ?p ?o .
+                    FILTER NOT EXISTS { GRAPH ?g { <${assetUri}> ?p ?o } }
+                }`;
+        } else {
+            // Move all default graph triples
+            moveUpdate = `
+                DELETE { ?s ?p ?o }
+                INSERT { GRAPH <${graphUri}> { ?s ?p ?o } }
+                WHERE  {
+                    ?s ?p ?o .
+                    FILTER NOT EXISTS { GRAPH ?g { ?s ?p ?o } }
+                }`;
+        }
+
+        await sparqlUpdate(moveUpdate);
+
+        showSgStatus('Step 2/2 — Verifying named graph…', 'blue');
+
+        // Verify triples landed in named graph
+        const verify = await countTriples(
+            `SELECT (COUNT(*) as ?c) WHERE { GRAPH <${graphUri}> { <${assetUri}> ?p ?o } }`);
+
+        showSgStatus(`✓ Done — ${verify} triples now in <${graphUri}>`, 'green');
+
+        // Update display
+        const graphDisplay = document.getElementById('display_graph');
+        graphDisplay.textContent = graphUri;
+        graphDisplay.style.color = '#34d399';
+
+        confirmBtn.textContent = '✓ Done';
+
+        // Refresh opener sidebar
+        if (window.opener && !window.opener.closed) {
+            try { window.opener.refreshSidebar(); } catch(e) {}
+        }
+
+        setTimeout(closeSetGraphModal, 1500);
+
+    } catch(err) {
+        showSgStatus('Failed: ' + err.message, 'red');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '⚡ Move to Named Graph';
+    }
+}
+
+function showSgStatus(msg, color) {
+    const el = document.getElementById('sg_status');
+    el.textContent = msg;
+    el.style.background = color === 'red' ? '#450a0a' : color === 'green' ? '#052e16' : color === 'amber' ? '#431407' : '#1e1b4b';
+    el.style.color = color === 'red' ? '#fca5a5' : color === 'green' ? '#86efac' : color === 'amber' ? '#fed7aa' : '#a5b4fc';
+    el.style.display = 'block';
+}
+</script>
