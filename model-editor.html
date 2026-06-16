@@ -160,7 +160,6 @@
   .tree-item:hover { background: var(--panel2); }
   .tree-item.selected { background: rgba(124,131,245,.18); color: var(--accent2); }
   .tree-item.selected .tree-label { color: var(--accent2); }
-  .tree-toggle { width: 14px; flex-shrink: 0; color: var(--text-muted); font-size: 10px; text-align: center; }
   .tree-icon { font-size: 13px; flex-shrink: 0; }
   .tree-label { font-size: 12px; color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tree-badge {
@@ -170,6 +169,71 @@
   }
   .tree-children { padding-left: 18px; }
   .tree-empty { color: var(--text-muted); font-size: 11px; padding: 20px 10px; text-align: center; }
+
+  /* ── NODE-TYPE COLOR CODING ── */
+  /* Ontologies / models: bold + distinct accent color */
+  .tree-item.is-ontology .tree-label { font-weight: 700; color: var(--warn); }
+  .tree-item.is-ontology .tree-icon  { color: var(--warn); }
+  .tree-item.is-class    .tree-label { font-weight: 600; color: var(--accent2); }
+  .tree-item.is-class    .tree-icon  { color: var(--accent2); }
+  .tree-item.is-objprop  .tree-label { color: #82aaff; }
+  .tree-item.is-objprop  .tree-icon  { color: #82aaff; }
+  .tree-item.is-annprop  .tree-label,
+  .tree-item.is-dataprop .tree-label { color: #c3e88d; }
+  .tree-item.is-annprop  .tree-icon,
+  .tree-item.is-dataprop .tree-icon  { color: #c3e88d; }
+  /* keep selected color override readable */
+  .tree-item.selected .tree-label { color: var(--accent2) !important; }
+
+  /* ── CLICKABLE CHEVRON TOGGLE ── */
+  .tree-toggle {
+    width: 22px; flex-shrink: 0; color: var(--text-dim);
+    font-size: 16px; line-height: 1; text-align: center; cursor: pointer;
+    transition: transform .12s, color .12s; border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 22px;
+  }
+  .tree-toggle:hover { color: var(--accent2); background: var(--panel2); }
+  .tree-toggle.no-children { cursor: default; visibility: hidden; }
+
+  /* ── PER-MODEL COLOR STRIPE ── */
+  /* Each source ontology gets its own left-border color, set inline via --model-color */
+  .tree-item {
+    border-left: 3px solid transparent;
+  }
+  .tree-item[data-model] {
+    border-left-color: var(--model-color, transparent);
+  }
+  .model-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0; background: var(--model-color, var(--text-muted));
+  }
+
+  /* ── RELATION LEGEND ── */
+  .tree-legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    padding: 6px 12px; font-size: 10px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .tree-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .tree-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  /* ── RELATION ROW (in node form) ── */
+  .rel-row {
+    display: grid; grid-template-columns: 150px 1fr auto;
+    gap: 8px; align-items: center; margin-bottom: 6px;
+  }
+  .rel-row select, .rel-row input {
+    background: var(--panel2); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius);
+    padding: 6px 9px; font-family: var(--mono); font-size: 11px; width: 100%;
+  }
+  .rel-row select:focus, .rel-row input:focus { outline: none; border-color: var(--accent); }
+  .rel-row .rel-del {
+    background: transparent; border: 1px solid var(--border); color: var(--danger);
+    border-radius: var(--radius); cursor: pointer; padding: 5px 9px; font-size: 12px;
+  }
+  .rel-row .rel-del:hover { background: #7f1d1d; }
 
   /* ── FILTER TABS ── */
   .filter-tabs { display: flex; gap: 4px; padding: 8px 10px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
@@ -367,6 +431,7 @@
   <div class="topbar-sep"></div>
   <div id="active-ontology-label" style="font-size:11px;color:var(--text-muted);font-family:var(--mono)">No ontology loaded</div>
   <div class="topbar-actions">
+    <button class="btn btn-ghost btn-sm" onclick="showRelationsModal()">⇄ Relations</button>
     <button class="btn btn-ghost btn-sm" onclick="exportTTL()">⬇ Export TTL</button>
     <button class="btn btn-ghost btn-sm" onclick="saveToLocalStorage()">💾 Save Draft</button>
     <button class="btn btn-primary btn-sm" onclick="showNewNodeModal()">＋ New Node</button>
@@ -397,12 +462,22 @@
 
     <div class="panel-header">
       Node Tree
-      <span id="tree-count" class="tree-badge">0</span>
+      <span style="display:flex;align-items:center;gap:6px">
+        <button class="btn btn-ghost btn-sm" onclick="expandAll(true)" title="Expand all" style="padding:2px 6px">⊞</button>
+        <button class="btn btn-ghost btn-sm" onclick="expandAll(false)" title="Collapse all" style="padding:2px 6px">⊟</button>
+        <span id="tree-count" class="tree-badge">0</span>
+      </span>
+    </div>
+
+    <!-- Model color legend (populated dynamically) -->
+    <div class="tree-legend" id="model-legend">
+      <span style="color:var(--text-muted)">Connect a model to see its color legend</span>
     </div>
 
     <!-- Filter tabs -->
     <div class="filter-tabs">
       <div class="filter-tab active" onclick="setFilter('all',this)">All</div>
+      <div class="filter-tab" onclick="setFilter('Ontology',this)">Models</div>
       <div class="filter-tab" onclick="setFilter('Class',this)">Classes</div>
       <div class="filter-tab" onclick="setFilter('ObjectProperty',this)">Props</div>
     </div>
@@ -515,6 +590,8 @@
 
     <!-- Stats -->
     <div class="stats-bar">
+      <div class="stat"><span class="stat-val" id="stat-models">0</span><span class="stat-lbl">Models</span></div>
+      <div class="stat-sep"></div>
       <div class="stat"><span class="stat-val" id="stat-classes">0</span><span class="stat-lbl">Classes</span></div>
       <div class="stat-sep"></div>
       <div class="stat"><span class="stat-val" id="stat-props">0</span><span class="stat-lbl">Properties</span></div>
@@ -589,6 +666,7 @@
           <option value="ObjectProperty">owl:ObjectProperty</option>
           <option value="AnnotationProperty">owl:AnnotationProperty</option>
           <option value="DatatypeProperty">owl:DatatypeProperty</option>
+          <option value="Ontology">owl:Ontology (model)</option>
         </select>
       </div>
       <div class="field">
@@ -614,6 +692,23 @@
   </div>
 </div>
 
+<!-- MANAGE RELATIONS MODAL -->
+<div class="modal-overlay" id="relations-modal">
+  <div class="modal" style="width:560px">
+    <h3>Manage Relation Types</h3>
+    <p>These relation types appear in the dropdown when you add or change a relation on a node. Edit the label and the predicate IRI (or prefixed form).</p>
+    <div id="relations-editor" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="addRelationType()">＋ Add relation type</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetRelationTypes()">↺ Reset to defaults</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('relations-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRelationTypes()">Save Relation Types</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════
 //  STATE
@@ -628,7 +723,48 @@ const state = {
   searchQuery: '',
   unsavedCount: 0,
   connected: false,
+  collapsed: new Set(),   // IRIs whose children are hidden
+  activeModel: '',        // selected ontology IRI from Model Manager
+  includedModels: [],     // owl:imports of the active model
+  modelColors: {},        // namespace -> color
+  scopeToModel: true,     // when true, only show active model + included models
 };
+
+// Distinct palette for per-model color coding (active model first)
+const MODEL_PALETTE = [
+  '#fbbf24', // amber  — active model
+  '#7c83f5', // indigo
+  '#4ade80', // green
+  '#f87171', // red
+  '#22d3ee', // cyan
+  '#e879f9', // magenta
+  '#fb923c', // orange
+  '#a3e635', // lime
+  '#60a5fa', // blue
+  '#f472b6', // pink
+];
+
+// ── RELATION TYPES (maintainable, persisted in localStorage) ──
+const DEFAULT_RELATION_TYPES = [
+  { label: 'rdfs:subClassOf',     iri: 'http://www.w3.org/2000/01/rdf-schema#subClassOf' },
+  { label: 'rdfs:subPropertyOf',  iri: 'http://www.w3.org/2000/01/rdf-schema#subPropertyOf' },
+  { label: 'owl:equivalentClass', iri: 'http://www.w3.org/2002/07/owl#equivalentClass' },
+  { label: 'skos:broader',        iri: 'http://www.w3.org/2004/02/skos/core#broader' },
+  { label: 'skos:narrower',       iri: 'http://www.w3.org/2004/02/skos/core#narrower' },
+  { label: 'skos:related',        iri: 'http://www.w3.org/2004/02/skos/core#related' },
+  { label: 'dct:isPartOf',        iri: 'http://purl.org/dc/terms/isPartOf' },
+  { label: 'rdfs:isDefinedBy',    iri: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+];
+const REL_LS_KEY = 'ev_model_editor_relation_types';
+
+function loadRelationTypes() {
+  try {
+    const raw = localStorage.getItem(REL_LS_KEY);
+    if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr) && arr.length) return arr; }
+  } catch(e) {}
+  return DEFAULT_RELATION_TYPES.map(r => ({...r}));
+}
+let RELATION_TYPES = loadRelationTypes();
 
 const PREFIXES = {
   'owl:':  'http://www.w3.org/2002/07/owl#',
@@ -756,7 +892,8 @@ async function loadNodesFromSparql() {
         <http://www.w3.org/2002/07/owl#Class>,
         <http://www.w3.org/2002/07/owl#ObjectProperty>,
         <http://www.w3.org/2002/07/owl#AnnotationProperty>,
-        <http://www.w3.org/2002/07/owl#DatatypeProperty>
+        <http://www.w3.org/2002/07/owl#DatatypeProperty>,
+        <http://www.w3.org/2002/07/owl#Ontology>
       ))
       OPTIONAL {
         ?iri <http://www.w3.org/2000/01/rdf-schema#label> ?label .
@@ -775,7 +912,7 @@ async function loadNodesFromSparql() {
         iri, isDirty: false, isNew: false, isDeleted: false,
         type: row.type ? shortType(row.type.value) : 'Class',
         label: row.label ? row.label.value : '',
-        comment: '', subOf: [], dcSubject: [],
+        comment: '', subOf: [], relations: [], dcSubject: [],
         domain: '', range: '', creator: '', modified: '',
         detailsLoaded: false,
       };
@@ -799,18 +936,15 @@ async function loadNodesFromSparql() {
     const chunk = loadedIRIs.slice(i, i + CHUNK);
     const values = chunk.map(iri => '<' + iri + '>').join(' ');
     const qHierarchy = `
-      SELECT DISTINCT ?iri ?subOf
+      SELECT DISTINCT ?iri ?pred ?subOf
       WHERE {
         VALUES ?iri { ${values} }
-        {
-          ?iri <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?subOf .
-          FILTER(isIRI(?subOf))
-        }
-        UNION
-        {
-          ?iri <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?subOf .
-          FILTER(isIRI(?subOf))
-        }
+        ?iri ?pred ?subOf .
+        FILTER(isIRI(?subOf))
+        FILTER(?pred IN (
+          <http://www.w3.org/2000/01/rdf-schema#subClassOf>,
+          <http://www.w3.org/2000/01/rdf-schema#subPropertyOf>
+        ))
       }
     `;
     try {
@@ -822,8 +956,14 @@ async function loadNodesFromSparql() {
       for (const row of res2.results.bindings) {
         const iri = row.iri.value;
         const parent = row.subOf.value;
+        const pred = row.pred.value;
         if (map[iri] && !map[iri].subOf.includes(parent))
           map[iri].subOf.push(parent);
+        if (map[iri]) {
+          map[iri].relations = map[iri].relations || [];
+          if (!map[iri].relations.some(r => r.predicate === pred && r.target === parent))
+            map[iri].relations.push({ predicate: pred, target: parent });
+        }
       }
       hierarchyLoaded += chunk.length;
     } catch(e) {
@@ -889,9 +1029,13 @@ function shortType(iri) {
 }
 
 async function loadMetaFromSparql() {
+  // If launched with a specific model, bind to it so we read THAT model's imports.
+  const ontBind = state.activeModel
+    ? `BIND(<${state.activeModel}> AS ?ont) ?ont a owl:Ontology .`
+    : `?ont a owl:Ontology .`;
   const q = `
     SELECT ?p ?o WHERE {
-      ?ont a owl:Ontology .
+      ${ontBind}
       ?ont ?p ?o .
       FILTER(?p IN (
         rdfs:label, <http://purl.org/dc/terms/title>,
@@ -913,9 +1057,13 @@ async function loadMetaFromSparql() {
       else meta[p] = v;
     }
     state.meta = meta;
+    state.includedModels = meta.imports.slice();
     populateMetaForm(meta);
     document.getElementById('active-ontology-label').textContent =
       meta.title || meta.label || 'Untitled ontology';
+    rebuildModelColors();
+    renderModelLegend();
+    renderTree();
   } catch(e) { /* meta optional */ }
 }
 
@@ -947,9 +1095,89 @@ function applyMeta() {
   state.meta.modified = document.getElementById('meta-modified').value;
   const sel = document.getElementById('meta-imports');
   state.meta.imports = Array.from(sel.selectedOptions).map(o => o.value);
+  state.includedModels = state.meta.imports.slice();
+  state.activeModel = document.getElementById('meta-iri').value || state.activeModel;
   document.getElementById('active-ontology-label').textContent = state.meta.title || 'Untitled';
+  rebuildModelColors();
+  renderTree();
   updateTTLPreview(state.selectedIRI ? state.nodes.find(n=>n.iri===state.selectedIRI) : null);
   toast('Metadata applied', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODEL SCOPE & PER-MODEL COLORS
+// ═══════════════════════════════════════════════════════════
+// Reduce any IRI (node or ontology, with/without version suffix or #fragment)
+// to a comparable "base" so a node can be matched to its owning model.
+function modelBase(iri) {
+  if (!iri) return '';
+  let s = iri.split('#')[0];          // drop fragment
+  s = s.replace(/\/$/, '');           // drop trailing slash
+  s = s.replace(/\/\d+(\.\d+)*$/, ''); // drop version suffix like /1.0
+  return s;
+}
+
+// The node's owning-model base namespace.
+function nodeModelBase(n) {
+  // An ontology/model node IS its own model.
+  if (n.type === 'Ontology') return modelBase(n.iri);
+  // Prefer explicit isDefinedBy if present, else derive from the IRI namespace.
+  if (n.isDefinedBy) return modelBase(n.isDefinedBy);
+  const iri = n.iri;
+  if (iri.includes('#')) return modelBase(iri.split('#')[0]);
+  return modelBase(iri.replace(/\/[^/]*$/, '')); // strip local name after last slash
+}
+
+// Build the ordered list of in-scope model bases: active model first, then imports.
+function scopeModelBases() {
+  const list = [];
+  if (state.activeModel) list.push(modelBase(state.activeModel));
+  (state.includedModels || []).forEach(m => {
+    const b = modelBase(m);
+    if (!list.includes(b)) list.push(b);
+  });
+  return list;
+}
+
+// Assign a palette color to each in-scope model base.
+function rebuildModelColors() {
+  state.modelColors = {};
+  scopeModelBases().forEach((base, i) => {
+    state.modelColors[base] = MODEL_PALETTE[i % MODEL_PALETTE.length];
+  });
+}
+
+function modelColorFor(n) {
+  return state.modelColors[nodeModelBase(n)] || '';
+}
+
+// Short display name for a model base.
+function modelShortName(base) {
+  return base.split('/').filter(Boolean).pop() || base;
+}
+
+function renderModelLegend() {
+  const el = document.getElementById('model-legend');
+  if (!el) return;
+  const bases = scopeModelBases();
+  if (!bases.length) {
+    el.innerHTML = '<span style="color:var(--text-muted)">All models (no scope selected)</span>';
+    return;
+  }
+  el.innerHTML = bases.map((b, i) => {
+    const c = state.modelColors[b];
+    const tag = i === 0 ? ' (selected)' : '';
+    return `<span><i style="background:${c}"></i>${escHtml(modelShortName(b))}${tag}</span>`;
+  }).join('') +
+  `<span style="margin-left:auto"><label style="cursor:pointer;display:inline-flex;gap:4px;align-items:center">
+     <input type="checkbox" ${state.scopeToModel?'checked':''} onchange="toggleScope(this.checked)" style="margin:0">
+     scope
+   </label></span>`;
+}
+
+function toggleScope(on) {
+  state.scopeToModel = on;
+  renderTree();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -969,7 +1197,16 @@ function filterTree(q) {
 
 function renderTree() {
   const panel = document.getElementById('tree-panel');
+  rebuildModelColors();
+  renderModelLegend();
   let nodes = state.nodes.filter(n => !n.isDeleted);
+
+  // Scope: only show nodes belonging to the selected model + its included models
+  const bases = scopeModelBases();
+  if (state.scopeToModel && bases.length) {
+    nodes = nodes.filter(n => bases.includes(nodeModelBase(n)));
+  }
+
   if (state.filter !== 'all') nodes = nodes.filter(n => n.type === state.filter);
   if (state.searchQuery) nodes = nodes.filter(n =>
     (n.label||'').toLowerCase().includes(state.searchQuery) ||
@@ -1017,17 +1254,25 @@ function renderTree() {
     if (!n) continue;
 
     const children = (childMap[iri] || []).filter(c => !visited.has(c));
+    const isCollapsed = state.collapsed.has(iri);
     const div = document.createElement('div');
     div.style.paddingLeft = (depth * 16) + 'px';
-    div.innerHTML = buildTreeItem(n, children.length > 0, 0);
+    div.innerHTML = buildTreeItem(n, children.length > 0, isCollapsed);
     const treeItem = div.querySelector('.tree-item');
     treeItem.addEventListener('click', () => selectNode(n.iri));
+    // chevron toggles collapse without selecting
+    const toggle = div.querySelector('.tree-toggle');
+    if (children.length > 0) {
+      toggle.addEventListener('click', (e) => { e.stopPropagation(); toggleCollapse(n.iri); });
+    }
     if (n.iri === state.selectedIRI) treeItem.classList.add('selected');
     panel.appendChild(div);
 
-    // Push children to front of stack to maintain depth-first order
-    for (let i = children.length - 1; i >= 0; i--) {
-      stack.unshift({ iri: children[i], depth: depth + 1 });
+    // Push children to front of stack to maintain depth-first order — skip if collapsed
+    if (!isCollapsed) {
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.unshift({ iri: children[i], depth: depth + 1 });
+      }
     }
   }
 
@@ -1035,7 +1280,7 @@ function renderTree() {
   nodes.forEach(n => {
     if (!visited.has(n.iri)) {
       const div = document.createElement('div');
-      div.innerHTML = buildTreeItem(n, false, 0);
+      div.innerHTML = buildTreeItem(n, false, false);
       div.querySelector('.tree-item').addEventListener('click', () => selectNode(n.iri));
       if (n.iri === state.selectedIRI) div.querySelector('.tree-item').classList.add('selected');
       panel.appendChild(div);
@@ -1043,12 +1288,48 @@ function renderTree() {
   });
 }
 
-function buildTreeItem(n, hasChildren, depth) {
-  const icon = n.type === 'Class' ? '⬡' : n.type === 'ObjectProperty' ? '⟶' : '◇';
+function typeClass(t) {
+  return t === 'Ontology' ? 'is-ontology'
+    : t === 'Class' ? 'is-class'
+    : t === 'ObjectProperty' ? 'is-objprop'
+    : t === 'AnnotationProperty' ? 'is-annprop'
+    : 'is-dataprop';
+}
+
+function toggleCollapse(iri) {
+  if (state.collapsed.has(iri)) state.collapsed.delete(iri);
+  else state.collapsed.add(iri);
+  renderTree();
+}
+
+function expandAll(expand) {
+  if (expand) {
+    state.collapsed.clear();
+  } else {
+    // collapse every node that has children
+    const byIRI = {}; state.nodes.forEach(n => byIRI[n.iri] = n);
+    const parents = new Set();
+    state.nodes.forEach(n => (n.subOf||[]).forEach(p => { if (byIRI[p]) parents.add(p); }));
+    state.collapsed = new Set(parents);
+  }
+  renderTree();
+}
+
+function buildTreeItem(n, hasChildren, isCollapsed) {
+  const icon = n.type === 'Ontology' ? '◈'
+    : n.type === 'Class' ? '⬡'
+    : n.type === 'ObjectProperty' ? '⟶' : '◇';
   const dirty = n.isDirty ? ' <span style="color:var(--warn);font-size:9px">●</span>' : '';
   const isNew = n.isNew ? ' <span style="color:var(--success);font-size:9px">NEW</span>' : '';
-  return `<div class="tree-item">
-    <span class="tree-toggle">${hasChildren ? '▸' : ''}</span>
+  const chevron = hasChildren ? (isCollapsed ? '▶' : '▼') : '';
+  const toggleCls = hasChildren ? 'tree-toggle' : 'tree-toggle no-children';
+  const mColor = modelColorFor(n);
+  const mBase = nodeModelBase(n);
+  const styleAttr = mColor ? ` style="--model-color:${mColor}" data-model="${escHtml(mBase)}"` : '';
+  const dot = mColor ? '<span class="model-dot"></span>' : '';
+  return `<div class="tree-item ${typeClass(n.type)}"${styleAttr}>
+    <span class="${toggleCls}">${chevron}</span>
+    ${dot}
     <span class="tree-icon">${icon}</span>
     <span class="tree-label">${n.label || shrinkIRI(n.iri)}${dirty}${isNew}</span>
   </div>`;
@@ -1076,10 +1357,6 @@ function showNodeForm(n) {
 
   const allIRIs = state.nodes.filter(x=>!x.isDeleted).map(x=>x.iri);
 
-  const subOfOptions = allIRIs.map(iri =>
-    `<option value="${iri}" ${(n.subOf||[]).includes(iri)?'selected':''}>${shrinkIRI(iri)}</option>`
-  ).join('');
-
   form.querySelector('#node-form-fields').innerHTML = `
     <div class="form-section-title">Identity</div>
 
@@ -1096,6 +1373,7 @@ function showNodeForm(n) {
           <option value="ObjectProperty" ${n.type==='ObjectProperty'?'selected':''}>owl:ObjectProperty</option>
           <option value="AnnotationProperty" ${n.type==='AnnotationProperty'?'selected':''}>owl:AnnotationProperty</option>
           <option value="DatatypeProperty" ${n.type==='DatatypeProperty'?'selected':''}>owl:DatatypeProperty</option>
+          <option value="Ontology" ${n.type==='Ontology'?'selected':''}>owl:Ontology (model)</option>
         </select>
       </div>
       <div class="field">
@@ -1109,13 +1387,13 @@ function showNodeForm(n) {
       <textarea id="f-comment">${escHtml(n.comment||'')}</textarea>
     </div>
 
-    <div class="form-section-title">Hierarchy</div>
+    <div class="form-section-title">Relations &amp; Hierarchy</div>
 
     <div class="field">
-      <label>rdfs:subClassOf / rdfs:subPropertyOf (select multiple)</label>
-      <select id="f-subof" multiple style="height:110px">
-        ${subOfOptions}
-      </select>
+      <label>Relations — move this node to a parent (same or another ontology) and choose the relation type</label>
+      <div id="rel-list"></div>
+      <button class="btn btn-ghost btn-sm" onclick="addRelationRow()" style="align-self:flex-start;margin-top:4px">＋ Add relation</button>
+      <span style="font-size:10px;color:var(--text-muted);margin-top:4px">Manage the relation-type list via <strong>⇄ Relations</strong> in the top bar.</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="prop-fields" ${n.type==='Class'?'style="display:none!important"':''}>
@@ -1160,6 +1438,84 @@ function showNodeForm(n) {
       this.value === 'Class' ? 'none' : 'grid';
   });
   if (n.type !== 'Class') document.getElementById('prop-fields').style.display = 'grid';
+
+  // Build relation rows. Normalise legacy subOf-only nodes into relations.
+  if (!n.relations || !n.relations.length) {
+    n.relations = (n.subOf||[]).map(t => ({
+      predicate: 'http://www.w3.org/2000/01/rdf-schema#subClassOf', target: t
+    }));
+  }
+  renderRelationRows(n);
+}
+
+// Targets grouped by ontology namespace so cross-ontology moves are easy to find
+function relationTargetOptions(selected) {
+  const groups = {};
+  state.nodes.filter(x => !x.isDeleted).forEach(x => {
+    const ns = x.iri.replace(/[#/][^#/]*$/, '');
+    (groups[ns] = groups[ns] || []).push(x);
+  });
+  let html = '<option value="">— select target —</option>';
+  Object.keys(groups).sort().forEach(ns => {
+    const label = shrinkIRI(ns + '#').replace(/[#:]$/, '') || ns;
+    html += `<optgroup label="${escHtml(label)}">`;
+    groups[ns].forEach(x => {
+      html += `<option value="${x.iri}" ${x.iri===selected?'selected':''}>${escHtml(x.label || shrinkIRI(x.iri))}</option>`;
+    });
+    html += '</optgroup>';
+  });
+  return html;
+}
+
+function relationTypeOptions(selected) {
+  return RELATION_TYPES.map(r =>
+    `<option value="${escHtml(r.iri)}" ${r.iri===selected?'selected':''}>${escHtml(r.label)}</option>`
+  ).join('');
+}
+
+function renderRelationRows(n) {
+  const list = document.getElementById('rel-list');
+  if (!list) return;
+  list.innerHTML = '';
+  (n.relations||[]).forEach((rel, idx) => list.appendChild(makeRelationRow(rel, idx)));
+}
+
+function makeRelationRow(rel, idx) {
+  const row = document.createElement('div');
+  row.className = 'rel-row';
+  row.innerHTML = `
+    <select class="rel-pred" data-idx="${idx}">${relationTypeOptions(rel.predicate)}</select>
+    <select class="rel-target" data-idx="${idx}">${relationTargetOptions(rel.target)}</select>
+    <button class="rel-del" title="Remove relation" onclick="removeRelationRow(${idx})">✕</button>
+  `;
+  return row;
+}
+
+function addRelationRow() {
+  const n = state.nodes.find(x => x.iri === state.selectedIRI);
+  if (!n) return;
+  collectRelationRows(n);
+  n.relations.push({ predicate: RELATION_TYPES[0]?.iri || '', target: '' });
+  renderRelationRows(n);
+}
+
+function removeRelationRow(idx) {
+  const n = state.nodes.find(x => x.iri === state.selectedIRI);
+  if (!n) return;
+  collectRelationRows(n);
+  n.relations.splice(idx, 1);
+  renderRelationRows(n);
+}
+
+// Read current values from the DOM rows back into the node (keeps edits while adding/removing)
+function collectRelationRows(n) {
+  const preds = document.querySelectorAll('.rel-pred');
+  const targets = document.querySelectorAll('.rel-target');
+  const rels = [];
+  for (let i = 0; i < preds.length; i++) {
+    rels.push({ predicate: preds[i].value, target: targets[i] ? targets[i].value : '' });
+  }
+  n.relations = rels;
 }
 
 function cancelEdit() {
@@ -1187,8 +1543,15 @@ function saveNode() {
   n.modified = document.getElementById('f-modified').value || new Date().toISOString();
   n.isDefinedBy = document.getElementById('f-isdefby').value.trim();
 
-  const subSel = document.getElementById('f-subof');
-  n.subOf = Array.from(subSel.selectedOptions).map(o => o.value);
+  // Collect typed relations from the form rows
+  collectRelationRows(n);
+  n.relations = (n.relations||[]).filter(r => r.predicate && r.target);
+  // subOf drives the tree hierarchy — derive it from subClassOf / subPropertyOf relations
+  const HIER = [
+    'http://www.w3.org/2000/01/rdf-schema#subClassOf',
+    'http://www.w3.org/2000/01/rdf-schema#subPropertyOf'
+  ];
+  n.subOf = n.relations.filter(r => HIER.includes(r.predicate)).map(r => r.target);
 
   n.domain = document.getElementById('f-domain') ? document.getElementById('f-domain').value.trim() : '';
   n.range  = document.getElementById('f-range')  ? document.getElementById('f-range').value.trim()  : '';
@@ -1224,7 +1587,7 @@ function createNewNode() {
   if (state.nodes.find(n=>n.iri===iri)) { toast('IRI already exists', 'error'); return; }
   const n = {
     iri, type, label: local.replace(/([A-Z])/g,' $1').trim(),
-    comment: '', subOf: [], dcSubject: [], domain: '', range: '',
+    comment: '', subOf: [], relations: [], dcSubject: [], domain: '', range: '',
     creator: 'Jeffrey Wallk',
     modified: new Date().toISOString(),
     isDefinedBy: document.getElementById('meta-iri').value || '',
@@ -1275,13 +1638,23 @@ function nodeTTL(n) {
   const typeStr = n.type === 'Class' ? 'owl:Class'
     : n.type === 'ObjectProperty' ? 'owl:ObjectProperty'
     : n.type === 'AnnotationProperty' ? 'owl:AnnotationProperty'
+    : n.type === 'Ontology' ? 'owl:Ontology'
     : 'owl:DatatypeProperty';
   let lines = [`${s}`];
   lines.push(`    rdf:type ${typeStr} ;`);
-  if (n.subOf && n.subOf.length) {
-    const refs = n.subOf.map(p => shrinkIRI(p)).join(' ,\n        ');
-    lines.push(`    rdfs:subClassOf ${refs} ;`);
-  }
+  // Emit typed relations (subClassOf, skos:broader, etc.). Group by predicate.
+  const rels = (n.relations && n.relations.length)
+    ? n.relations
+    : (n.subOf||[]).map(t => ({ predicate: 'http://www.w3.org/2000/01/rdf-schema#subClassOf', target: t }));
+  const byPred = {};
+  rels.filter(r => r.predicate && r.target).forEach(r => {
+    (byPred[r.predicate] = byPred[r.predicate] || []).push(r.target);
+  });
+  Object.entries(byPred).forEach(([pred, targets]) => {
+    const predStr = shrinkIRI(pred);
+    const refs = targets.map(t => shrinkIRI(t)).join(' ,\n        ');
+    lines.push(`    ${predStr} ${refs} ;`);
+  });
   if (n.label) lines.push(`    rdfs:label "${n.label}"@en ;`);
   if (n.comment) lines.push(`    rdfs:comment "${n.comment.replace(/"/g,'\\"')}"@en ;`);
   if (n.domain) lines.push(`    rdfs:domain ${shrinkIRI(n.domain)} ;`);
@@ -1304,7 +1677,7 @@ function syntaxHighlight(ttl) {
   return ttl
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/(#[^\n]*)/g,'<span class="cmt">$1</span>')
-    .replace(/\b(rdf:type|rdfs:subClassOf|rdfs:label|rdfs:comment|rdfs:domain|rdfs:range|rdfs:isDefinedBy|dct:creator|dct:modified|dc:subject|owl:Class|owl:ObjectProperty|owl:AnnotationProperty|owl:DatatypeProperty|owl:Ontology|owl:imports|owl:versionInfo|owl:versionIRI)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b(rdf:type|rdfs:subClassOf|rdfs:subPropertyOf|rdfs:label|rdfs:comment|rdfs:domain|rdfs:range|rdfs:isDefinedBy|owl:equivalentClass|skos:broader|skos:narrower|skos:related|dct:isPartOf|dct:creator|dct:modified|dc:subject|owl:Class|owl:ObjectProperty|owl:AnnotationProperty|owl:DatatypeProperty|owl:Ontology|owl:imports|owl:versionInfo|owl:versionIRI)\b/g,'<span class="kw">$1</span>')
     .replace(/("(?:[^"\\]|\\.)*"(?:@\w+|(?:\^\^[a-z:]+))?)/g,'<span class="lit">$1</span>')
     .replace(/\b(dg:|tcl:|tcp:|tcc:|tcs:|vcl:|vcp:|vcc:|vcs:|vdg:|owl:|rdf:|rdfs:|xsd:|skos:|dct:|dc:|sh:)/g,'<span class="pfx">$1</span>');
 }
@@ -1387,10 +1760,12 @@ function checkLocalStorageDraft() {
 //  UI HELPERS
 // ═══════════════════════════════════════════════════════════
 function updateStats() {
+  document.getElementById('stat-models').textContent =
+    state.nodes.filter(n=>!n.isDeleted && n.type==='Ontology').length;
   document.getElementById('stat-classes').textContent =
     state.nodes.filter(n=>!n.isDeleted && n.type==='Class').length;
   document.getElementById('stat-props').textContent =
-    state.nodes.filter(n=>!n.isDeleted && n.type!=='Class').length;
+    state.nodes.filter(n=>!n.isDeleted && n.type!=='Class' && n.type!=='Ontology').length;
   document.getElementById('stat-modified').textContent =
     state.nodes.filter(n=>n.isDirty && !n.isDeleted).length;
 }
@@ -1415,6 +1790,73 @@ function closeModal(id) {
 
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RELATION-TYPE MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function showRelationsModal() {
+  renderRelationsEditor();
+  document.getElementById('relations-modal').classList.add('open');
+}
+
+function renderRelationsEditor() {
+  const wrap = document.getElementById('relations-editor');
+  wrap.innerHTML = '';
+  RELATION_TYPES.forEach((r, i) => {
+    const row = document.createElement('div');
+    row.className = 'rel-row';
+    row.style.gridTemplateColumns = '170px 1fr auto';
+    row.innerHTML = `
+      <input class="rt-label" data-i="${i}" value="${escHtml(r.label)}" placeholder="skos:broader">
+      <input class="rt-iri" data-i="${i}" value="${escHtml(r.iri)}" placeholder="http://…/broader">
+      <button class="rel-del" title="Remove" onclick="removeRelationType(${i})">✕</button>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function syncRelationEditorToArray() {
+  const labels = document.querySelectorAll('.rt-label');
+  const iris = document.querySelectorAll('.rt-iri');
+  const arr = [];
+  for (let i = 0; i < labels.length; i++) {
+    const label = labels[i].value.trim();
+    const iri = iris[i].value.trim();
+    if (label && iri) arr.push({ label, iri });
+  }
+  RELATION_TYPES = arr;
+}
+
+function addRelationType() {
+  syncRelationEditorToArray();
+  RELATION_TYPES.push({ label: '', iri: '' });
+  renderRelationsEditor();
+}
+
+function removeRelationType(i) {
+  syncRelationEditorToArray();
+  RELATION_TYPES.splice(i, 1);
+  renderRelationsEditor();
+}
+
+function resetRelationTypes() {
+  RELATION_TYPES = DEFAULT_RELATION_TYPES.map(r => ({...r}));
+  renderRelationsEditor();
+  toast('Relation types reset to defaults', 'info');
+}
+
+function saveRelationTypes() {
+  syncRelationEditorToArray();
+  if (!RELATION_TYPES.length) { toast('Keep at least one relation type', 'error'); return; }
+  localStorage.setItem(REL_LS_KEY, JSON.stringify(RELATION_TYPES));
+  closeModal('relations-modal');
+  // refresh any open node form so the new types appear in dropdowns
+  if (state.selectedIRI) {
+    const n = state.nodes.find(x => x.iri === state.selectedIRI);
+    if (n) renderRelationRows(n);
+  }
+  toast('Relation types saved', 'success');
 }
 
 // ── ESC closes modals ──
@@ -1445,6 +1887,7 @@ document.getElementById('meta-modified').value = new Date().toISOString().slice(
   }
   if (ont) {
     document.getElementById('meta-iri').value = ont;
+    state.activeModel = ont;
     document.getElementById('active-ontology-label').textContent =
       ont.split('/').pop().split('#').pop() || ont;
   }
