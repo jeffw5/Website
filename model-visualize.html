@@ -145,7 +145,7 @@
         // ── Params ──
         const params = new URLSearchParams(window.location.search);
         const assetUri = params.get('uri');
-        const repoId   = params.get('repo') || 'Value-kb';
+        const repoId   = params.get('repo') || 'value-kb';
 
         document.getElementById('assetUri').textContent = assetUri || '(no asset)';
         document.getElementById('assetUri').title = assetUri || '';
@@ -256,36 +256,45 @@
 
             const crossClause = scope === 'cross' ? '' : `FILTER(STRSTARTS(STR(?s0), STRBEFORE(STR(?asset), "#")) || STRSTARTS(STR(?s0), STRBEFORE(STR(?asset), "/")) )`;
 
+            // Derive namespace prefix from assetUri to scope query to this ontology
+            // e.g. https://ontologies.verizon.com/ontology-domain-governance
+            // becomes filter: STRSTARTS(STR(?s), "https://ontologies.verizon.com/ontology-domain-governance")
+            const nsBase = assetUri.replace(/#.*$/, '').replace(/\/$/, '');
+
             return `
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX owl:  <http://www.w3.org/2002/07/owl#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
 SELECT DISTINCT ?s ?sLabel ?sType ?p ?o ?oLabel ?oType WHERE {
   {
-    # Nodes/edges directly in the selected graph
-    GRAPH <${assetUri}> {
-      ?s ?p ?o .
-    }
-    FILTER(?p IN (rdfs:subClassOf, skos:broader, rdf:type) || isIRI(?o))
+    # All classes and properties declared in this ontology namespace
+    ?s a ?sType .
+    FILTER(?sType IN (owl:Class, owl:ObjectProperty, owl:AnnotationProperty, owl:DatatypeProperty))
+    FILTER(STRSTARTS(STR(?s), "${nsBase}"))
+    ?s ?p ?o .
+    FILTER(?p IN (rdfs:subClassOf, rdfs:subPropertyOf, rdfs:domain, rdfs:range, skos:broader))
+    FILTER(isIRI(?o))
   }
   UNION
   {
-    # Extended relationships up to N hops via subClassOf/broader from any node in this graph
-    GRAPH <${assetUri}> { ?s0 a ?anyType . }
-    ?s0 (${pathExpr}) ?o .
-    BIND(?s0 AS ?s)
+    # Extended hops — follow subClassOf chains up to depth hops beyond namespace
+    ?s a owl:Class .
+    FILTER(STRSTARTS(STR(?s), "${nsBase}"))
+    ?s (${pathExpr}) ?o .
     BIND(rdfs:subClassOf AS ?p)
+    FILTER(isIRI(?o))
   }
-  OPTIONAL { ?s rdfs:label ?sLabelRaw }
+  OPTIONAL { ?s rdfs:label ?sLabelRaw . FILTER(lang(?sLabelRaw)="en" || lang(?sLabelRaw)="") }
+  OPTIONAL { ?o rdfs:label ?oLabelRaw . FILTER(lang(?oLabelRaw)="en" || lang(?oLabelRaw)="") }
   OPTIONAL { ?s a ?sType }
-  OPTIONAL { ?o rdfs:label ?oLabelRaw }
   OPTIONAL { ?o a ?oType }
   BIND(COALESCE(?sLabelRaw, "") AS ?sLabel)
   BIND(COALESCE(?oLabelRaw, "") AS ?oLabel)
-  FILTER(isIRI(?s) && (isIRI(?o) || isLiteral(?o)))
+  FILTER(isIRI(?s) && isIRI(?o))
 }
-LIMIT 500
+LIMIT 1000
 `;
         }
 

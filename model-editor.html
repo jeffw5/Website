@@ -386,7 +386,7 @@
       </div>
       <input id="sparql-endpoint" type="text"
         placeholder="http://localhost:7200/repositories/governance"
-        value="http://localhost:7200/repositories/governance">
+        value="/graphdb/repositories/value-kb">
       <div style="display:flex;gap:6px">
         <select id="named-graph" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:4px 7px;font-family:var(--mono);font-size:10px">
           <option value="">Default graph</option>
@@ -662,8 +662,13 @@ function shrinkIRI(iri) {
 //  SPARQL HELPERS
 // ═══════════════════════════════════════════════════════════
 async function sparqlSelect(query) {
-  const ep = document.getElementById('sparql-endpoint').value.trim();
+  let ep = document.getElementById('sparql-endpoint').value.trim();
   if (!ep) throw new Error('No endpoint configured');
+
+  // Always use relative path through proxy — strip any http://localhost:PORT prefix
+  // so requests go via proxy.py at localhost:3000/graphdb/... not directly to GraphDB
+  ep = ep.replace(/^https?:\/\/localhost:\d+/, '');
+  if (!ep.startsWith('/')) ep = '/' + ep;
 
   // POST with form-encoded body — matches model-manager pattern, works through proxy.py
   const body = new URLSearchParams({ query });
@@ -691,6 +696,25 @@ async function sparqlSelect(query) {
   const json = await r.json();
   console.log('[sparqlSelect] bindings:', json && json.results ? json.results.bindings.length : 'none');
   return json;
+}
+
+async function sparqlSelectWithSignal(query, signal) {
+  let ep = document.getElementById('sparql-endpoint').value.trim();
+  ep = ep.replace(/^https?:\/\/localhost:\d+/, '');
+  if (!ep.startsWith('/')) ep = '/' + ep;
+  const body = new URLSearchParams({ query });
+  if (state.namedGraph) body.set('context', '<' + state.namedGraph + '>');
+  const r = await fetch(ep, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/sparql-results+json'
+    },
+    body,
+    signal
+  });
+  if (!r.ok) throw new Error('SPARQL error ' + r.status);
+  return r.json();
 }
 
 async function sparqlUpdate(update) {
@@ -745,6 +769,7 @@ async function loadNodesFromSparql() {
   const map = {};
   for (const row of res1.results.bindings) {
     const iri = row.iri.value;
+    if (!iri.startsWith("http")) continue; // skip blank nodes
     if (!map[iri]) {
       map[iri] = {
         iri, isDirty: false, isNew: false, isDeleted: false,
@@ -763,28 +788,60 @@ async function loadNodesFromSparql() {
   updateStats();
   toast('Loaded ' + state.nodes.length + ' nodes — fetching hierarchy…', 'info');
 
-  // ── Query 2: subClassOf / subPropertyOf only — separate query, much lighter ──
-  const qHierarchy = `
-    SELECT DISTINCT ?iri ?subOf
-    WHERE {
-      { ?iri <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?subOf . FILTER(isIRI(?subOf)) }
-      UNION
-      { ?iri <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?subOf . FILTER(isIRI(?subOf)) }
+  // ── Query 2: subClassOf / subPropertyOf — scoped to loaded IRIs only ──
+  // Build VALUES clause from loaded node IRIs to avoid full-repo scan
+  // Filter out blank nodes (node305 etc) — cannot be used in VALUES clause
+  const loadedIRIs = Object.keys(map).filter(iri => iri.startsWith("http"));
+  const CHUNK = 50; // Smaller chunks avoid slow subClassOf inference paths
+  let hierarchyLoaded = 0;
+
+  for (let i = 0; i < loadedIRIs.length; i += CHUNK) {
+    const chunk = loadedIRIs.slice(i, i + CHUNK);
+    const values = chunk.map(iri => '<' + iri + '>').join(' ');
+    const qHierarchy = `
+      SELECT DISTINCT ?iri ?subOf
+      WHERE {
+        VALUES ?iri { ${values} }
+        {
+          ?iri <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?subOf .
+          FILTER(isIRI(?subOf))
+        }
+        UNION
+        {
+          ?iri <http://www.w3.org/2000/01/rdf-schema#subPropertyOf> ?subOf .
+          FILTER(isIRI(?subOf))
+        }
+      }
+    `;
+    try {
+      // 4-second timeout per chunk — abandon slow chunks, don't block the whole load
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      const res2 = await sparqlSelectWithSignal(qHierarchy, controller.signal);
+      clearTimeout(timer);
+      for (const row of res2.results.bindings) {
+        const iri = row.iri.value;
+        const parent = row.subOf.value;
+        if (map[iri] && !map[iri].subOf.includes(parent))
+          map[iri].subOf.push(parent);
+      }
+      hierarchyLoaded += chunk.length;
+    } catch(e) {
+      if (e.name === 'AbortError') {
+        console.warn('Hierarchy chunk timed out at offset ' + i + ' — skipping');
+      } else {
+        console.warn('Hierarchy chunk failed at offset ' + i, e);
+      }
     }
-  `;
-  try {
-    const res2 = await sparqlSelect(qHierarchy);
-    for (const row of res2.results.bindings) {
-      const iri = row.iri.value;
-      const parent = row.subOf.value;
-      if (map[iri] && !map[iri].subOf.includes(parent))
-        map[iri].subOf.push(parent);
+    // Re-render tree progressively every 3 chunks
+    if ((i / CHUNK) % 3 === 0) {
+      renderTree();
+      toast('Building hierarchy… ' + Math.min(hierarchyLoaded, loadedIRIs.length) + ' / ' + loadedIRIs.length, 'info');
     }
-    renderTree();
-    toast('Hierarchy loaded — ' + state.nodes.length + ' nodes ready', 'success');
-  } catch(e) {
-    toast('Hierarchy load failed — tree shown flat', 'warn');
   }
+  renderTree();
+  updateStats();
+  toast('Ready — ' + state.nodes.length + ' nodes loaded', 'success');
 
   checkLocalStorageDraft();
 }
@@ -946,32 +1003,44 @@ function renderTree() {
   nodes.forEach(n => { if (!allChildren.has(n.iri) && !roots.includes(n.iri)) roots.push(n.iri); });
 
   panel.innerHTML = '';
-  const renderNode = (iri, depth=0) => {
-    const n = byIRI[iri]; if (!n) return;
-    const children = childMap[iri] || [];
-    const item = document.createElement('div');
-    item.innerHTML = buildTreeItem(n, children.length > 0, depth);
-    item.querySelector('.tree-item').addEventListener('click', () => selectNode(n.iri));
-    if (n.iri === state.selectedIRI) item.querySelector('.tree-item').classList.add('selected');
-    panel.appendChild(item);
-    if (children.length) {
-      const wrap = document.createElement('div');
-      wrap.className = 'tree-children';
-      children.forEach(c => renderNode(c, depth+1));
-      // Actually append children flat with indent via padding
+
+  // Iterative render with cycle detection — prevents stack overflow on circular subClassOf
+  const visited = new Set();
+  const stack = roots.map(r => ({ iri: r, depth: 0 }));
+
+  while (stack.length) {
+    const { iri, depth } = stack.shift();
+    if (visited.has(iri)) continue; // break cycles
+    visited.add(iri);
+
+    const n = byIRI[iri];
+    if (!n) continue;
+
+    const children = (childMap[iri] || []).filter(c => !visited.has(c));
+    const div = document.createElement('div');
+    div.style.paddingLeft = (depth * 16) + 'px';
+    div.innerHTML = buildTreeItem(n, children.length > 0, 0);
+    const treeItem = div.querySelector('.tree-item');
+    treeItem.addEventListener('click', () => selectNode(n.iri));
+    if (n.iri === state.selectedIRI) treeItem.classList.add('selected');
+    panel.appendChild(div);
+
+    // Push children to front of stack to maintain depth-first order
+    for (let i = children.length - 1; i >= 0; i--) {
+      stack.unshift({ iri: children[i], depth: depth + 1 });
     }
-    children.forEach(c => {
-      const child = byIRI[c]; if (!child) return;
-      const cc = childMap[c] || [];
-      const ci = document.createElement('div');
-      ci.style.paddingLeft = ((depth+1)*16) + 'px';
-      ci.innerHTML = buildTreeItem(child, cc.length > 0, 0);
-      ci.querySelector('.tree-item').addEventListener('click', () => selectNode(child.iri));
-      if (child.iri === state.selectedIRI) ci.querySelector('.tree-item').classList.add('selected');
-      panel.appendChild(ci);
-    });
-  };
-  roots.forEach(r => renderNode(r));
+  }
+
+  // Render any nodes not reached via hierarchy (disconnected nodes)
+  nodes.forEach(n => {
+    if (!visited.has(n.iri)) {
+      const div = document.createElement('div');
+      div.innerHTML = buildTreeItem(n, false, 0);
+      div.querySelector('.tree-item').addEventListener('click', () => selectNode(n.iri));
+      if (n.iri === state.selectedIRI) div.querySelector('.tree-item').classList.add('selected');
+      panel.appendChild(div);
+    }
+  });
 }
 
 function buildTreeItem(n, hasChildren, depth) {
@@ -1366,7 +1435,13 @@ document.getElementById('meta-modified').value = new Date().toISOString().slice(
   const ont = params.get('ontology');
   const graph = params.get('graph');
   if (ep) {
-    document.getElementById('sparql-endpoint').value = ep;
+    // Strip hostname — always use relative proxy path /graphdb/repositories/...
+    let epClean = ep.replace(/^https?:\/\/[^/]+/, '');
+    if (!epClean.startsWith('/graphdb/')) {
+      // Handle case where proxy prefix is missing e.g. /repositories/value-kb
+      epClean = epClean.replace(/^\/repositories\//, '/graphdb/repositories/');
+    }
+    document.getElementById('sparql-endpoint').value = epClean;
   }
   if (ont) {
     document.getElementById('meta-iri').value = ont;

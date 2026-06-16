@@ -101,8 +101,53 @@
     </div>
 
     <div>
-        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">owl:imports <span class="text-gray-600 normal-case">(comma-separated URIs)</span></label>
-        <input id="f_imports" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-mono focus:outline-none focus:border-indigo-500">
+        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">owl:imports</label>
+        <!-- Hidden field — synced from the two lists, read by saveAndClose -->
+        <input id="f_imports" type="hidden" value="">
+
+        <!-- Dual-panel picker -->
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;">
+
+            <!-- LEFT: Available ontologies -->
+            <div style="display:flex;flex-direction:column;gap:4px;">
+                <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Available</div>
+                <input id="imports-search" type="text" placeholder="Filter…"
+                    oninput="filterAvailableImports(this.value)"
+                    style="background:#1f2937;border:1px solid #374151;border-radius:4px;padding:4px 7px;font-size:11px;color:#e2e8f0;outline:none;width:100%;">
+                <select id="imports-available" multiple
+                    style="height:160px;background:#111827;border:1px solid #374151;border-radius:6px;padding:4px;font-size:11px;font-family:monospace;color:#e2e8f0;width:100%;outline:none;">
+                    <option disabled>Loading…</option>
+                </select>
+            </div>
+
+            <!-- CENTER: Add / Remove buttons -->
+            <div style="display:flex;flex-direction:column;gap:6px;padding:20px 0 0;">
+                <button onclick="addSelectedImports()"
+                    title="Add selected to imports"
+                    style="background:#4f46e5;color:#fff;border:none;border-radius:4px;padding:6px 10px;font-size:14px;cursor:pointer;line-height:1;">▶</button>
+                <button onclick="removeSelectedImports()"
+                    title="Remove selected from imports"
+                    style="background:#7f1d1d;color:#fca5a5;border:1px solid #ef4444;border-radius:4px;padding:6px 10px;font-size:14px;cursor:pointer;line-height:1;">◀</button>
+                <button onclick="addCustomImport()"
+                    title="Add custom IRI below"
+                    style="background:#065f46;color:#6ee7b7;border:1px solid #10b981;border-radius:4px;padding:6px 10px;font-size:12px;cursor:pointer;line-height:1;margin-top:4px;">+IRI</button>
+            </div>
+
+            <!-- RIGHT: Selected imports -->
+            <div style="display:flex;flex-direction:column;gap:4px;">
+                <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Imported <span id="imports-count" style="color:#818cf8;">(0)</span></div>
+                <div style="height:20px;"></div><!-- spacer to align with search box -->
+                <select id="imports-selected" multiple
+                    style="height:160px;background:#111827;border:1px solid #4f46e5;border-radius:6px;padding:4px;font-size:11px;font-family:monospace;color:#a5b4fc;width:100%;outline:none;">
+                </select>
+            </div>
+        </div>
+
+        <!-- Custom IRI row -->
+        <div style="display:flex;gap:6px;margin-top:8px;">
+            <input id="imports-custom-iri" type="text" placeholder="Paste custom import IRI (https://…) then click +IRI"
+                style="flex:1;background:#1f2937;border:1px solid #374151;border-radius:4px;padding:5px 8px;font-size:11px;font-family:monospace;color:#e2e8f0;outline:none;">
+        </div>
     </div>
 
     <!-- Status & Change -->
@@ -194,6 +239,142 @@ document.getElementById('display_repo').textContent = `http://localhost:7200/rep
 
 function getBaseUrl() { return `/graphdb/repositories/${repoId}`; }
 
+// ── Imports dual-panel state ──
+let _importsAvailable = []; // [{iri, title}] — not yet imported
+let _importsSelected  = []; // [{iri, title}] — currently imported
+
+function renderImportsPanels(filterText) {
+    const avail = document.getElementById('imports-available');
+    const sel   = document.getElementById('imports-selected');
+    if (!avail || !sel) return;
+    const selectedIRIs = new Set(_importsSelected.map(x => x.iri));
+    const q = (filterText || '').toLowerCase();
+
+    avail.innerHTML = '';
+    const groups = [
+        { label: '── enablingvalue.com ──',     items: _importsAvailable.filter(x => x.iri.includes('enablingvalue.com')) },
+        { label: '── verizon.com ──',            items: _importsAvailable.filter(x => x.iri.includes('verizon.com') || x.iri.includes('vocabularies.verizon')) },
+        { label: '── other ──',                  items: _importsAvailable.filter(x => !x.iri.includes('enablingvalue.com') && !x.iri.includes('verizon')) },
+    ].filter(g => g.items.length);
+
+    groups.forEach(g => {
+        const filtered = g.items.filter(x =>
+            !selectedIRIs.has(x.iri) &&
+            (!q || x.title.toLowerCase().includes(q) || x.iri.toLowerCase().includes(q))
+        );
+        if (!filtered.length) return;
+        const grp = document.createElement('optgroup');
+        grp.label = g.label;
+        filtered.forEach(x => {
+            const opt = document.createElement('option');
+            opt.value = x.iri;
+            opt.textContent = x.title;
+            opt.title = x.iri;
+            grp.appendChild(opt);
+        });
+        avail.appendChild(grp);
+    });
+
+    sel.innerHTML = '';
+    _importsSelected.forEach(x => {
+        const opt = document.createElement('option');
+        opt.value = x.iri;
+        opt.textContent = x.title;
+        opt.title = x.iri;
+        sel.appendChild(opt);
+    });
+
+    syncImportsHidden();
+}
+
+function syncImportsHidden() {
+    const iris = _importsSelected.map(x => x.iri);
+    document.getElementById('f_imports').value = iris.join(',');
+    const el = document.getElementById('imports-count');
+    if (el) el.textContent = '(' + iris.length + ')';
+}
+
+function addSelectedImports() {
+    const avail = document.getElementById('imports-available');
+    Array.from(avail.selectedOptions).forEach(opt => {
+        if (!_importsSelected.find(x => x.iri === opt.value)) {
+            const found = _importsAvailable.find(x => x.iri === opt.value);
+            _importsSelected.push({ iri: opt.value, title: found ? found.title : opt.textContent });
+        }
+    });
+    renderImportsPanels(document.getElementById('imports-search') ? document.getElementById('imports-search').value : '');
+}
+
+function removeSelectedImports() {
+    const sel = document.getElementById('imports-selected');
+    const toRemove = new Set(Array.from(sel.selectedOptions).map(o => o.value));
+    _importsSelected = _importsSelected.filter(x => !toRemove.has(x.iri));
+    renderImportsPanels(document.getElementById('imports-search') ? document.getElementById('imports-search').value : '');
+}
+
+function filterAvailableImports(q) {
+    renderImportsPanels(q);
+}
+
+function addCustomImport() {
+    const input = document.getElementById('imports-custom-iri');
+    const iri = input.value.trim();
+    if (!iri || !iri.startsWith('http')) { input.style.borderColor = '#ef4444'; return; }
+    input.style.borderColor = '#374151';
+    const title = iri.split('/').pop().split('#').pop() + ' (custom)';
+    if (!_importsSelected.find(x => x.iri === iri)) _importsSelected.push({ iri, title });
+    if (!_importsAvailable.find(x => x.iri === iri)) _importsAvailable.push({ iri, title });
+    input.value = '';
+    renderImportsPanels('');
+}
+
+async function populateImportsDropdown(currentImports) {
+    const q = `
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX dct: <http://purl.org/dc/terms/>
+        SELECT DISTINCT ?ont ?title WHERE {
+            ?ont a owl:Ontology .
+            OPTIONAL { ?ont dct:title ?title }
+            OPTIONAL { ?ont rdfs:label ?title }
+        }
+        ORDER BY ?title
+    `;
+    try {
+        const r = await fetch(getBaseUrl(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/sparql-results+json' },
+            body: new URLSearchParams({ query: q })
+        });
+        const data = await r.json();
+        const knownIRIs = new Set();
+
+        _importsAvailable = data.results.bindings
+            .filter(b => b.ont.value !== assetUri)
+            .map(b => {
+                const iri = b.ont.value;
+                knownIRIs.add(iri);
+                return { iri, title: b.title ? b.title.value : iri.split('/').pop().split('#').pop() };
+            });
+
+        _importsSelected = currentImports.map(iri => {
+            const found = _importsAvailable.find(x => x.iri === iri);
+            return { iri, title: found ? found.title : iri.split('/').pop().split('#').pop() + ' (external)' };
+        });
+
+        currentImports.filter(iri => !knownIRIs.has(iri)).forEach(iri => {
+            _importsAvailable.push({ iri, title: iri.split('/').pop().split('#').pop() + ' (external)' });
+        });
+
+        renderImportsPanels('');
+    } catch(e) {
+        console.error('populateImportsDropdown failed:', e);
+        const avail = document.getElementById('imports-available');
+        if (avail) avail.innerHTML = '<option disabled>Failed to load: ' + e.message + '</option>';
+    }
+}
+
+
 const FIELDS = [
     { id:'f_label',       pred:'http://www.w3.org/2000/01/rdf-schema#label',       lang:'en' },
     { id:'f_title',       pred:'http://purl.org/dc/terms/title',                   lang:'en' },
@@ -227,12 +408,19 @@ async function loadMetadata() {
             if (!byPred[b.p.value]) byPred[b.p.value] = [];
             byPred[b.p.value].push(b.o.value);
         });
+        // Collect current imports before populating fields
+        const currentImports = byPred['http://www.w3.org/2002/07/owl#imports'] || [];
+
         FIELDS.forEach(f => {
             const el = document.getElementById(f.id);
             if (!el) return;
             const vals = byPred[f.pred] || [];
+            if (f.isMultiSelect) return; // handled separately below
             el.value = f.multi ? vals.join(', ') : (vals[0] || '');
         });
+
+        // Populate imports dropdown with current selections
+        await populateImportsDropdown(currentImports);
 
         const gq = `SELECT DISTINCT ?g WHERE { GRAPH ?g { <${assetUri}> ?p ?o } } LIMIT 5`;
         const gr = await fetch(getBaseUrl(), {
