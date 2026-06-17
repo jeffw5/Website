@@ -168,20 +168,30 @@
             return 'other';   // wrong host, or right host but no type keyword
         }
 
-        // 1. READ / REVIEW: list model RESOURCES by rdf:type (matching the original
-        // semantics — ?graph is the subject of an rdf:type triple, wherever it is stored),
-        // then classify each by URI in JS so the four tabs form a true partition.
+        // 1. READ / REVIEW: list model RESOURCES by rdf:type from ALL locations —
+        // default graph, named graphs, and FROM NAMED — so nothing is missed.
         async function refreshSidebar() {
             const endpoint = getBaseUrl();
 
-            // Enumerate every asset resource: ConceptScheme (vocab/tax) OR Ontology.
-            // (Not named-graph contexts — those are a different, smaller set.)
+            // Cast the widest possible net:
+            // Branch 1: type triple in the default graph (no GRAPH clause)
+            // Branch 2: type triple inside any named graph
+            // Both ConceptScheme and Ontology, UNION'd so one query covers everything.
             const allGraphsQuery = `PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-                   PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                   PREFIX owl:  <http://www.w3.org/2002/07/owl#>
                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                    SELECT DISTINCT ?graph ?label WHERE {
-                     { ?graph a skos:ConceptScheme } UNION { ?graph a owl:Ontology }
-                     OPTIONAL { ?graph rdfs:label ?label }
+                     {
+                       { ?graph a skos:ConceptScheme } UNION { ?graph a owl:Ontology }
+                       OPTIONAL { ?graph rdfs:label ?label }
+                     }
+                     UNION
+                     {
+                       GRAPH ?g {
+                         { ?graph a skos:ConceptScheme } UNION { ?graph a owl:Ontology }
+                         OPTIONAL { ?graph rdfs:label ?label }
+                       }
+                     }
                    } ORDER BY ?graph`;
 
             try {
@@ -196,10 +206,11 @@
 
                 if(!response.ok) throw new Error("Connection failed");
                 const data = await response.json();
-                // Other = the exact complement of Voc ∪ Tax ∪ Ont.
-                const filtered = data.results.bindings.filter(
-                    b => classifyGraph(b.graph.value) === currentTab
-                );
+                const filtered = data.results.bindings.filter(b => {
+                    const kind = classifyGraph(b.graph.value);
+                    // 'all' tab = the Other/catch-all bucket (classifyGraph returns 'other')
+                    return currentTab === 'all' ? kind === 'other' : kind === currentTab;
+                });
                 console.log('[refreshSidebar] tab=', currentTab,
                     'total resources=', data.results.bindings.length,
                     'shown=', filtered.length);
