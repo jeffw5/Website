@@ -8,7 +8,7 @@
 </head>
 <body class="bg-gray-900 text-gray-100 flex h-screen overflow-hidden font-sans">
 
-    <div class="w-80 bg-gray-800 border-r border-gray-700 flex flex-col justify-between">
+    <div id="sidebar" class="bg-gray-800 border-r border-gray-700 flex flex-col justify-between flex-shrink-0" style="width:320px;min-width:200px;max-width:640px;">
         <div class="p-4 flex-1 flex flex-col min-h-0">
             <h1 class="text-xl font-bold tracking-wider text-indigo-400 mb-6 flex items-center gap-2">
                 📂 Model Manager
@@ -29,8 +29,10 @@
             </div>
 
             <div class="flex border-b border-gray-700 text-sm mb-3">
-                <button onclick="switchTab('skos')" id="tab-skos" class="flex-1 pb-2 border-b-2 border-indigo-500 font-medium text-indigo-400">SKOS (Vocab/Tax)</button>
-                <button onclick="switchTab('owl')" id="tab-owl" class="flex-1 pb-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200">OWL (Ontology)</button>
+                <button onclick="switchTab('vocab')" id="tab-vocab" class="flex-1 pb-2 border-b-2 border-indigo-500 font-medium text-indigo-400">📖 Voc</button>
+                <button onclick="switchTab('tax')" id="tab-tax" class="flex-1 pb-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200">🗂️ Tax</button>
+                <button onclick="switchTab('owl')" id="tab-owl" class="flex-1 pb-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200">⬡ Ont</button>
+                <button onclick="switchTab('all')" id="tab-all" class="flex-1 pb-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200" title="Assets that don't match the vocabulary/taxonomy/ontology naming convention — cleanup list">⚠ Other</button>
             </div>
 
             <div class="flex-1 overflow-y-auto overflow-x-hidden" id="modelListWrapper" style="overflow-x:scroll;scrollbar-width:none;">
@@ -54,6 +56,9 @@
         </div>
     </div>
 
+    <!-- Drag handle to resize the sidebar -->
+    <div id="sidebar-resizer" class="flex-shrink-0" style="width:6px;cursor:col-resize;background:#374151;" title="Drag to resize"></div>
+
     <div class="flex-1 flex flex-col bg-gray-900">
         <div class="h-16 border-b border-gray-700 flex items-center justify-between px-6 bg-gray-850">
             <div>
@@ -70,6 +75,12 @@
                 <button id="btnEditNodes" onclick="openModelEditor()" disabled class="bg-violet-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
                     ⬡ Edit Nodes
                 </button>
+                <button id="btnVocEditor" onclick="openVocEditor()" disabled class="hidden bg-emerald-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
+                    📖 Voc Editor
+                </button>
+                <button id="btnTaxEditor" onclick="openTaxEditor()" disabled class="hidden bg-teal-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
+                    🗂️ Tax Editor
+                </button>
                 <button id="btnSave" onclick="saveAsset()" disabled class="bg-indigo-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
                     💾 Save changes
                 </button>
@@ -79,7 +90,7 @@
             </div>
         </div>
 
-        <div class="flex-1 p-6 flex flex-col gap-4 overflow-hidden">
+        <div class="flex-1 p-6 flex flex-col gap-4 overflow-hidden min-h-0">
             <div id="metaPanel" class="hidden bg-gray-800 p-4 rounded border border-gray-700 space-y-3">
                 <h3 class="text-sm font-bold text-emerald-400 uppercase tracking-wider">New Asset Configurations</h3>
                 <div class="grid grid-cols-2 gap-4">
@@ -90,22 +101,23 @@
                     <div>
                         <label class="block text-xs text-gray-400 mb-1">Asset Type</label>
                         <select id="newGraphType" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-gray-300">
-                            <option value="skos">SKOS Concept Scheme / Taxonomy</option>
+                            <option value="vocab">SKOS Vocabulary</option>
+                            <option value="tax">SKOS Taxonomy</option>
                             <option value="owl">OWL Ontology</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <div class="flex-1 flex flex-col">
+            <div class="flex-1 flex flex-col min-h-0">
                 <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Turtle (.ttl) Serialization</label>
-                <textarea id="ttlEditor" placeholder="# Select an asset or click Create New to write Turtle code here..." class="w-full flex-1 bg-gray-950 text-emerald-400 font-mono text-sm p-4 rounded border border-gray-700 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                <textarea id="ttlEditor" placeholder="# Select an asset or click Create New to write Turtle code here..." class="w-full flex-1 min-h-0 overflow-y-auto bg-gray-950 text-emerald-400 font-mono text-sm p-4 rounded border border-gray-700 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
             </div>
         </div>
     </div>
 
     <script>
-        let currentTab = 'skos'; // 'skos' or 'owl'
+        let currentTab = 'vocab'; // 'vocab', 'tax', or 'owl'
         let selectedGraphUri = null;
         let isCreateMode = false;
 
@@ -133,30 +145,44 @@
 
         function switchTab(tab) {
             currentTab = tab;
-            document.getElementById('tab-skos').className = tab === 'skos' ? "flex-1 pb-2 border-b-2 border-indigo-500 font-medium text-indigo-400" : "flex-1 pb-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200";
-            document.getElementById('tab-owl').className = tab === 'owl' ? "flex-1 pb-2 border-b-2 border-indigo-500 font-medium text-indigo-400" : "flex-1 pb-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200";
+            const active = "flex-1 pb-2 border-b-2 border-indigo-500 font-medium text-indigo-400";
+            const idle   = "flex-1 pb-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200";
+            document.getElementById('tab-vocab').className = tab === 'vocab' ? active : idle;
+            document.getElementById('tab-tax').className   = tab === 'tax'   ? active : idle;
+            document.getElementById('tab-owl').className    = tab === 'owl'   ? active : idle;
+            document.getElementById('tab-all').className    = tab === 'all'   ? active : idle;
             refreshSidebar();
         }
 
-        // 1. READ / REVIEW: Query GraphDB for existing schemes or ontologies
+        // Compliance rule (single source of truth, used to classify every graph):
+        //   compliant = URI starts with the enablingvalue host AND contains a type keyword.
+        //   Voc / Tax / Ont = compliant assets carrying that keyword.
+        //   Other = the exact complement: every graph NOT in Voc ∪ Tax ∪ Ont.
+        const COMPLIANT_HOST = "https://www.enablingvalue.com/";
+        function classifyGraph(uri) {
+            const u = (uri || '').toLowerCase();
+            const compliantHost = u.startsWith(COMPLIANT_HOST.toLowerCase());
+            if (compliantHost && u.includes('vocabular')) return 'vocab';
+            if (compliantHost && u.includes('taxonom'))   return 'tax';
+            if (compliantHost && u.includes('ontolog'))   return 'owl';
+            return 'other';   // wrong host, or right host but no type keyword
+        }
+
+        // 1. READ / REVIEW: list model RESOURCES by rdf:type (matching the original
+        // semantics — ?graph is the subject of an rdf:type triple, wherever it is stored),
+        // then classify each by URI in JS so the four tabs form a true partition.
         async function refreshSidebar() {
             const endpoint = getBaseUrl();
-            
-            // SPARQL queries mapping named graphs to their primary content type definitions
-            const skosQuery = `PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+            // Enumerate every asset resource: ConceptScheme (vocab/tax) OR Ontology.
+            // (Not named-graph contexts — those are a different, smaller set.)
+            const allGraphsQuery = `PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+                   PREFIX owl: <http://www.w3.org/2002/07/owl#>
                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                   SELECT DISTINCT ?graph ?label WHERE { 
-                     ?graph a skos:ConceptScheme .
+                   SELECT DISTINCT ?graph ?label WHERE {
+                     { ?graph a skos:ConceptScheme } UNION { ?graph a owl:Ontology }
                      OPTIONAL { ?graph rdfs:label ?label }
-                   }`;
-            const owlQuery  = `PREFIX owl: <http://www.w3.org/2002/07/owl#>
-                   PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                   SELECT DISTINCT ?graph ?label WHERE { 
-                     ?graph a owl:Ontology .
-                     OPTIONAL { ?graph rdfs:label ?label }
-                   }`;
-            
-            const query = currentTab === 'skos' ? skosQuery : owlQuery;
+                   } ORDER BY ?graph`;
 
             try {
                 const response = await fetch(endpoint, {
@@ -165,12 +191,19 @@
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'Accept': 'application/sparql-results+json'
                     },
-                    body: new URLSearchParams({ query: query })
+                    body: new URLSearchParams({ query: allGraphsQuery })
                 });
 
                 if(!response.ok) throw new Error("Connection failed");
                 const data = await response.json();
-                renderSidebarList(data.results.bindings);
+                // Other = the exact complement of Voc ∪ Tax ∪ Ont.
+                const filtered = data.results.bindings.filter(
+                    b => classifyGraph(b.graph.value) === currentTab
+                );
+                console.log('[refreshSidebar] tab=', currentTab,
+                    'total resources=', data.results.bindings.length,
+                    'shown=', filtered.length);
+                renderSidebarList(filtered);
                 resetSlider();
             } catch (err) {
                 alert("Error connecting to GraphDB. Verify local server, Repository ID, and CORS configuration settings.");
@@ -210,7 +243,8 @@
             document.getElementById('currentAssetTitle').innerText = uri.split('/').pop().split('#').pop() || uri;
             document.getElementById('currentAssetUri').innerText = `Graph context: ${uri}`;
 
-            const statementsUrl = `${getBaseUrl()}/statements?graph=${encodeURIComponent(uri)}`;
+            if (!uri) { alert("No graph context for this asset."); return; }
+            const statementsUrl = `${getBaseUrl()}/statements?context=${encodeURIComponent('<' + uri + '>')}`;
 
             try {
                 const response = await fetch(statementsUrl, {
@@ -235,7 +269,7 @@
                 return;
             }
             const repo = document.getElementById('repoId').value;
-            const metaFile = currentTab === 'owl'
+            const metaFile = modelKindOf(selectedGraphUri) === 'onto'
                 ? 'model-metadata-owl.html'
                 : 'model-metadata-skos.html';
             const url = `${metaFile}?uri=${encodeURIComponent(selectedGraphUri)}&repo=${encodeURIComponent(repo)}`;
@@ -265,6 +299,39 @@
             const url = `model-editor.html`
                 + `?endpoint=${encodeURIComponent(endpoint)}`
                 + `&ontology=${encodeURIComponent(selectedGraphUri)}`
+                + `&graph=${encodeURIComponent(selectedGraphUri)}`;
+            window.open(url, '_blank');
+        }
+
+        // Detect model kind from the asset IRI's name (matches the editors' convention).
+        // vocabulary-… → 'vocab', taxonomy-… → 'taxo', otherwise → 'onto'.
+        function modelKindOf(uri) {
+            const name = (uri || '').toLowerCase();
+            if (/vocabular/.test(name)) return 'vocab';
+            if (/taxonom/.test(name))   return 'taxo';
+            return 'onto';
+        }
+
+        // Open the vocabulary editor for the selected vocabulary model
+        function openVocEditor() {
+            if (!selectedGraphUri) { alert("No asset selected."); return; }
+            const repo = document.getElementById('repoId').value;
+            const endpoint = `${document.getElementById('graphdbUrl').value}/repositories/${repo}`;
+            const url = `voc-editor.html`
+                + `?endpoint=${encodeURIComponent(endpoint)}`
+                + `&scheme=${encodeURIComponent(selectedGraphUri)}`
+                + `&graph=${encodeURIComponent(selectedGraphUri)}`;
+            window.open(url, '_blank');
+        }
+
+        // Open the taxonomy editor for the selected taxonomy model
+        function openTaxEditor() {
+            if (!selectedGraphUri) { alert("No asset selected."); return; }
+            const repo = document.getElementById('repoId').value;
+            const endpoint = `${document.getElementById('graphdbUrl').value}/repositories/${repo}`;
+            const url = `tax-editor.html`
+                + `?endpoint=${encodeURIComponent(endpoint)}`
+                + `&scheme=${encodeURIComponent(selectedGraphUri)}`
                 + `&graph=${encodeURIComponent(selectedGraphUri)}`;
             window.open(url, '_blank');
         }
@@ -300,7 +367,7 @@
                 }
             }
 
-            const statementsUrl = `${getBaseUrl()}/statements?graph=${encodeURIComponent(targetUri)}`;
+            const statementsUrl = `${getBaseUrl()}/statements?context=${encodeURIComponent('<' + targetUri + '>')}`;
             const ttlPayload = document.getElementById('ttlEditor').value;
 
             try {
@@ -325,16 +392,30 @@
             }
         }
 
-        // 4. DELETE: Drop the entire graph configuration context safely
+        // 4. DELETE: Remove ONLY the selected named graph. Hard-guarded against
+        // unscoped deletes — an empty/blank context would clear the whole repo,
+        // so we refuse to issue the request unless a concrete graph IRI is set.
         async function deleteAsset() {
-            if(!selectedGraphUri || !confirm(`Confirm deletion of the selected graph? \n${selectedGraphUri}`)) return;
+            const ctx = (selectedGraphUri || '').trim();
+            if (!ctx) {
+                alert("No asset selected — refusing to delete. (An unscoped delete would clear the entire repository.)");
+                return;
+            }
+            if (!/^https?:\/\//i.test(ctx)) {
+                alert("Selected graph IRI looks invalid — refusing to delete:\n" + ctx);
+                return;
+            }
+            if (!confirm(`Delete ONLY this graph and its statements?\n\n${ctx}\n\nNothing else in the repository will be touched.`)) return;
 
-            const statementsUrl = `${getBaseUrl()}/statements?graph=${encodeURIComponent(selectedGraphUri)}`;
+            // RDF4J statements endpoint: scope to a single named graph via the
+            // N-Triples-encoded context (angle brackets). Without this, DELETE on
+            // /statements removes ALL statements in the repository.
+            const statementsUrl = `${getBaseUrl()}/statements?context=${encodeURIComponent('<' + ctx + '>')}`;
 
             try {
                 const response = await fetch(statementsUrl, { method: 'DELETE' });
                 if(response.ok) {
-                    alert("Graph dataset removed permanently.");
+                    alert("Graph removed: " + ctx);
                     resetWorkspace();
                     refreshSidebar();
                 } else {
@@ -361,31 +442,86 @@
             const btnMetadata = document.getElementById('btnMetadata');
             const btnVisualize = document.getElementById('btnVisualize');
             const btnEditNodes = document.getElementById('btnEditNodes');
+            const btnVocEditor = document.getElementById('btnVocEditor');
+            const btnTaxEditor = document.getElementById('btnTaxEditor');
+
+            // Decide which single editor button is relevant for this asset's kind.
+            const kind = modelKindOf(selectedGraphUri);
+            const editorButtons = [btnEditNodes, btnVocEditor, btnTaxEditor];
+            // Hide all three first; reveal the one matching the kind (only for existing assets).
+            editorButtons.forEach(b => b.classList.add('hidden'));
+            const activeEditorBtn = !isCreateMode
+                ? (kind === 'vocab' ? btnVocEditor : kind === 'taxo' ? btnTaxEditor : btnEditNodes)
+                : null;
+            if (activeEditorBtn) activeEditorBtn.classList.remove('hidden');
+
             if(enabled) {
                 btnSave.disabled = false; btnDelete.disabled = false;
                 btnSave.classList.remove('opacity-50', 'cursor-not-allowed');
                 btnDelete.classList.remove('opacity-50', 'cursor-not-allowed');
-                // Metadata/Visualize/EditNodes only make sense for existing assets, not new ones
+                // Metadata/Visualize/editor only make sense for existing assets, not new ones
                 if (!isCreateMode) {
                     btnMetadata.disabled = false;
                     btnMetadata.classList.remove('opacity-50', 'cursor-not-allowed');
                     btnVisualize.disabled = false;
                     btnVisualize.classList.remove('opacity-50', 'cursor-not-allowed');
-                    btnEditNodes.disabled = false;
-                    btnEditNodes.classList.remove('opacity-50', 'cursor-not-allowed');
+                    if (activeEditorBtn) {
+                        activeEditorBtn.disabled = false;
+                        activeEditorBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
                 }
             } else {
                 btnSave.disabled = true; btnDelete.disabled = true;
                 btnMetadata.disabled = true;
                 btnVisualize.disabled = true;
-                btnEditNodes.disabled = true;
+                editorButtons.forEach(b => { b.disabled = true; b.classList.add('opacity-50', 'cursor-not-allowed'); });
                 btnSave.classList.add('opacity-50', 'cursor-not-allowed');
                 btnDelete.classList.add('opacity-50', 'cursor-not-allowed');
                 btnMetadata.classList.add('opacity-50', 'cursor-not-allowed');
                 btnVisualize.classList.add('opacity-50', 'cursor-not-allowed');
-                btnEditNodes.classList.add('opacity-50', 'cursor-not-allowed');
             }
         }
+
+        // ── Sidebar resize ──
+        (function() {
+            const SB_KEY = 'ev_mm_sidebar_w';
+            const sidebar = document.getElementById('sidebar');
+            const handle  = document.getElementById('sidebar-resizer');
+            const MIN = 200, MAX = 640;
+            const saved = parseInt(localStorage.getItem(SB_KEY), 10);
+            if (saved >= MIN && saved <= MAX) sidebar.style.width = saved + 'px';
+
+            let dragging = false;
+            handle.addEventListener('mousedown', e => {
+                dragging = true;
+                handle.style.background = '#6366f1';
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            window.addEventListener('mousemove', e => {
+                if (!dragging) return;
+                let w = e.clientX - sidebar.getBoundingClientRect().left;
+                w = Math.max(MIN, Math.min(MAX, w));
+                sidebar.style.width = w + 'px';
+            });
+            window.addEventListener('mouseup', () => {
+                if (!dragging) return;
+                dragging = false;
+                handle.style.background = '#374151';
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                localStorage.setItem(SB_KEY, parseInt(sidebar.style.width, 10));
+            });
+            // double-click resets to default
+            handle.addEventListener('dblclick', () => {
+                sidebar.style.width = '320px';
+                localStorage.removeItem(SB_KEY);
+            });
+            // subtle hover cue
+            handle.addEventListener('mouseenter', () => { if (!dragging) handle.style.background = '#4b5563'; });
+            handle.addEventListener('mouseleave', () => { if (!dragging) handle.style.background = '#374151'; });
+        })();
     </script>
 </body>
 </html>

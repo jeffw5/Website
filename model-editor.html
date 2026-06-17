@@ -86,10 +86,23 @@
   /* ── MAIN LAYOUT ── */
   .workspace {
     display: grid;
-    grid-template-columns: 260px 1fr 340px;
+    grid-template-columns: var(--left-w, 260px) 6px 1fr 340px;
     flex: 1;
     overflow: hidden;
   }
+
+  /* Drag handle to resize the left panel */
+  .col-resizer {
+    cursor: col-resize;
+    background: var(--border);
+    transition: background .15s;
+    position: relative;
+  }
+  .col-resizer:hover, .col-resizer.dragging { background: var(--accent); }
+  .col-resizer::after {
+    content: ''; position: absolute; top: 0; bottom: 0; left: -4px; right: -4px;
+  }
+  body.col-resizing { cursor: col-resize; user-select: none; }
 
   /* ── PANELS ── */
   .panel {
@@ -209,6 +222,59 @@
     flex-shrink: 0; background: var(--model-color, var(--text-muted));
   }
 
+  /* ── ONTOLOGY GROUP HEADER ── */
+  .onto-group-header {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 6px; margin-top: 6px;
+    border-left: 3px solid var(--model-color, var(--text-muted));
+    background: var(--panel2);
+    border-radius: var(--radius);
+    cursor: default; user-select: none;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .onto-group-header:first-child { margin-top: 0; }
+  .onto-group-icon { font-size: 13px; color: var(--model-color, var(--text-muted)); flex-shrink: 0; }
+  .onto-group-label {
+    font-size: 12px; font-weight: 700; color: var(--model-color, var(--text));
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    letter-spacing: .02em;
+  }
+  .onto-group-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 10px;
+    background: var(--bg); color: var(--text-dim);
+    border: 1px solid var(--border); flex-shrink: 0;
+  }
+  .onto-group-linked {
+    font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+    padding: 1px 5px; border-radius: 4px; flex-shrink: 0;
+    color: var(--model-color, var(--text-muted));
+    border: 1px solid var(--model-color, var(--border));
+  }
+  .group-toggle { color: var(--text-dim) !important; }
+
+  /* ── EDGES VIEW ── */
+  .edge-group-header {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 6px; margin-top: 8px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--panel); z-index: 1;
+  }
+  .edge-group-header:first-child { margin-top: 0; }
+  .edge-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 8px; border-radius: var(--radius); cursor: pointer;
+    font-size: 12px;
+  }
+  .edge-row:hover { background: var(--panel2); }
+  .edge-row.selected { background: rgba(124,131,245,.18); }
+  .edge-ep {
+    border-left: 3px solid var(--ep, var(--text-muted));
+    padding-left: 6px; min-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; flex: 1;
+  }
+  .edge-arrow { color: var(--text-dim); flex-shrink: 0; }
+  .edge-missing { color: var(--text-muted); font-size: 10px; }
+
   /* ── RELATION LEGEND ── */
   .tree-legend {
     display: flex; flex-wrap: wrap; gap: 10px;
@@ -234,6 +300,13 @@
     border-radius: var(--radius); cursor: pointer; padding: 5px 9px; font-size: 12px;
   }
   .rel-row .rel-del:hover { background: #7f1d1d; }
+  .rel-row.rel-mismatch select.rel-pred { border-color: var(--warn); }
+  .rel-warn {
+    grid-column: 1 / -1; font-size: 10px; color: var(--warn);
+    background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.3);
+    border-radius: var(--radius); padding: 4px 8px; margin-top: 2px;
+  }
+  .rel-warn b { color: var(--warn); }
 
   /* ── FILTER TABS ── */
   .filter-tabs { display: flex; gap: 4px; padding: 8px 10px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
@@ -418,7 +491,7 @@
 
   /* ── RESPONSIVE HINT ── */
   @media (max-width: 900px) {
-    .workspace { grid-template-columns: 220px 1fr; }
+    .workspace { grid-template-columns: var(--left-w, 220px) 6px 1fr; }
     .panel:last-child { display: none; }
   }
 </style>
@@ -431,7 +504,7 @@
   <div class="topbar-sep"></div>
   <div id="active-ontology-label" style="font-size:11px;color:var(--text-muted);font-family:var(--mono)">No ontology loaded</div>
   <div class="topbar-actions">
-    <button class="btn btn-ghost btn-sm" onclick="showRelationsModal()">⇄ Relations</button>
+    <button class="btn btn-ghost btn-sm" onclick="showRelationsModal()" title="Open the Relation Taxonomy manager in a new window">⇄ Relation Taxonomy</button>
     <button class="btn btn-ghost btn-sm" onclick="exportTTL()">⬇ Export TTL</button>
     <button class="btn btn-ghost btn-sm" onclick="saveToLocalStorage()">💾 Save Draft</button>
     <button class="btn btn-primary btn-sm" onclick="showNewNodeModal()">＋ New Node</button>
@@ -474,8 +547,14 @@
       <span style="color:var(--text-muted)">Connect a model to see its color legend</span>
     </div>
 
-    <!-- Filter tabs -->
-    <div class="filter-tabs">
+    <!-- View mode: Nodes vs Edges (relations) -->
+    <div class="filter-tabs" id="mode-tabs">
+      <div class="filter-tab active" onclick="setViewMode('nodes',this)">⬡ Nodes</div>
+      <div class="filter-tab" onclick="setViewMode('edges',this)">⟶ Edges</div>
+    </div>
+
+    <!-- Type filter tabs (apply within Nodes view) -->
+    <div class="filter-tabs" id="type-tabs">
       <div class="filter-tab active" onclick="setFilter('all',this)">All</div>
       <div class="filter-tab" onclick="setFilter('Ontology',this)">Models</div>
       <div class="filter-tab" onclick="setFilter('Class',this)">Classes</div>
@@ -491,6 +570,9 @@
       <div class="tree-empty">Connect to GraphDB or load a draft to see nodes.</div>
     </div>
   </div>
+
+  <!-- Drag handle to resize the left (tree) panel -->
+  <div class="col-resizer" id="col-resizer" title="Drag to resize"></div>
 
   <!-- CENTER: EDITOR -->
   <div class="editor-center">
@@ -692,23 +774,6 @@
   </div>
 </div>
 
-<!-- MANAGE RELATIONS MODAL -->
-<div class="modal-overlay" id="relations-modal">
-  <div class="modal" style="width:560px">
-    <h3>Manage Relation Types</h3>
-    <p>These relation types appear in the dropdown when you add or change a relation on a node. Edit the label and the predicate IRI (or prefixed form).</p>
-    <div id="relations-editor" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto"></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost btn-sm" onclick="addRelationType()">＋ Add relation type</button>
-      <button class="btn btn-ghost btn-sm" onclick="resetRelationTypes()">↺ Reset to defaults</button>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('relations-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveRelationTypes()">Save Relation Types</button>
-    </div>
-  </div>
-</div>
-
 <script>
 // ═══════════════════════════════════════════════════════════
 //  STATE
@@ -728,6 +793,7 @@ const state = {
   includedModels: [],     // owl:imports of the active model
   modelColors: {},        // namespace -> color
   scopeToModel: true,     // when true, only show active model + included models
+  viewMode: 'nodes',      // 'nodes' (hierarchy) or 'edges' (relation list)
 };
 
 // Distinct palette for per-model color coding (active model first)
@@ -743,28 +809,144 @@ const MODEL_PALETTE = [
   '#60a5fa', // blue
   '#f472b6', // pink
 ];
+// ── RELATION TAXONOMY ──────────────────────────────────────
+// Relations are organized into families. Each relation declares which model
+// KIND it applies to: 'vocab' (vocabularies & taxonomies → SKOS),
+// 'ontology' (ontologies → OWL/RDFS), or 'any' (cross-cutting, e.g. Dublin Core).
+// This shared structure lives under REL_LS_KEY and is co-edited by the
+// separate Relation Taxonomy Manager window.
+const REL_LS_KEY = 'ev_model_editor_relation_taxonomy';
+const REL_LEGACY_KEY = 'ev_model_editor_relation_types'; // pre-taxonomy flat list
 
-// ── RELATION TYPES (maintainable, persisted in localStorage) ──
-const DEFAULT_RELATION_TYPES = [
-  { label: 'rdfs:subClassOf',     iri: 'http://www.w3.org/2000/01/rdf-schema#subClassOf' },
-  { label: 'rdfs:subPropertyOf',  iri: 'http://www.w3.org/2000/01/rdf-schema#subPropertyOf' },
-  { label: 'owl:equivalentClass', iri: 'http://www.w3.org/2002/07/owl#equivalentClass' },
-  { label: 'skos:broader',        iri: 'http://www.w3.org/2004/02/skos/core#broader' },
-  { label: 'skos:narrower',       iri: 'http://www.w3.org/2004/02/skos/core#narrower' },
-  { label: 'skos:related',        iri: 'http://www.w3.org/2004/02/skos/core#related' },
-  { label: 'dct:isPartOf',        iri: 'http://purl.org/dc/terms/isPartOf' },
-  { label: 'rdfs:isDefinedBy',    iri: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+// Seed taxonomy (used only if nothing in storage AND nothing derivable from models)
+const SEED_RELATION_TAXONOMY = {
+  version: 2,
+  families: [
+    {
+      id: 'skos', label: 'SKOS (vocabularies & taxonomies)', appliesTo: 'vocab',
+      relations: [
+        { label: 'skos:broader',      iri: 'http://www.w3.org/2004/02/skos/core#broader' },
+        { label: 'skos:narrower',     iri: 'http://www.w3.org/2004/02/skos/core#narrower' },
+        { label: 'skos:related',      iri: 'http://www.w3.org/2004/02/skos/core#related' },
+        { label: 'skos:broadMatch',   iri: 'http://www.w3.org/2004/02/skos/core#broadMatch' },
+        { label: 'skos:narrowMatch',  iri: 'http://www.w3.org/2004/02/skos/core#narrowMatch' },
+        { label: 'skos:relatedMatch', iri: 'http://www.w3.org/2004/02/skos/core#relatedMatch' },
+        { label: 'skos:exactMatch',   iri: 'http://www.w3.org/2004/02/skos/core#exactMatch' },
+        { label: 'skos:closeMatch',   iri: 'http://www.w3.org/2004/02/skos/core#closeMatch' },
+      ],
+    },
+    {
+      id: 'rdfs', label: 'RDFS (ontologies)', appliesTo: 'ontology',
+      relations: [
+        { label: 'rdfs:subClassOf',    iri: 'http://www.w3.org/2000/01/rdf-schema#subClassOf' },
+        { label: 'rdfs:subPropertyOf', iri: 'http://www.w3.org/2000/01/rdf-schema#subPropertyOf' },
+        { label: 'rdfs:isDefinedBy',   iri: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+        { label: 'rdfs:seeAlso',       iri: 'http://www.w3.org/2000/01/rdf-schema#seeAlso' },
+      ],
+    },
+    {
+      id: 'owl', label: 'OWL (ontologies)', appliesTo: 'ontology',
+      relations: [
+        { label: 'owl:equivalentClass',    iri: 'http://www.w3.org/2002/07/owl#equivalentClass' },
+        { label: 'owl:equivalentProperty', iri: 'http://www.w3.org/2002/07/owl#equivalentProperty' },
+        { label: 'owl:sameAs',             iri: 'http://www.w3.org/2002/07/owl#sameAs' },
+        { label: 'owl:disjointWith',       iri: 'http://www.w3.org/2002/07/owl#disjointWith' },
+      ],
+    },
+    {
+      id: 'dc', label: 'Dublin Core / other (any model)', appliesTo: 'any',
+      relations: [
+        { label: 'dct:isPartOf', iri: 'http://purl.org/dc/terms/isPartOf' },
+        { label: 'dct:hasPart',  iri: 'http://purl.org/dc/terms/hasPart' },
+      ],
+    },
+  ],
+};
+
+// Known predicate → family mapping, used when auto-deriving from models.
+const PREDICATE_NS = [
+  { test: /skos\/core#/,                 familyId: 'skos', appliesTo: 'vocab' },
+  { test: /rdf-schema#/,                 familyId: 'rdfs', appliesTo: 'ontology' },
+  { test: /2002\/07\/owl#/,              familyId: 'owl',  appliesTo: 'ontology' },
+  { test: /purl\.org\/dc\/terms\//,      familyId: 'dc',   appliesTo: 'any' },
+  { test: /purl\.org\/dc\/elements\//,   familyId: 'dc',   appliesTo: 'any' },
 ];
-const REL_LS_KEY = 'ev_model_editor_relation_types';
 
-function loadRelationTypes() {
+let RELATION_TAXONOMY = loadRelationTaxonomy();
+
+function loadRelationTaxonomy() {
   try {
     const raw = localStorage.getItem(REL_LS_KEY);
-    if (raw) { const arr = JSON.parse(raw); if (Array.isArray(arr) && arr.length) return arr; }
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && Array.isArray(obj.families)) return obj;
+    }
   } catch(e) {}
-  return DEFAULT_RELATION_TYPES.map(r => ({...r}));
+  // migrate a legacy flat list if present
+  try {
+    const legacy = localStorage.getItem(REL_LEGACY_KEY);
+    if (legacy) {
+      const arr = JSON.parse(legacy);
+      if (Array.isArray(arr) && arr.length) return taxonomyFromFlat(arr);
+    }
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(SEED_RELATION_TAXONOMY));
 }
-let RELATION_TYPES = loadRelationTypes();
+
+function saveRelationTaxonomy() {
+  localStorage.setItem(REL_LS_KEY, JSON.stringify(RELATION_TAXONOMY));
+}
+
+// Flatten taxonomy → [{label, iri, familyId, appliesTo}]
+function flatRelations() {
+  const out = [];
+  (RELATION_TAXONOMY.families||[]).forEach(f => {
+    (f.relations||[]).forEach(r => out.push({ ...r, familyId: f.id, appliesTo: f.appliesTo }));
+  });
+  return out;
+}
+
+// Scan loaded nodes for predicates actually in use and merge any new ones into
+// the taxonomy. Classifies by predicate namespace; falls back to the source
+// model's kind for unknown namespaces. Only adds — never removes user entries.
+function seedRelationTaxonomyFromModels() {
+  const byFam = {}; (RELATION_TAXONOMY.families||[]).forEach(f => byFam[f.id] = f);
+  const known = new Set(flatRelations().map(r => r.iri));
+  let added = 0;
+
+  state.nodes.forEach(n => {
+    (n.relations||[]).forEach(rel => {
+      const iri = rel.predicate;
+      if (!iri || known.has(iri)) return;
+      const nsMatch = PREDICATE_NS.find(p => p.test.test(iri));
+      let famId, appliesTo;
+      if (nsMatch) { famId = nsMatch.familyId; appliesTo = nsMatch.appliesTo; }
+      else {
+        // unknown namespace: bucket as 'other', appliesTo from the model kind
+        famId = 'other';
+        appliesTo = nodeModelKind(n);
+        if (!byFam.other) {
+          const fam = { id: 'other', label: 'Other / discovered', appliesTo: 'any', relations: [] };
+          RELATION_TAXONOMY.families.push(fam); byFam.other = fam;
+        }
+      }
+      const fam = byFam[famId] || byFam.other;
+      fam.relations.push({ label: prefixize(iri), iri, discovered: true });
+      known.add(iri); added++;
+    });
+  });
+
+  if (added > 0) { saveRelationTaxonomy(); toast(`Discovered ${added} relation type(s) from models`, 'info'); }
+}
+
+// Turn a full predicate IRI into a prefixed label using known prefixes.
+function prefixize(iri) {
+  for (const [pfx, ns] of Object.entries(PREFIXES)) {
+    if (iri.startsWith(ns)) return pfx + iri.slice(ns.length);
+  }
+  return iri.split(/[#/]/).pop() || iri;
+}
+
 
 const PREFIXES = {
   'owl:':  'http://www.w3.org/2002/07/owl#',
@@ -873,6 +1055,7 @@ async function connectAndLoad() {
   try {
     await loadNodesFromSparql();
     await loadMetaFromSparql();
+    seedRelationTaxonomyFromModels();
     setConnStatus('connected');
     state.connected = true;
     toast('Connected and loaded ' + state.nodes.length + ' nodes', 'success');
@@ -1139,11 +1322,17 @@ function scopeModelBases() {
   return list;
 }
 
-// Assign a palette color to each in-scope model base.
-function rebuildModelColors() {
+// Assign a palette color to each model base. Scope models first (stable order:
+// active model, then imports), then any additional "linked" models pulled in via
+// relations, so each ontology gets a distinct, stable color.
+function rebuildModelColors(extraBases) {
   state.modelColors = {};
-  scopeModelBases().forEach((base, i) => {
-    state.modelColors[base] = MODEL_PALETTE[i % MODEL_PALETTE.length];
+  let i = 0;
+  scopeModelBases().forEach(base => {
+    if (!(base in state.modelColors)) state.modelColors[base] = MODEL_PALETTE[i++ % MODEL_PALETTE.length];
+  });
+  (extraBases || []).forEach(base => {
+    if (base && !(base in state.modelColors)) state.modelColors[base] = MODEL_PALETTE[i++ % MODEL_PALETTE.length];
   });
 }
 
@@ -1156,17 +1345,43 @@ function modelShortName(base) {
   return base.split('/').filter(Boolean).pop() || base;
 }
 
+// A model's KIND from its name prefix: vocabulary-/taxonomy- → 'vocab',
+// ontology- → 'ontology'. Unknown → 'any'.
+function modelKind(base) {
+  const name = modelShortName(base).toLowerCase();
+  if (/^(vocabulary|vocab|taxonomy|taxo)\b/.test(name) || name.includes('vocabulary') || name.includes('taxonomy'))
+    return 'vocab';
+  if (/^ontology\b/.test(name) || name.includes('ontology'))
+    return 'ontology';
+  return 'any';
+}
+
+// The kind of the node's owning model.
+function nodeModelKind(n) {
+  return modelKind(nodeModelBase(n));
+}
+
+// Which appliesTo values are acceptable for a given model kind (soft rule).
+function allowedAppliesFor(kind) {
+  if (kind === 'vocab') return ['vocab', 'any'];
+  if (kind === 'ontology') return ['ontology', 'any'];
+  return ['vocab', 'ontology', 'any'];
+}
+
 function renderModelLegend() {
   const el = document.getElementById('model-legend');
   if (!el) return;
-  const bases = scopeModelBases();
-  if (!bases.length) {
+  const scope = scopeModelBases();
+  const all = Object.keys(state.modelColors);
+  if (!all.length) {
     el.innerHTML = '<span style="color:var(--text-muted)">All models (no scope selected)</span>';
     return;
   }
-  el.innerHTML = bases.map((b, i) => {
+  el.innerHTML = all.map((b) => {
     const c = state.modelColors[b];
-    const tag = i === 0 ? ' (selected)' : '';
+    const isActive = scope[0] === b;
+    const linked = !scope.includes(b);
+    const tag = isActive ? ' (selected)' : linked ? ' (linked)' : '';
     return `<span><i style="background:${c}"></i>${escHtml(modelShortName(b))}${tag}</span>`;
   }).join('') +
   `<span style="margin-left:auto"><label style="cursor:pointer;display:inline-flex;gap:4px;align-items:center">
@@ -1185,8 +1400,19 @@ function toggleScope(on) {
 // ═══════════════════════════════════════════════════════════
 function setFilter(f, el) {
   state.filter = f;
-  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#type-tabs .filter-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
+  renderTree();
+}
+
+function setViewMode(mode, el) {
+  state.viewMode = mode;
+  document.querySelectorAll('#mode-tabs .filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  // Type filters only make sense for Nodes view
+  document.getElementById('type-tabs').style.display = mode === 'edges' ? 'none' : 'flex';
+  const search = document.getElementById('tree-search');
+  if (search) search.placeholder = mode === 'edges' ? 'Search relations…' : 'Search nodes…';
   renderTree();
 }
 
@@ -1196,90 +1422,158 @@ function filterTree(q) {
 }
 
 function renderTree() {
+  if (state.viewMode === 'edges') { renderEdges(); return; }
   const panel = document.getElementById('tree-panel');
-  rebuildModelColors();
-  renderModelLegend();
   let nodes = state.nodes.filter(n => !n.isDeleted);
 
-  // Scope: only show nodes belonging to the selected model + its included models
-  const bases = scopeModelBases();
-  if (state.scopeToModel && bases.length) {
-    nodes = nodes.filter(n => bases.includes(nodeModelBase(n)));
-  }
-
+  // Type filter + search apply within groups
   if (state.filter !== 'all') nodes = nodes.filter(n => n.type === state.filter);
   if (state.searchQuery) nodes = nodes.filter(n =>
     (n.label||'').toLowerCase().includes(state.searchQuery) ||
     n.iri.toLowerCase().includes(state.searchQuery)
   );
 
-  document.getElementById('tree-count').textContent = nodes.length;
+  const byIRIall = {};
+  state.nodes.forEach(n => { if (!n.isDeleted) byIRIall[n.iri] = n; });
 
-  if (!nodes.length) {
+  // ── Determine which models (ontologies) to show as groups ──
+  const scope = scopeModelBases();
+  const scopeSet = new Set(scope);
+
+  // In-scope nodes (or all, if no scope / scope toggled off)
+  let inScopeNodes = nodes;
+  if (state.scopeToModel && scope.length) {
+    inScopeNodes = nodes.filter(n => scopeSet.has(nodeModelBase(n)));
+  }
+
+  // ── Find linked-in nodes: relation targets that live in OTHER ontologies ──
+  // Map of linkedBase -> Set of node IRIs linked in from scope nodes.
+  const linkedNodesByModel = {};
+  if (state.scopeToModel && scope.length) {
+    inScopeNodes.forEach(n => {
+      (n.relations||[]).forEach(rel => {
+        const target = byIRIall[rel.target];
+        if (!target) return;
+        const tBase = nodeModelBase(target);
+        if (scopeSet.has(tBase)) return;        // same-scope target: handled normally
+        (linkedNodesByModel[tBase] = linkedNodesByModel[tBase] || new Set()).add(target.iri);
+      });
+    });
+  }
+  const linkedBases = Object.keys(linkedNodesByModel);
+
+  // Assign stable colors: scope models first, then linked models.
+  rebuildModelColors(linkedBases);
+  renderModelLegend();
+
+  // ── Build the ordered group list ──
+  // groups: [{ base, color, isLinked, nodeIRIs:Set }]
+  const groups = [];
+  const pushGroup = (base, isLinked, iris) => {
+    if (!base) return;
+    groups.push({ base, color: state.modelColors[base] || '', isLinked, nodeIRIs: iris });
+  };
+
+  if (state.scopeToModel && scope.length) {
+    // One group per in-scope model, containing that model's own nodes
+    scope.forEach(base => {
+      const iris = new Set(inScopeNodes.filter(n => nodeModelBase(n) === base).map(n => n.iri));
+      pushGroup(base, false, iris);
+    });
+    // One group per linked-in model, containing only the linked target nodes
+    linkedBases.forEach(base => pushGroup(base, true, linkedNodesByModel[base]));
+  } else {
+    // No scope: group every node by its own model
+    const byBase = {};
+    nodes.forEach(n => {
+      const b = nodeModelBase(n);
+      (byBase[b] = byBase[b] || new Set()).add(n.iri);
+    });
+    // color them all
+    rebuildModelColors(Object.keys(byBase));
+    renderModelLegend();
+    Object.keys(byBase).sort().forEach(b => pushGroup(b, false, byBase[b]));
+  }
+
+  // Count of actual nodes shown (exclude group headers)
+  const totalShown = groups.reduce((s,g)=>s+g.nodeIRIs.size,0);
+  document.getElementById('tree-count').textContent = totalShown;
+
+  panel.innerHTML = '';
+  if (!groups.length || !totalShown) {
     panel.innerHTML = '<div class="tree-empty">No nodes match.</div>';
     return;
   }
 
-  // Build hierarchy
-  const byIRI = {};
-  nodes.forEach(n => byIRI[n.iri] = n);
-  const roots = [], childMap = {};
-  nodes.forEach(n => {
-    const parents = (n.subOf||[]).filter(p => byIRI[p]);
+  groups.forEach(g => renderOntologyGroup(g, byIRIall));
+}
+
+// Render one ontology group: a header row + its nodes nested by same-model hierarchy.
+function renderOntologyGroup(g, byIRIall) {
+  const panel = document.getElementById('tree-panel');
+  const groupKey = 'GROUP::' + g.base;
+  const groupCollapsed = state.collapsed.has(groupKey);
+
+  // Group header
+  const header = document.createElement('div');
+  header.className = 'onto-group-header';
+  header.style.setProperty('--model-color', g.color || 'var(--text-muted)');
+  const chev = groupCollapsed ? '▶' : '▼';
+  header.innerHTML = `
+    <span class="tree-toggle group-toggle">${chev}</span>
+    <span class="model-dot"></span>
+    <span class="onto-group-icon">◈</span>
+    <span class="onto-group-label">${escHtml(modelShortName(g.base))}</span>
+    <span class="onto-group-badge">${g.nodeIRIs.size}</span>
+    ${g.isLinked ? '<span class="onto-group-linked">linked</span>' : ''}
+  `;
+  header.querySelector('.group-toggle').addEventListener('click', () => toggleCollapse(groupKey));
+  panel.appendChild(header);
+  if (groupCollapsed) return;
+
+  // Build same-model hierarchy among this group's nodes
+  const memberSet = g.nodeIRIs;
+  const members = [...memberSet].map(iri => byIRIall[iri]).filter(Boolean);
+  const childMap = {}, roots = [];
+  members.forEach(n => {
+    const parents = (n.subOf||[]).filter(p => memberSet.has(p)); // only nest under same-group parents
     if (parents.length) {
-      parents.forEach(p => {
-        if (!childMap[p]) childMap[p] = [];
-        if (!childMap[p].includes(n.iri)) childMap[p].push(n.iri);
-      });
+      parents.forEach(p => { (childMap[p] = childMap[p] || []).push(n.iri); });
     } else {
       roots.push(n.iri);
     }
   });
-  // Any node not reachable as child
-  const allChildren = new Set(Object.values(childMap).flat());
-  nodes.forEach(n => { if (!allChildren.has(n.iri) && !roots.includes(n.iri)) roots.push(n.iri); });
+  // sort roots and children by label for stable display
+  const lbl = iri => (byIRIall[iri]?.label || iri).toLowerCase();
+  roots.sort((a,b)=>lbl(a).localeCompare(lbl(b)));
+  Object.values(childMap).forEach(arr => arr.sort((a,b)=>lbl(a).localeCompare(lbl(b))));
 
-  panel.innerHTML = '';
-
-  // Iterative render with cycle detection — prevents stack overflow on circular subClassOf
   const visited = new Set();
-  const stack = roots.map(r => ({ iri: r, depth: 0 }));
-
+  const stack = roots.map(r => ({ iri: r, depth: 1 }));   // depth 1 = indented under header
   while (stack.length) {
     const { iri, depth } = stack.shift();
-    if (visited.has(iri)) continue; // break cycles
+    if (visited.has(iri)) continue;
     visited.add(iri);
-
-    const n = byIRI[iri];
+    const n = byIRIall[iri];
     if (!n) continue;
-
-    const children = (childMap[iri] || []).filter(c => !visited.has(c));
+    const children = (childMap[iri]||[]).filter(c => !visited.has(c) && memberSet.has(c));
     const isCollapsed = state.collapsed.has(iri);
     const div = document.createElement('div');
     div.style.paddingLeft = (depth * 16) + 'px';
     div.innerHTML = buildTreeItem(n, children.length > 0, isCollapsed);
     const treeItem = div.querySelector('.tree-item');
     treeItem.addEventListener('click', () => selectNode(n.iri));
-    // chevron toggles collapse without selecting
     const toggle = div.querySelector('.tree-toggle');
-    if (children.length > 0) {
-      toggle.addEventListener('click', (e) => { e.stopPropagation(); toggleCollapse(n.iri); });
-    }
+    if (children.length > 0) toggle.addEventListener('click', e => { e.stopPropagation(); toggleCollapse(n.iri); });
     if (n.iri === state.selectedIRI) treeItem.classList.add('selected');
     panel.appendChild(div);
-
-    // Push children to front of stack to maintain depth-first order — skip if collapsed
-    if (!isCollapsed) {
-      for (let i = children.length - 1; i >= 0; i--) {
-        stack.unshift({ iri: children[i], depth: depth + 1 });
-      }
-    }
+    if (!isCollapsed) for (let i = children.length - 1; i >= 0; i--) stack.unshift({ iri: children[i], depth: depth + 1 });
   }
-
-  // Render any nodes not reached via hierarchy (disconnected nodes)
-  nodes.forEach(n => {
+  // Any member not reached (e.g. parent outside group) — show at depth 1
+  members.forEach(n => {
     if (!visited.has(n.iri)) {
       const div = document.createElement('div');
+      div.style.paddingLeft = '16px';
       div.innerHTML = buildTreeItem(n, false, false);
       div.querySelector('.tree-item').addEventListener('click', () => selectNode(n.iri));
       if (n.iri === state.selectedIRI) div.querySelector('.tree-item').classList.add('selected');
@@ -1287,6 +1581,80 @@ function renderTree() {
     }
   });
 }
+
+// ── EDGES VIEW: flat list of relations (source —predicate→ target) ──
+function renderEdges() {
+  const panel = document.getElementById('tree-panel');
+  rebuildModelColors();
+  renderModelLegend();
+
+  const byIRIall = {};
+  state.nodes.forEach(n => { if (!n.isDeleted) byIRIall[n.iri] = n; });
+
+  // Determine in-scope source nodes
+  const scope = scopeModelBases();
+  const scopeSet = new Set(scope);
+  let sources = state.nodes.filter(n => !n.isDeleted);
+  if (state.scopeToModel && scope.length) {
+    sources = sources.filter(n => scopeSet.has(nodeModelBase(n)));
+  }
+
+  // Build edge list
+  const q = state.searchQuery;
+  const edges = [];
+  sources.forEach(src => {
+    (src.relations||[]).forEach(rel => {
+      if (!rel.predicate || !rel.target) return;
+      const tgt = byIRIall[rel.target];
+      const srcLabel = src.label || shrinkIRI(src.iri);
+      const predLabel = prefixize(rel.predicate);
+      const tgtLabel = tgt ? (tgt.label || shrinkIRI(tgt.iri)) : shrinkIRI(rel.target);
+      if (q) {
+        const hay = (srcLabel + ' ' + predLabel + ' ' + tgtLabel + ' ' +
+          src.iri + ' ' + rel.predicate + ' ' + rel.target).toLowerCase();
+        if (!hay.includes(q)) return;
+      }
+      edges.push({ src, rel, tgt, srcLabel, predLabel, tgtLabel });
+    });
+  });
+
+  document.getElementById('tree-count').textContent = edges.length;
+  panel.innerHTML = '';
+  if (!edges.length) {
+    panel.innerHTML = '<div class="tree-empty">No relations match.</div>';
+    return;
+  }
+
+  // Group edges by predicate for readability
+  const byPred = {};
+  edges.forEach(e => { (byPred[e.predLabel] = byPred[e.predLabel] || []).push(e); });
+
+  Object.keys(byPred).sort().forEach(pred => {
+    const header = document.createElement('div');
+    header.className = 'edge-group-header';
+    header.innerHTML = `<span class="onto-group-icon">⟶</span>
+      <span class="onto-group-label" style="color:var(--text)">${escHtml(pred)}</span>
+      <span class="onto-group-badge">${byPred[pred].length}</span>`;
+    panel.appendChild(header);
+
+    byPred[pred].sort((a,b)=>a.srcLabel.toLowerCase().localeCompare(b.srcLabel.toLowerCase()));
+    byPred[pred].forEach(e => {
+      const srcColor = state.modelColors[nodeModelBase(e.src)] || 'var(--text-muted)';
+      const tgtColor = e.tgt ? (state.modelColors[nodeModelBase(e.tgt)] || 'var(--text-muted)') : 'var(--text-muted)';
+      const row = document.createElement('div');
+      row.className = 'edge-row';
+      if (e.src.iri === state.selectedIRI) row.classList.add('selected');
+      row.innerHTML = `
+        <span class="edge-ep" style="--ep:${srcColor}" title="${escHtml(e.src.iri)}">${escHtml(e.srcLabel)}</span>
+        <span class="edge-arrow">→</span>
+        <span class="edge-ep" style="--ep:${tgtColor}" title="${escHtml(e.tgt?e.tgt.iri:e.rel.target)}">${escHtml(e.tgtLabel)}${e.tgt?'':' <span class=\"edge-missing\">(external)</span>'}</span>
+      `;
+      row.addEventListener('click', () => selectNode(e.src.iri));
+      panel.appendChild(row);
+    });
+  });
+}
+
 
 function typeClass(t) {
   return t === 'Ontology' ? 'is-ontology'
@@ -1306,11 +1674,14 @@ function expandAll(expand) {
   if (expand) {
     state.collapsed.clear();
   } else {
-    // collapse every node that has children
+    // collapse every group header and every node with children
     const byIRI = {}; state.nodes.forEach(n => byIRI[n.iri] = n);
     const parents = new Set();
     state.nodes.forEach(n => (n.subOf||[]).forEach(p => { if (byIRI[p]) parents.add(p); }));
-    state.collapsed = new Set(parents);
+    // group headers
+    const bases = new Set();
+    state.nodes.forEach(n => bases.add('GROUP::' + nodeModelBase(n)));
+    state.collapsed = new Set([...parents, ...bases]);
   }
   renderTree();
 }
@@ -1326,10 +1697,8 @@ function buildTreeItem(n, hasChildren, isCollapsed) {
   const mColor = modelColorFor(n);
   const mBase = nodeModelBase(n);
   const styleAttr = mColor ? ` style="--model-color:${mColor}" data-model="${escHtml(mBase)}"` : '';
-  const dot = mColor ? '<span class="model-dot"></span>' : '';
   return `<div class="tree-item ${typeClass(n.type)}"${styleAttr}>
     <span class="${toggleCls}">${chevron}</span>
-    ${dot}
     <span class="tree-icon">${icon}</span>
     <span class="tree-label">${n.label || shrinkIRI(n.iri)}${dirty}${isNew}</span>
   </div>`;
@@ -1467,10 +1836,28 @@ function relationTargetOptions(selected) {
   return html;
 }
 
-function relationTypeOptions(selected) {
-  return RELATION_TYPES.map(r =>
-    `<option value="${escHtml(r.iri)}" ${r.iri===selected?'selected':''}>${escHtml(r.label)}</option>`
-  ).join('');
+function relationTypeOptions(selected, kind) {
+  const allowed = allowedAppliesFor(kind);
+  let html = '<option value="">— relation —</option>';
+  (RELATION_TAXONOMY.families||[]).forEach(f => {
+    const ok = allowed.includes(f.appliesTo);
+    const tag = f.appliesTo === 'vocab' ? ' [SKOS/vocab]'
+      : f.appliesTo === 'ontology' ? ' [OWL/RDFS]' : '';
+    html += `<optgroup label="${escHtml(f.label)}${ok ? '' : ' ⚠ not for this model'}${tag}">`;
+    (f.relations||[]).forEach(r => {
+      const mark = ok ? '' : '⚠ ';
+      html += `<option value="${escHtml(r.iri)}" data-applies="${f.appliesTo}" ${r.iri===selected?'selected':''}>${mark}${escHtml(r.label)}</option>`;
+    });
+    html += '</optgroup>';
+  });
+  return html;
+}
+
+// Is this predicate appropriate for this model kind? (soft check)
+function predicateApplies(iri, kind) {
+  const rel = flatRelations().find(r => r.iri === iri);
+  if (!rel) return true; // unknown → don't nag
+  return allowedAppliesFor(kind).includes(rel.appliesTo);
 }
 
 function renderRelationRows(n) {
@@ -1481,21 +1868,37 @@ function renderRelationRows(n) {
 }
 
 function makeRelationRow(rel, idx) {
+  const n = state.nodes.find(x => x.iri === state.selectedIRI);
+  const kind = n ? nodeModelKind(n) : 'any';
+  const mismatch = rel.predicate && !predicateApplies(rel.predicate, kind);
   const row = document.createElement('div');
-  row.className = 'rel-row';
+  row.className = 'rel-row' + (mismatch ? ' rel-mismatch' : '');
   row.innerHTML = `
-    <select class="rel-pred" data-idx="${idx}">${relationTypeOptions(rel.predicate)}</select>
+    <select class="rel-pred" data-idx="${idx}" onchange="onRelPredChange(${idx})">${relationTypeOptions(rel.predicate, kind)}</select>
     <select class="rel-target" data-idx="${idx}">${relationTargetOptions(rel.target)}</select>
     <button class="rel-del" title="Remove relation" onclick="removeRelationRow(${idx})">✕</button>
+    ${mismatch ? `<div class="rel-warn">⚠ This relation family isn't intended for a <b>${kind === 'vocab' ? 'vocabulary/taxonomy' : kind}</b> model. ${kind==='vocab' ? 'Use a SKOS relation.' : 'Use an OWL/RDFS relation.'}</div>` : ''}
   `;
   return row;
+}
+
+// Re-render the row's warning state when the predicate changes
+function onRelPredChange(idx) {
+  const n = state.nodes.find(x => x.iri === state.selectedIRI);
+  if (!n) return;
+  collectRelationRows(n);
+  renderRelationRows(n);
 }
 
 function addRelationRow() {
   const n = state.nodes.find(x => x.iri === state.selectedIRI);
   if (!n) return;
   collectRelationRows(n);
-  n.relations.push({ predicate: RELATION_TYPES[0]?.iri || '', target: '' });
+  // pick a sensible default predicate for this model's kind
+  const kind = nodeModelKind(n);
+  const allowed = allowedAppliesFor(kind);
+  const def = flatRelations().find(r => allowed.includes(r.appliesTo));
+  n.relations.push({ predicate: def ? def.iri : '', target: '' });
   renderRelationRows(n);
 }
 
@@ -1793,71 +2196,34 @@ function escHtml(s) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  RELATION-TYPE MANAGEMENT
+//  RELATION TAXONOMY — opens in a separate window
 // ═══════════════════════════════════════════════════════════
 function showRelationsModal() {
-  renderRelationsEditor();
-  document.getElementById('relations-modal').classList.add('open');
-}
-
-function renderRelationsEditor() {
-  const wrap = document.getElementById('relations-editor');
-  wrap.innerHTML = '';
-  RELATION_TYPES.forEach((r, i) => {
-    const row = document.createElement('div');
-    row.className = 'rel-row';
-    row.style.gridTemplateColumns = '170px 1fr auto';
-    row.innerHTML = `
-      <input class="rt-label" data-i="${i}" value="${escHtml(r.label)}" placeholder="skos:broader">
-      <input class="rt-iri" data-i="${i}" value="${escHtml(r.iri)}" placeholder="http://…/broader">
-      <button class="rel-del" title="Remove" onclick="removeRelationType(${i})">✕</button>
-    `;
-    wrap.appendChild(row);
-  });
-}
-
-function syncRelationEditorToArray() {
-  const labels = document.querySelectorAll('.rt-label');
-  const iris = document.querySelectorAll('.rt-iri');
-  const arr = [];
-  for (let i = 0; i < labels.length; i++) {
-    const label = labels[i].value.trim();
-    const iri = iris[i].value.trim();
-    if (label && iri) arr.push({ label, iri });
+  // Hand the current taxonomy to the manager via localStorage, then open it.
+  saveRelationTaxonomy();
+  const url = 'relation-taxonomy.html';
+  const w = window.open(url, 'relationTaxonomy', 'width=920,height=760');
+  if (!w) {
+    toast('Pop-up blocked — allow pop-ups, or open relation-taxonomy.html manually', 'error');
   }
-  RELATION_TYPES = arr;
 }
 
-function addRelationType() {
-  syncRelationEditorToArray();
-  RELATION_TYPES.push({ label: '', iri: '' });
-  renderRelationsEditor();
-}
-
-function removeRelationType(i) {
-  syncRelationEditorToArray();
-  RELATION_TYPES.splice(i, 1);
-  renderRelationsEditor();
-}
-
-function resetRelationTypes() {
-  RELATION_TYPES = DEFAULT_RELATION_TYPES.map(r => ({...r}));
-  renderRelationsEditor();
-  toast('Relation types reset to defaults', 'info');
-}
-
-function saveRelationTypes() {
-  syncRelationEditorToArray();
-  if (!RELATION_TYPES.length) { toast('Keep at least one relation type', 'error'); return; }
-  localStorage.setItem(REL_LS_KEY, JSON.stringify(RELATION_TYPES));
-  closeModal('relations-modal');
-  // refresh any open node form so the new types appear in dropdowns
-  if (state.selectedIRI) {
-    const n = state.nodes.find(x => x.iri === state.selectedIRI);
-    if (n) renderRelationRows(n);
+// Live-sync: when the manager window saves, reload taxonomy and refresh dropdowns.
+window.addEventListener('storage', (e) => {
+  if (e.key === REL_LS_KEY && e.newValue) {
+    try {
+      const obj = JSON.parse(e.newValue);
+      if (obj && Array.isArray(obj.families)) {
+        RELATION_TAXONOMY = obj;
+        if (state.selectedIRI) {
+          const n = state.nodes.find(x => x.iri === state.selectedIRI);
+          if (n) renderRelationRows(n);
+        }
+        toast('Relation taxonomy updated', 'success');
+      }
+    } catch(err) {}
   }
-  toast('Relation types saved', 'success');
-}
+});
 
 // ── ESC closes modals ──
 document.addEventListener('keydown', e => {
@@ -1869,6 +2235,44 @@ document.addEventListener('keydown', e => {
 checkLocalStorageDraft();
 // Set modified default
 document.getElementById('meta-modified').value = new Date().toISOString().slice(0,16);
+
+// ── Left-panel resizer ──
+(function() {
+  const LS_W = 'ev_model_editor_left_width';
+  const ws = document.querySelector('.workspace');
+  const handle = document.getElementById('col-resizer');
+  const MIN = 200, MAX = 720;
+  // restore saved width
+  const saved = parseInt(localStorage.getItem(LS_W), 10);
+  if (saved && saved >= MIN && saved <= MAX) ws.style.setProperty('--left-w', saved + 'px');
+
+  let dragging = false;
+  function onMove(e) {
+    if (!dragging) return;
+    const left = ws.getBoundingClientRect().left;
+    let w = e.clientX - left;
+    w = Math.max(MIN, Math.min(MAX, w));
+    ws.style.setProperty('--left-w', w + 'px');
+  }
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.classList.remove('col-resizing');
+    const cur = ws.style.getPropertyValue('--left-w');
+    if (cur) localStorage.setItem(LS_W, parseInt(cur, 10));
+  }
+  handle.addEventListener('mousedown', e => {
+    dragging = true; handle.classList.add('dragging');
+    document.body.classList.add('col-resizing'); e.preventDefault();
+  });
+  // double-click resets to default
+  handle.addEventListener('dblclick', () => {
+    ws.style.removeProperty('--left-w'); localStorage.removeItem(LS_W);
+  });
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+})();
 
 // ── Auto-connect when launched from model-manager via URL params ──
 (function() {

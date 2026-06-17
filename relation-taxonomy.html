@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relation Taxonomy Manager</title>
+<style>
+  :root {
+    --bg:#1a1d2e; --panel:#22253a; --panel2:#2a2e47; --border:#363a5a;
+    --accent:#7c83f5; --accent2:#a5aaff; --success:#4ade80; --danger:#f87171;
+    --warn:#fbbf24; --text:#e2e8f0; --text-dim:#8b93b8; --text-muted:#555d8a;
+    --mono:'Cascadia Code','Fira Code','Consolas',monospace;
+    --sans:'Inter',system-ui,sans-serif; --radius:6px; --radius-lg:10px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);
+    min-height:100vh;font-size:13px;padding:0;}
+  .topbar{display:flex;align-items:center;gap:12px;padding:12px 18px;
+    background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
+  .topbar h1{font-size:15px;font-weight:700;letter-spacing:.02em;}
+  .topbar h1 .sub{font-weight:400;color:var(--text-dim);font-size:12px;margin-left:8px;}
+  .spacer{flex:1;}
+  .btn{font-family:var(--sans);font-size:12px;border-radius:var(--radius);
+    border:1px solid var(--border);background:var(--panel2);color:var(--text);
+    padding:7px 13px;cursor:pointer;transition:all .15s;}
+  .btn:hover{border-color:var(--accent);}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent2);}
+  .btn-ghost{background:transparent;}
+  .btn-sm{padding:4px 9px;font-size:11px;}
+  .btn-danger{color:var(--danger);}
+  .btn-danger:hover{background:#7f1d1d;border-color:var(--danger);}
+  .wrap{max-width:980px;margin:0 auto;padding:20px 18px 60px;}
+  .intro{color:var(--text-dim);font-size:12px;line-height:1.6;margin-bottom:18px;
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+  .intro b{color:var(--text);}
+  .kind-chip{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;
+    border:1px solid var(--border);margin-left:4px;}
+  .kind-vocab{color:var(--success);border-color:var(--success);}
+  .kind-ontology{color:var(--accent2);border-color:var(--accent2);}
+  .kind-any{color:var(--text-dim);}
+
+  .family{background:var(--panel);border:1px solid var(--border);
+    border-radius:var(--radius-lg);margin-bottom:16px;overflow:hidden;}
+  .family-head{display:flex;align-items:center;gap:10px;padding:12px 14px;
+    background:var(--panel2);border-bottom:1px solid var(--border);}
+  .family-head input.fam-label{flex:1;min-width:0;background:var(--bg);
+    border:1px solid var(--border);color:var(--text);border-radius:var(--radius);
+    padding:6px 10px;font-size:13px;font-weight:600;}
+  .family-head select.fam-applies{background:var(--bg);border:1px solid var(--border);
+    color:var(--text);border-radius:var(--radius);padding:6px 9px;font-size:11px;font-family:var(--mono);}
+  .family-head .fam-id{font-family:var(--mono);font-size:11px;color:var(--text-muted);}
+  .rels{padding:8px 14px 14px;}
+  .rel{display:grid;grid-template-columns:200px 1fr auto;gap:8px;align-items:center;margin-top:8px;}
+  .rel input{background:var(--bg);border:1px solid var(--border);color:var(--text);
+    border-radius:var(--radius);padding:6px 9px;font-family:var(--mono);font-size:11px;width:100%;}
+  .rel input:focus,.family-head input:focus,.family-head select:focus{outline:none;border-color:var(--accent);}
+  .rel .discovered{font-size:9px;color:var(--warn);text-transform:uppercase;letter-spacing:.05em;}
+  .icon-btn{background:transparent;border:1px solid var(--border);color:var(--danger);
+    border-radius:var(--radius);cursor:pointer;padding:5px 9px;font-size:12px;}
+  .icon-btn:hover{background:#7f1d1d;}
+  .add-rel{margin-top:10px;}
+  .toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:100;}
+  .toast{padding:10px 16px;border-radius:var(--radius);font-size:12px;
+    background:var(--panel2);border:1px solid var(--border);box-shadow:0 4px 18px rgba(0,0,0,.4);}
+  .toast-success{border-color:var(--success);} .toast-error{border-color:var(--danger);}
+  .toast-info{border-color:var(--accent);}
+  .empty{color:var(--text-muted);font-size:12px;text-align:center;padding:40px;}
+  .disconnected{color:var(--warn);font-size:11px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>Relation Taxonomy <span class="sub">SKOS for vocabularies/taxonomies · OWL/RDFS for ontologies</span></h1>
+  <span class="spacer"></span>
+  <span id="link-status" class="disconnected"></span>
+  <button class="btn btn-ghost btn-sm" onclick="addFamily()">＋ Family</button>
+  <button class="btn btn-ghost btn-sm" onclick="exportJSON()">⬇ Export</button>
+  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-file').click()">⬆ Import</button>
+  <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importJSON(this)">
+  <button class="btn btn-ghost btn-sm btn-danger" onclick="resetSeed()">↺ Reset</button>
+  <button class="btn btn-primary btn-sm" onclick="save()">Save</button>
+</div>
+
+<div class="wrap">
+  <div class="intro">
+    Relations are grouped into <b>families</b>. Each family declares which model
+    <b>kind</b> it applies to: <span class="kind-chip kind-vocab">vocab</span> SKOS for
+    vocabularies &amp; taxonomies, <span class="kind-chip kind-ontology">ontology</span>
+    OWL/RDFS for ontologies, or <span class="kind-chip kind-any">any</span> cross-cutting
+    (e.g. Dublin Core). The Model Editor offers these predicates when you add a relation and
+    softly warns if a predicate's family doesn't match the node's model kind. Changes save to
+    this browser and the editor picks them up live.
+  </div>
+  <div id="families"></div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+const REL_LS_KEY = 'ev_model_editor_relation_taxonomy';
+const REL_LEGACY_KEY = 'ev_model_editor_relation_types';
+
+const SEED = {
+  version: 2,
+  families: [
+    { id:'skos', label:'SKOS (vocabularies & taxonomies)', appliesTo:'vocab', relations:[
+      {label:'skos:broader',iri:'http://www.w3.org/2004/02/skos/core#broader'},
+      {label:'skos:narrower',iri:'http://www.w3.org/2004/02/skos/core#narrower'},
+      {label:'skos:related',iri:'http://www.w3.org/2004/02/skos/core#related'},
+      {label:'skos:broadMatch',iri:'http://www.w3.org/2004/02/skos/core#broadMatch'},
+      {label:'skos:narrowMatch',iri:'http://www.w3.org/2004/02/skos/core#narrowMatch'},
+      {label:'skos:relatedMatch',iri:'http://www.w3.org/2004/02/skos/core#relatedMatch'},
+      {label:'skos:exactMatch',iri:'http://www.w3.org/2004/02/skos/core#exactMatch'},
+      {label:'skos:closeMatch',iri:'http://www.w3.org/2004/02/skos/core#closeMatch'},
+    ]},
+    { id:'rdfs', label:'RDFS (ontologies)', appliesTo:'ontology', relations:[
+      {label:'rdfs:subClassOf',iri:'http://www.w3.org/2000/01/rdf-schema#subClassOf'},
+      {label:'rdfs:subPropertyOf',iri:'http://www.w3.org/2000/01/rdf-schema#subPropertyOf'},
+      {label:'rdfs:isDefinedBy',iri:'http://www.w3.org/2000/01/rdf-schema#isDefinedBy'},
+      {label:'rdfs:seeAlso',iri:'http://www.w3.org/2000/01/rdf-schema#seeAlso'},
+    ]},
+    { id:'owl', label:'OWL (ontologies)', appliesTo:'ontology', relations:[
+      {label:'owl:equivalentClass',iri:'http://www.w3.org/2002/07/owl#equivalentClass'},
+      {label:'owl:equivalentProperty',iri:'http://www.w3.org/2002/07/owl#equivalentProperty'},
+      {label:'owl:sameAs',iri:'http://www.w3.org/2002/07/owl#sameAs'},
+      {label:'owl:disjointWith',iri:'http://www.w3.org/2002/07/owl#disjointWith'},
+    ]},
+    { id:'dc', label:'Dublin Core / other (any model)', appliesTo:'any', relations:[
+      {label:'dct:isPartOf',iri:'http://purl.org/dc/terms/isPartOf'},
+      {label:'dct:hasPart',iri:'http://purl.org/dc/terms/hasPart'},
+    ]},
+  ],
+};
+
+let TAX = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(REL_LS_KEY);
+    if (raw) { const o = JSON.parse(raw); if (o && Array.isArray(o.families)) return o; }
+  } catch(e){}
+  // try migrating legacy flat list
+  try {
+    const legacy = localStorage.getItem(REL_LEGACY_KEY);
+    if (legacy) {
+      const arr = JSON.parse(legacy);
+      if (Array.isArray(arr) && arr.length) {
+        const tax = JSON.parse(JSON.stringify(SEED));
+        const byFam={}; tax.families.forEach(f=>byFam[f.id]=f);
+        arr.forEach(r=>{
+          let fid='dc';
+          if(/skos\/core#/.test(r.iri))fid='skos';
+          else if(/rdf-schema#/.test(r.iri))fid='rdfs';
+          else if(/2002\/07\/owl#/.test(r.iri))fid='owl';
+          const fam=byFam[fid]||byFam.dc;
+          if(!fam.relations.some(x=>x.iri===r.iri)) fam.relations.push({label:r.label,iri:r.iri});
+        });
+        return tax;
+      }
+    }
+  } catch(e){}
+  return JSON.parse(JSON.stringify(SEED));
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function render() {
+  const wrap = document.getElementById('families');
+  wrap.innerHTML = '';
+  if (!TAX.families || !TAX.families.length) {
+    wrap.innerHTML = '<div class="empty">No families yet. Add one to begin.</div>';
+    return;
+  }
+  TAX.families.forEach((f, fi) => {
+    const fam = document.createElement('div');
+    fam.className = 'family';
+    fam.innerHTML = `
+      <div class="family-head">
+        <input class="fam-label" value="${esc(f.label)}" data-fi="${fi}" onchange="onFamLabel(${fi},this.value)">
+        <select class="fam-applies" data-fi="${fi}" onchange="onFamApplies(${fi},this.value)">
+          <option value="vocab" ${f.appliesTo==='vocab'?'selected':''}>vocab (SKOS)</option>
+          <option value="ontology" ${f.appliesTo==='ontology'?'selected':''}>ontology (OWL/RDFS)</option>
+          <option value="any" ${f.appliesTo==='any'?'selected':''}>any</option>
+        </select>
+        <span class="fam-id">#${esc(f.id)}</span>
+        <button class="icon-btn" title="Remove family" onclick="removeFamily(${fi})">✕</button>
+      </div>
+      <div class="rels" id="rels-${fi}"></div>
+    `;
+    wrap.appendChild(fam);
+    const rels = fam.querySelector(`#rels-${fi}`);
+    (f.relations||[]).forEach((r, ri) => {
+      const row = document.createElement('div');
+      row.className = 'rel';
+      row.innerHTML = `
+        <input value="${esc(r.label)}" placeholder="prefix:localName" onchange="onRelLabel(${fi},${ri},this.value)">
+        <input value="${esc(r.iri)}" placeholder="http://…/predicate" onchange="onRelIri(${fi},${ri},this.value)">
+        <button class="icon-btn" title="Remove relation" onclick="removeRel(${fi},${ri})">✕</button>
+        ${r.discovered ? '<span class="discovered">discovered</span>' : ''}
+      `;
+      rels.appendChild(row);
+    });
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn btn-ghost btn-sm add-rel';
+    addBtn.textContent = '＋ Add relation';
+    addBtn.onclick = () => addRel(fi);
+    rels.appendChild(addBtn);
+  });
+}
+
+function onFamLabel(fi,v){ TAX.families[fi].label=v; }
+function onFamApplies(fi,v){ TAX.families[fi].appliesTo=v; }
+function onRelLabel(fi,ri,v){ TAX.families[fi].relations[ri].label=v; }
+function onRelIri(fi,ri,v){ TAX.families[fi].relations[ri].iri=v; delete TAX.families[fi].relations[ri].discovered; }
+
+function addFamily() {
+  const id = 'fam' + Date.now().toString(36);
+  TAX.families.push({ id, label:'New family', appliesTo:'any', relations:[] });
+  render();
+}
+function removeFamily(fi) {
+  if (!confirm(`Remove family "${TAX.families[fi].label}" and its relations?`)) return;
+  TAX.families.splice(fi,1); render();
+}
+function addRel(fi) {
+  TAX.families[fi].relations.push({ label:'', iri:'' }); render();
+}
+function removeRel(fi,ri) {
+  TAX.families[fi].relations.splice(ri,1); render();
+}
+
+function clean() {
+  // drop empty relations, keep families even if empty
+  TAX.families.forEach(f => {
+    f.relations = (f.relations||[]).filter(r => (r.label||'').trim() && (r.iri||'').trim());
+  });
+}
+
+function save() {
+  clean();
+  localStorage.setItem(REL_LS_KEY, JSON.stringify(TAX));
+  // Nudge other windows (storage event doesn't fire in the same window that wrote it,
+  // but the editor is a different window/tab, so it will receive it).
+  toast('Saved — the Model Editor will update', 'success');
+  render();
+}
+
+function resetSeed() {
+  if (!confirm('Reset the relation taxonomy to seed defaults? Discovered/custom entries will be lost.')) return;
+  TAX = JSON.parse(JSON.stringify(SEED));
+  render(); toast('Reset to defaults (not yet saved)', 'info');
+}
+
+function exportJSON() {
+  clean();
+  const blob = new Blob([JSON.stringify(TAX,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'relation-taxonomy.json';
+  a.click();
+}
+
+function importJSON(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(reader.result);
+      if (!obj || !Array.isArray(obj.families)) throw new Error('Missing families[]');
+      TAX = obj; render(); toast('Imported — review then Save', 'success');
+    } catch(e) { toast('Import failed: ' + e.message, 'error'); }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function toast(msg,type='info'){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div'); t.className='toast toast-'+type; t.textContent=msg;
+  c.appendChild(t); setTimeout(()=>t.remove(),3200);
+}
+
+// If the editor seeds new discovered relations while this window is open, refresh.
+window.addEventListener('storage', e => {
+  if (e.key === REL_LS_KEY && e.newValue) {
+    try { const o = JSON.parse(e.newValue); if (o && Array.isArray(o.families)) { TAX=o; render(); toast('Updated from Model Editor','info'); } } catch(err){}
+  }
+});
+
+document.getElementById('link-status').textContent =
+  localStorage.getItem(REL_LS_KEY) ? '' : 'using seed defaults (nothing saved yet)';
+
+render();
+</script>
+</body>
+</html>on-taxonomy.htmlon-taxonomy.htmlon-taxonomy.html
