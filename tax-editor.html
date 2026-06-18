@@ -3,748 +3,258 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taxonomy Editor</title>
+<title>Taxonomy Tree Editor</title>
 <style>
-  :root {
-    --bg:#1a1d2e; --panel:#22253a; --panel2:#2a2e47; --border:#363a5a;
-    --accent:#7c83f5; --accent2:#a5aaff; --success:#4ade80; --danger:#f87171;
-    --warn:#fbbf24; --text:#e2e8f0; --text-dim:#8b93b8; --text-muted:#555d8a;
-    --mono:'Cascadia Code','Fira Code','Consolas',monospace;
-    --sans:'Inter',system-ui,sans-serif; --radius:6px; --radius-lg:10px;
-    --drop:#4ade80;
-  }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:var(--sans);background:var(--bg);color:var(--text);
-    height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px;}
+:root {
+  --bg:#1a1d2e; --panel:#22253a; --panel2:#2a2e47; --border:#363a5a;
+  --accent:#7c83f5; --accent2:#a5aaff; --success:#4ade80; --danger:#f87171;
+  --warn:#fbbf24; --text:#e2e8f0; --text-dim:#8b93b8; --text-muted:#555d8a;
+  --drop:#4ade80; --drop-bg:rgba(74,222,128,.08);
+  --node-bg:#2a2e47; --node-border:#363a5a; --node-hover:#363a5a;
+  --connector:#363a5a;
+  --sans:'Inter',system-ui,sans-serif; --mono:'Cascadia Code','Fira Code',monospace;
+  --radius:6px; --left-w:260px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);
+  height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:13px;}
 
-  /* ── TOP BAR ── */
-  .topbar{display:flex;align-items:center;gap:12px;padding:10px 16px;
-    background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .brand{font-size:15px;font-weight:700;letter-spacing:.02em;}
-  .brand span{color:var(--text-dim);font-weight:400;font-size:12px;}
-  .spacer{flex:1;}
-  .scheme-select{display:flex;align-items:center;gap:6px;}
-  select,input,textarea{font-family:var(--sans);}
-  .topbar select{background:var(--panel2);border:1px solid var(--border);color:var(--text);
-    border-radius:var(--radius);padding:6px 10px;font-size:12px;}
-  .btn{font-size:12px;border-radius:var(--radius);border:1px solid var(--border);
-    background:var(--panel2);color:var(--text);padding:7px 13px;cursor:pointer;transition:all .15s;}
-  .btn:hover{border-color:var(--accent);}
-  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
-  .btn-primary:hover{background:var(--accent2);}
-  .btn-ghost{background:transparent;}
-  .btn-sm{padding:4px 9px;font-size:11px;}
-  .btn-danger{color:var(--danger);}
-  .btn-danger:hover{background:#7f1d1d;border-color:var(--danger);}
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;gap:10px;padding:8px 14px;
+  background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+.brand{font-size:14px;font-weight:700;letter-spacing:.02em;white-space:nowrap;}
+.brand span{color:var(--text-dim);font-weight:400;font-size:11px;}
+.spacer{flex:1;}
+.conn-status{width:8px;height:8px;border-radius:50%;background:var(--text-muted);flex-shrink:0;}
+.conn-status.connected{background:var(--success);}
+.conn-status.loading{background:var(--warn);animation:pulse 1s infinite;}
+.conn-status.error{background:var(--danger);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+input[type=text]{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+  border-radius:var(--radius);padding:5px 9px;font-size:12px;font-family:var(--sans);}
+input[type=text]:focus{outline:none;border-color:var(--accent);}
+.btn{font-size:12px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--panel2);color:var(--text);padding:5px 11px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn:hover{border-color:var(--accent);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-ghost{background:transparent;border-color:transparent;}
+.btn-sm{padding:3px 8px;font-size:11px;}
+.view-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.view-toggle button{border:none;background:var(--panel2);color:var(--text-dim);
+  padding:5px 11px;font-size:11px;cursor:pointer;transition:all .15s;}
+.view-toggle button.active{background:var(--accent);color:#fff;}
 
-  /* ── LAYOUT ── */
-  .workspace{display:grid;grid-template-columns:var(--left-w,280px) 6px 1fr 6px var(--right-w,320px);
-    flex:1;overflow:hidden;}
-  .col-resizer{cursor:col-resize;background:var(--border);transition:background .15s;position:relative;}
-  .col-resizer:hover,.col-resizer.dragging{background:var(--accent);}
-  .col-resizer::after{content:'';position:absolute;top:0;bottom:0;left:-4px;right:-4px;}
-  body.col-resizing{cursor:col-resize;user-select:none;}
-  .panel{background:var(--panel);display:flex;flex-direction:column;overflow:hidden;}
-  .panel-header{padding:10px 12px;font-size:11px;font-weight:700;text-transform:uppercase;
-    letter-spacing:.06em;color:var(--text-dim);border-bottom:1px solid var(--border);
-    display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;}
-  .panel-body{flex:1;overflow-y:auto;padding:8px;}
-  .badge{font-size:10px;padding:1px 7px;border-radius:10px;background:var(--panel2);
-    color:var(--text-dim);border:1px solid var(--border);}
+/* ── LAYOUT ── */
+.workspace{display:flex;flex:1;overflow:hidden;}
+.left-panel{width:var(--left-w);min-width:200px;max-width:400px;
+  background:var(--panel);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;}
+.resizer{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;transition:background .15s;}
+.resizer:hover{background:var(--accent);}
+.canvas-area{flex:1;overflow:auto;position:relative;}
+.panel-hdr{padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--text-dim);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.panel-hdr input{flex:1;font-size:11px;padding:3px 6px;}
+.concept-list{flex:1;overflow-y:auto;padding:4px 0;}
 
-  /* ── LEFT: concept list ── */
-  .search-wrap{padding:8px;border-bottom:1px solid var(--border);flex-shrink:0;}
-  .search-wrap input{width:100%;background:var(--panel2);border:1px solid var(--border);
-    color:var(--text);border-radius:var(--radius);padding:7px 10px;font-size:12px;}
-  .search-wrap input:focus{outline:none;border-color:var(--accent);}
-  .connect-bar{display:flex;gap:6px;padding:8px;border-bottom:1px solid var(--border);flex-shrink:0;}
-  .connect-bar input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--border);
-    color:var(--text);border-radius:var(--radius);padding:6px 9px;font-family:var(--mono);font-size:11px;}
-  .connect-bar input:focus{outline:none;border-color:var(--accent);}
-  .conn-status{width:8px;height:8px;border-radius:50%;background:var(--text-muted);display:inline-block;flex-shrink:0;}
-  .conn-status.connected{background:var(--success);box-shadow:0 0 6px var(--success);}
-  .conn-status.error{background:var(--danger);box-shadow:0 0 6px var(--danger);}
-  .conn-status.loading{background:var(--warn);animation:pulse 1s infinite;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .add-concept{display:flex;gap:6px;padding:8px;border-bottom:1px solid var(--border);flex-shrink:0;}
-  .add-concept input{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--border);
-    color:var(--text);border-radius:var(--radius);padding:7px 10px;font-size:12px;}
-  .add-concept input:focus{outline:none;border-color:var(--accent);}
+/* ── LEFT PANEL CONCEPT ITEMS ── */
+.concept-item{display:flex;align-items:center;gap:6px;padding:6px 12px;
+  cursor:grab;user-select:none;border-bottom:1px solid rgba(54,58,90,.4);
+  transition:background .1s;}
+.concept-item:hover{background:var(--panel2);}
+.concept-item.dragging-source{opacity:.4;}
+.concept-item.unplaced{border-left:2px solid var(--warn);}
+.ci-label{font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ci-iri{font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ci-badge{font-size:10px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:3px;padding:1px 5px;color:var(--text-dim);flex-shrink:0;}
 
-  .concept-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--radius);
-    cursor:grab;font-size:12px;border:1px solid transparent;margin-bottom:2px;}
-  .concept-item:hover{background:var(--panel2);}
-  .concept-item.selected{background:rgba(124,131,245,.18);border-color:var(--accent);}
-  .concept-item.dragging{opacity:.4;}
-  .concept-item.used{color:var(--text-dim);}
-  .concept-grip{color:var(--text-muted);font-size:13px;flex-shrink:0;cursor:grab;}
-  .concept-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .concept-badges{display:flex;gap:4px;flex-shrink:0;}
-  .mini{font-size:9px;padding:0 5px;border-radius:8px;border:1px solid var(--border);color:var(--text-muted);}
-  .mini.in-tree{color:var(--success);border-color:var(--success);}
-  .mini.orphan{color:var(--warn);border-color:var(--warn);}
+/* ── TREE CANVAS ── */
+.canvas-inner{padding:32px;min-width:100%;min-height:100%;display:inline-block;}
+.canvas-empty{display:flex;align-items:center;justify-content:center;
+  height:100%;color:var(--text-muted);font-size:13px;text-align:center;padding:40px;}
 
-  /* ── CENTER: hierarchy canvas ── */
-  .canvas-toolbar{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;
-    align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
-  .canvas-toolbar .hint{font-size:11px;color:var(--text-muted);margin-left:auto;}
-  .canvas{flex:1;overflow:auto;padding:14px;}
-  .canvas.drop-root.drag-over{background:rgba(74,222,128,.06);}
+/* ── TREE NODES (TOP-DOWN view) ── */
+.tree-root{display:flex;flex-direction:column;gap:0;}
+.tree-level{display:flex;gap:24px;justify-content:center;margin-bottom:0;}
+.tree-col{display:flex;flex-direction:column;align-items:center;}
+.node-wrap{display:flex;flex-direction:column;align-items:center;}
+.node-children-td{display:flex;gap:16px;margin-top:0;}
 
-  .tnode{margin:2px 0;}
-  .tnode-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--radius);
-    border:1px solid transparent;cursor:grab;position:relative;}
-  .tnode-row:hover{background:var(--panel2);}
-  .tnode-row.selected{background:rgba(124,131,245,.18);border-color:var(--accent);}
-  .tnode-row.dragging{opacity:.4;}
-  .tnode-row.drag-over{border-color:var(--drop);background:rgba(74,222,128,.12);}
-  .tnode-row.drop-before::before,.tnode-row.drop-after::after{
-    content:'';position:absolute;left:8px;right:8px;height:2px;background:var(--drop);}
-  .tnode-row.drop-before::before{top:-1px;} .tnode-row.drop-after::after{bottom:-1px;}
-  .tnode-toggle{width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;
-    justify-content:center;font-size:13px;color:var(--text-dim);cursor:pointer;border-radius:4px;}
-  .tnode-toggle:hover{background:var(--bg);color:var(--accent2);}
-  .tnode-toggle.leaf{visibility:hidden;}
-  .tnode-icon{flex-shrink:0;color:var(--accent2);font-size:12px;}
-  .tnode-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;}
-  .tnode-poly{font-size:9px;color:var(--warn);border:1px solid var(--warn);border-radius:8px;
-    padding:0 5px;flex-shrink:0;} /* appears in >1 place */
-  .tnode-actions{display:none;gap:4px;flex-shrink:0;}
-  .tnode-row:hover .tnode-actions{display:flex;}
-  .tnode-act{background:transparent;border:1px solid var(--border);border-radius:4px;
-    color:var(--text-dim);cursor:pointer;font-size:10px;padding:2px 6px;}
-  .tnode-act:hover{border-color:var(--accent);color:var(--text);}
-  .tnode-act.del:hover{border-color:var(--danger);color:var(--danger);background:#7f1d1d;}
-  .tnode-children{margin-left:20px;border-left:1px dashed var(--border);padding-left:6px;}
-  .canvas-empty{color:var(--text-muted);text-align:center;padding:50px 20px;font-size:13px;line-height:1.7;}
+.tnode{background:var(--node-bg);border:1.5px solid var(--node-border);
+  border-radius:8px;padding:8px 12px;min-width:120px;max-width:200px;
+  cursor:pointer;user-select:none;transition:all .15s;position:relative;
+  display:flex;flex-direction:column;gap:2px;}
+.tnode:hover{border-color:var(--accent);background:var(--node-hover);}
+.tnode.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,131,245,.3);}
+.tnode.top-concept{border-color:var(--accent2);}
+.tnode.drop-target{border-color:var(--drop)!important;background:var(--drop-bg)!important;
+  box-shadow:0 0 0 2px rgba(74,222,128,.3);}
+.tnode.dragging-node{opacity:.5;}
+.tnode-label{font-size:12px;font-weight:600;color:var(--text);}
+.tnode-iri{font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tnode-poly{font-size:9px;background:var(--warn);color:#1a1d2e;border-radius:3px;padding:1px 4px;align-self:flex-start;}
+.tnode-collapse{position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);
+  width:18px;height:18px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:9px;cursor:pointer;z-index:2;color:var(--text-dim);}
+.tnode-collapse:hover{border-color:var(--accent);color:var(--accent);}
 
-  /* ── RIGHT: details ── */
-  .field{margin-bottom:12px;display:flex;flex-direction:column;gap:5px;}
-  .field label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.04em;}
-  .field input,.field textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);
-    border-radius:var(--radius);padding:8px 10px;font-size:12px;}
-  .field input:focus,.field textarea:focus{outline:none;border-color:var(--accent);}
-  .field textarea{resize:vertical;min-height:60px;}
-  .field .mono{font-family:var(--mono);font-size:11px;}
-  .broader-list{display:flex;flex-direction:column;gap:5px;}
-  .broader-chip{display:flex;align-items:center;gap:6px;background:var(--panel2);
-    border:1px solid var(--border);border-radius:var(--radius);padding:5px 8px;font-size:11px;}
-  .broader-chip .x{margin-left:auto;cursor:pointer;color:var(--danger);}
-  .empty-detail{color:var(--text-muted);text-align:center;padding:40px 16px;font-size:12px;line-height:1.6;}
-  .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
-    color:var(--accent2);margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+/* ── SVG CONNECTORS ── */
+.tree-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;}
 
-  /* ── modal ── */
-  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
-    align-items:center;justify-content:center;z-index:50;}
-  .modal-overlay.open{display:flex;}
-  .modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);
-    padding:22px;width:560px;max-width:92vw;max-height:88vh;overflow-y:auto;}
-  .modal h3{margin-bottom:10px;} .modal p{font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.6;}
-  .modal textarea{width:100%;height:280px;background:var(--bg);border:1px solid var(--border);
-    color:var(--text);border-radius:var(--radius);padding:10px;font-family:var(--mono);font-size:11px;}
-  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+/* ── LR (LEFT-RIGHT) VIEW ── */
+.lr-wrap{display:flex;flex-direction:column;gap:0;}
+.lr-node-row{display:flex;align-items:flex-start;gap:0;}
+.lr-node{background:var(--node-bg);border:1.5px solid var(--node-border);
+  border-radius:8px;padding:7px 11px;min-width:140px;max-width:220px;
+  cursor:pointer;user-select:none;transition:all .15s;position:relative;flex-shrink:0;}
+.lr-node:hover{border-color:var(--accent);}
+.lr-node.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,131,245,.3);}
+.lr-node.top-concept{border-color:var(--accent2);}
+.lr-node.drop-target{border-color:var(--drop)!important;background:var(--drop-bg)!important;}
+.lr-node.dragging-node{opacity:.5;}
+.lr-node-label{font-size:12px;font-weight:600;}
+.lr-node-iri{font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
+.lr-children{display:flex;flex-direction:column;gap:4px;margin-left:28px;padding-left:12px;
+  border-left:1.5px solid var(--connector);margin-top:4px;padding-top:4px;padding-bottom:4px;}
+.lr-connector-h{width:16px;height:1.5px;background:var(--connector);flex-shrink:0;margin-top:13px;}
+.lr-indent{display:flex;flex-direction:column;}
+.lr-collapse{position:absolute;right:-9px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:9px;cursor:pointer;z-index:2;color:var(--text-dim);}
+.lr-collapse:hover{border-color:var(--accent);color:var(--accent);}
 
-  .toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:100;}
-  .toast{padding:10px 16px;border-radius:var(--radius);font-size:12px;background:var(--panel2);
-    border:1px solid var(--border);box-shadow:0 4px 18px rgba(0,0,0,.4);}
-  .toast-success{border-color:var(--success);}.toast-error{border-color:var(--danger);}.toast-info{border-color:var(--accent);}
+/* ── CANVAS DROP ZONE (root) ── */
+.canvas-drop-root{min-height:60px;border:2px dashed transparent;border-radius:8px;
+  margin:8px;transition:all .2s;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--text-muted);}
+.canvas-drop-root.active{border-color:var(--drop);background:var(--drop-bg);color:var(--drop);}
+
+/* ── DIFF MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;
+  align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  width:560px;max-width:96vw;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
+.modal-hdr{padding:14px 18px;font-size:13px;font-weight:700;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;}
+.modal-body{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+.diff-section{font-size:11px;}
+.diff-section h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--text-dim);margin-bottom:6px;}
+.diff-line{font-family:var(--mono);font-size:11px;padding:2px 6px;border-radius:3px;margin:1px 0;}
+.diff-ins{background:rgba(74,222,128,.1);color:#4ade80;}
+.diff-del{background:rgba(248,113,113,.1);color:#f87171;}
+.diff-empty{color:var(--text-muted);font-size:11px;font-style:italic;}
+.modal-ftr{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:6px;z-index:200;}
+.toast{background:var(--panel2);border:1px solid var(--border);border-radius:6px;
+  padding:8px 14px;font-size:12px;max-width:320px;animation:fadeIn .2s;}
+.toast.success{border-color:var(--success);color:var(--success);}
+.toast.error{border-color:var(--danger);color:var(--danger);}
+.toast.info{border-color:var(--accent);color:var(--accent);}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* scrollbars */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 </style>
 </head>
 <body>
 
+<!-- TOP BAR -->
 <div class="topbar">
-  <div class="brand">Taxonomy Editor <span>/ SKOS hierarchy</span></div>
-  <div class="scheme-select">
-    <label style="font-size:11px;color:var(--text-dim)">Scheme</label>
-    <select id="scheme-select" onchange="switchScheme(this.value)"></select>
-    <button class="btn btn-ghost btn-sm" onclick="newScheme()" title="New concept scheme">＋</button>
-    <button class="btn btn-ghost btn-sm" onclick="renameScheme()" title="Rename scheme">✎</button>
-    <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteScheme()" title="Delete scheme">🗑</button>
+  <div class="brand">Taxonomy Tree <span>| Enabling Value</span></div>
+  <div id="conn-status" class="conn-status" title="Not connected"></div>
+  <input type="text" id="sparql-endpoint" placeholder="/graphdb/repositories/value-kb" style="width:260px;">
+  <select id="scheme-select" onchange="onSchemeChange(this.value)"
+    style="background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:5px 9px;font-size:12px;max-width:220px;display:none;">
+    <option value="">— select taxonomy —</option>
+  </select>
+  <button class="btn btn-sm" onclick="connectThenLoad()">Connect &amp; Load</button>
+  <div class="spacer"></div>
+  <div class="view-toggle">
+    <button id="btn-td" class="active" onclick="setView('td')" title="Top-Down tree">⬇ Top-Down</button>
+    <button id="btn-lr" onclick="setView('lr')" title="Left-Right tree">➡ Left-Right</button>
   </div>
-  <span class="spacer"></span>
-  <button class="btn btn-ghost btn-sm" onclick="importTTL()">⬆ Import TTL</button>
-  <button class="btn btn-ghost btn-sm" onclick="exportTTL()">⬇ Export TTL</button>
-  <button class="btn btn-ghost btn-sm" onclick="saveDraft()">💾 Save draft</button>
-  <button class="btn btn-primary btn-sm" id="btn-save-graphdb" onclick="saveToGraphDB()" style="display:none">⇪ Save to GraphDB</button>
+  <button class="btn btn-sm" onclick="expandAll()">Expand All</button>
+  <button class="btn btn-sm" onclick="collapseAll()">Collapse All</button>
+  <button id="btn-save-graphdb" class="btn btn-sm btn-primary" onclick="saveToGraphDB()" style="display:none">💾 Save to GraphDB</button>
 </div>
 
+<!-- WORKSPACE -->
 <div class="workspace">
-
-  <!-- LEFT: flat concept list -->
-  <div class="panel">
-    <div class="panel-header">
-      <span style="display:flex;align-items:center;gap:7px">
-        <span class="conn-status" id="conn-status"></span> Vocabulary
-      </span>
-      <span class="badge" id="concept-count">0</span>
+  <!-- LEFT: concept list -->
+  <div class="left-panel">
+    <div class="panel-hdr">
+      <span>Concepts</span>
+      <input type="text" id="filter-input" placeholder="Filter…" oninput="renderAll()">
     </div>
-    <!-- GraphDB connect (used when launched from Model Manager) -->
-    <div class="connect-bar" id="connect-bar">
-      <input id="sparql-endpoint" type="text" placeholder="/graphdb/repositories/value-kb"
-        value="/graphdb/repositories/value-kb">
-      <button class="btn btn-sm btn-ghost" onclick="connectAndLoad()" style="flex-shrink:0">Load</button>
-    </div>
-    <div class="add-concept">
-      <input id="new-concept-input" placeholder="New concept label…"
-        onkeydown="if(event.key==='Enter')addConcept()">
-      <button class="btn btn-sm btn-primary" onclick="addConcept()">Add</button>
-    </div>
-    <div class="search-wrap">
-      <input id="concept-search" placeholder="Filter concepts…" oninput="renderConceptList()">
-    </div>
-    <div class="panel-body" id="concept-list"></div>
+    <div class="concept-list" id="concept-list"></div>
   </div>
+  <div class="resizer" id="resizer"></div>
 
-  <div class="col-resizer" id="resizer-left" data-side="left"></div>
-
-  <!-- CENTER: hierarchy canvas -->
-  <div class="panel">
-    <div class="canvas-toolbar">
-      <button class="btn btn-ghost btn-sm" onclick="expandAllTree(true)">⊞ Expand</button>
-      <button class="btn btn-ghost btn-sm" onclick="expandAllTree(false)">⊟ Collapse</button>
-      <button class="btn btn-ghost btn-sm" onclick="showOrphansOnly=!showOrphansOnly;renderConceptList();toast(showOrphansOnly?'Showing unplaced concepts':'Showing all concepts','info')">⚑ Unplaced</button>
-      <span class="hint">Drag concepts from the left into the tree. Drag tree items to re-parent or reorder.</span>
-    </div>
-    <div class="canvas drop-root" id="canvas"></div>
-  </div>
-
-  <div class="col-resizer" id="resizer-right" data-side="right"></div>
-
-  <!-- RIGHT: concept details -->
-  <div class="panel">
-    <div class="panel-header">Concept Details</div>
-    <div class="panel-body" id="detail-panel">
-      <div class="empty-detail">Select a concept to edit its label, notation, definition, and broader/narrower relations.</div>
+  <!-- CANVAS -->
+  <div class="canvas-area" id="canvas-area">
+    <div class="canvas-inner" id="canvas-inner">
+      <div class="canvas-empty">Connect to GraphDB and load a taxonomy scheme.</div>
     </div>
   </div>
 </div>
 
-<!-- IMPORT/EXPORT MODAL -->
-<div class="modal-overlay" id="ttl-modal">
+<!-- DIFF MODAL -->
+<div class="modal-overlay" id="diff-modal">
   <div class="modal">
-    <h3 id="ttl-modal-title">Turtle</h3>
-    <p id="ttl-modal-desc"></p>
-    <textarea id="ttl-textarea" spellcheck="false"></textarea>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('ttl-modal')">Close</button>
-      <button class="btn btn-primary" id="ttl-modal-action"></button>
+    <div class="modal-hdr">⚡ Preview Changes</div>
+    <div class="modal-body" id="diff-body"></div>
+    <div class="modal-ftr">
+      <button class="btn" onclick="closeDiff()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSave()">Confirm &amp; Save to GraphDB</button>
     </div>
   </div>
 </div>
 
-<div class="toast-container" id="toast-container"></div>
+<!-- TOAST -->
+<div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
-//  DATA MODEL
-//  A scheme = { id, iri, title, base, concepts: { id: concept } }
-//  concept   = { id, iri, prefLabel, altLabels[], notation, definition,
-//                broader: [conceptId...], note }
-//  Hierarchy is derived from broader[] (poly-hierarchy → a concept may
-//  appear under several parents). Top concepts = those with no broader.
+//  CONSTANTS
 // ═══════════════════════════════════════════════════════════
-const LS_KEY = 'ev_tax_editor_v1';
 const SKOS = 'http://www.w3.org/2004/02/skos/core#';
 
-let data = loadDraft() || seedData();
-let currentSchemeId = Object.keys(data.schemes)[0];
-let selectedConceptId = null;
-let collapsed = new Set();          // conceptIds collapsed in the tree (per render key)
-let showOrphansOnly = false;
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+let schemeData = {
+  iri: '', base: '', title: '',
+  concepts: {}   // id -> { id, iri, prefLabel, broader:[], note }
+};
+let loadedSchemeIri = null;
+let namedGraph = null;
+let selectedId = null;
+let collapsed = new Set();
+let view = 'td';  // 'td' | 'lr'
+let baseline = {};
+let dragState = null; // { id, fromPanel }
 
-function seedData() {
-  const sid = 's_' + rnd();
-  return {
-    schemes: {
-      [sid]: {
-        id: sid,
-        iri: 'https://www.enablingvalue.com/vocabulary-core#scheme',
-        title: 'New Vocabulary',
-        base: 'https://www.enablingvalue.com/vocabulary-core#',
-        concepts: {},
-      },
-    },
-  };
-}
-
-function rnd() { return Math.random().toString(36).slice(2, 9); }
-function scheme() { return data.schemes[currentSchemeId]; }
-function concepts() { return scheme().concepts; }
-function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function slug(s){return (s||'').trim().replace(/[^A-Za-z0-9]+/g,'').replace(/^(.)/,c=>c)||('c'+rnd());}
-
-function loadDraft() {
-  try { const raw = localStorage.getItem(LS_KEY); if (raw) return JSON.parse(raw); } catch(e){}
-  return null;
-}
-function saveDraft() {
-  localStorage.setItem(LS_KEY, JSON.stringify(data));
-  toast('Draft saved to this browser', 'success');
-}
-function autosave() { localStorage.setItem(LS_KEY, JSON.stringify(data)); }
-
-// ── SCHEMES ──
-function renderSchemeSelect() {
-  const sel = document.getElementById('scheme-select');
-  sel.innerHTML = Object.values(data.schemes)
-    .map(s => `<option value="${s.id}" ${s.id===currentSchemeId?'selected':''}>${esc(s.title)}</option>`).join('');
-}
-function switchScheme(id) {
-  currentSchemeId = id; selectedConceptId = null; collapsed = new Set();
-  renderAll();
-}
-function newScheme() {
-  const title = prompt('New scheme title:', 'New Vocabulary');
-  if (!title) return;
-  const sid = 's_' + rnd();
-  data.schemes[sid] = { id: sid,
-    iri: 'https://www.enablingvalue.com/vocabulary-'+slug(title).toLowerCase()+'#scheme',
-    title, base: 'https://www.enablingvalue.com/vocabulary-'+slug(title).toLowerCase()+'#',
-    concepts: {} };
-  currentSchemeId = sid; selectedConceptId = null; autosave(); renderAll();
-}
-function renameScheme() {
-  const s = scheme(); const t = prompt('Scheme title:', s.title); if (!t) return;
-  s.title = t; autosave(); renderAll();
-}
-function deleteScheme() {
-  if (Object.keys(data.schemes).length <= 1) { toast('Keep at least one scheme', 'error'); return; }
-  if (!confirm(`Delete scheme "${scheme().title}" and all its concepts?`)) return;
-  delete data.schemes[currentSchemeId];
-  currentSchemeId = Object.keys(data.schemes)[0]; selectedConceptId = null;
-  autosave(); renderAll();
-}
-
-// ── CONCEPTS ──
-function addConcept() {
-  const inp = document.getElementById('new-concept-input');
-  const label = inp.value.trim(); if (!label) return;
-  const id = 'c_' + rnd();
-  concepts()[id] = { id, iri: scheme().base + slug(label), prefLabel: label,
-    altLabels: [], notation: '', definition: '', broader: [], note: '' };
-  inp.value = ''; autosave(); renderConceptList(); renderTree();
-}
-function deleteConcept(id) {
-  const c = concepts()[id]; if (!c) return;
-  if (!confirm(`Delete concept "${c.prefLabel}"? It will be removed from the hierarchy and any broader links.`)) return;
-  delete concepts()[id];
-  // remove from others' broader
-  Object.values(concepts()).forEach(x => { x.broader = x.broader.filter(b => b !== id); });
-  if (selectedConceptId === id) selectedConceptId = null;
-  autosave(); renderAll();
-}
-
-// Top concepts: in-scheme concepts with no broader. Children: concepts whose broader includes id.
-function childrenOf(id) {
-  return Object.values(concepts()).filter(c => c.broader.includes(id))
-    .sort((a,b)=>(a.prefLabel||'').localeCompare(b.prefLabel||''));
-}
-function topConcepts() {
-  return Object.values(concepts()).filter(c => !c.broader || !c.broader.length)
-    .sort((a,b)=>(a.prefLabel||'').localeCompare(b.prefLabel||''));
-}
-function parentCount(id) { return (concepts()[id]?.broader||[]).length; }
-function isInTree(id) {
-  // a concept is "in the tree" if it has a broader OR has children OR is a deliberate top concept.
-  // For the unplaced filter we treat "unplaced" = no broader AND no children.
-  return parentCount(id) > 0 || childrenOf(id).length > 0;
-}
+function concepts() { return schemeData.concepts; }
+function rnd() { return Math.random().toString(36).slice(2,8); }
 
 // ═══════════════════════════════════════════════════════════
-//  LEFT PANEL — flat concept list (draggable source)
+//  CONNECTION — reused exactly from tax-editor.html
 // ═══════════════════════════════════════════════════════════
-function renderConceptList() {
-  const list = document.getElementById('concept-list');
-  const q = (document.getElementById('concept-search').value||'').toLowerCase();
-  let items = Object.values(concepts());
-  document.getElementById('concept-count').textContent = items.length;
-  if (q) items = items.filter(c => (c.prefLabel||'').toLowerCase().includes(q) ||
-    (c.notation||'').toLowerCase().includes(q) ||
-    (c.altLabels||[]).join(' ').toLowerCase().includes(q));
-  if (showOrphansOnly) items = items.filter(c => !isInTree(c.id));
-  items.sort((a,b)=>(a.prefLabel||'').localeCompare(b.prefLabel||''));
-
-  list.innerHTML = '';
-  if (!items.length) { list.innerHTML = '<div class="canvas-empty" style="padding:30px 10px">No concepts. Add one above.</div>'; return; }
-  items.forEach(c => {
-    const placed = isInTree(c.id);
-    const div = document.createElement('div');
-    div.className = 'concept-item' + (c.id===selectedConceptId?' selected':'') + (placed?' used':'');
-    div.draggable = true;
-    div.dataset.cid = c.id;
-    div.innerHTML = `
-      <span class="concept-grip">⠿</span>
-      <span class="concept-label" title="${esc(c.iri)}">${esc(c.prefLabel||c.id)}</span>
-      <span class="concept-badges">
-        ${c.notation?`<span class="mini">${esc(c.notation)}</span>`:''}
-        ${placed?'<span class="mini in-tree">in tree</span>':'<span class="mini orphan">unplaced</span>'}
-      </span>`;
-    div.addEventListener('click', () => selectConcept(c.id));
-    div.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('text/plain', JSON.stringify({ kind:'concept', cid:c.id }));
-      e.dataTransfer.effectAllowed = 'copyMove';
-      div.classList.add('dragging');
-    });
-    div.addEventListener('dragend', () => div.classList.remove('dragging'));
-    list.appendChild(div);
-  });
+function setConnStatus(s) {
+  const el = document.getElementById('conn-status');
+  el.className = 'conn-status ' + (s||'');
 }
-
-// ═══════════════════════════════════════════════════════════
-//  CENTER — hierarchy canvas (drop target + draggable subtrees)
-// ═══════════════════════════════════════════════════════════
-function renderTree() {
-  const canvas = document.getElementById('canvas');
-  canvas.innerHTML = '';
-  const tops = topConcepts();
-  if (!Object.keys(concepts()).length) {
-    canvas.innerHTML = `<div class="canvas-empty">This scheme has no concepts yet.<br>Add concepts on the left, then drag them here to build the hierarchy.</div>`;
-  } else if (!tops.length) {
-    canvas.innerHTML = `<div class="canvas-empty">Every concept has a broader — no top concepts.<br>Drag an item onto the empty canvas to make it a top concept.</div>`;
-  } else {
-    tops.forEach(c => canvas.appendChild(renderTreeNode(c.id, null, new Set())));
-  }
-  setupRootDrop(canvas);
-}
-
-// path-aware render so the same poly-hierarchy concept can appear under multiple parents
-function renderTreeNode(cid, parentId, ancestors) {
-  const c = concepts()[cid];
-  const wrap = document.createElement('div');
-  wrap.className = 'tnode';
-  const key = (parentId||'ROOT') + '>' + cid;
-  const kids = childrenOf(cid);
-  const cycle = ancestors.has(cid);
-  const isCollapsed = collapsed.has(key);
-  const poly = parentCount(cid) > 1;
-
-  const row = document.createElement('div');
-  row.className = 'tnode-row' + (cid===selectedConceptId?' selected':'');
-  row.draggable = true;
-  row.dataset.cid = cid;
-  row.dataset.parent = parentId || '';
-  row.innerHTML = `
-    <span class="tnode-toggle ${kids.length&&!cycle?'':'leaf'}">${kids.length&&!cycle?(isCollapsed?'▶':'▼'):'•'}</span>
-    <span class="tnode-icon">◆</span>
-    <span class="tnode-label" title="${esc(c.iri)}">${esc(c.prefLabel||cid)}</span>
-    ${poly?'<span class="tnode-poly" title="Appears under multiple broaders">poly ×'+parentCount(cid)+'</span>':''}
-    ${cycle?'<span class="tnode-poly" style="color:var(--danger);border-color:var(--danger)">cycle</span>':''}
-    <span class="tnode-actions">
-      <button class="tnode-act" title="Add child concept" onclick="event.stopPropagation();addChildPrompt('${cid}')">＋child</button>
-      ${parentId?`<button class="tnode-act" title="Detach from this parent" onclick="event.stopPropagation();detach('${cid}','${parentId}')">detach</button>`:''}
-      <button class="tnode-act del" title="Delete concept" onclick="event.stopPropagation();deleteConcept('${cid}')">✕</button>
-    </span>`;
-  row.querySelector('.tnode-toggle').addEventListener('click', e => {
-    e.stopPropagation();
-    if (!kids.length||cycle) return;
-    if (collapsed.has(key)) collapsed.delete(key); else collapsed.add(key);
-    renderTree();
-  });
-  row.addEventListener('click', () => selectConcept(cid));
-  setupNodeDnD(row, cid, parentId);
-  wrap.appendChild(row);
-
-  if (kids.length && !cycle && !isCollapsed) {
-    const childBox = document.createElement('div');
-    childBox.className = 'tnode-children';
-    const nextAnc = new Set(ancestors); nextAnc.add(cid);
-    kids.forEach(k => childBox.appendChild(renderTreeNode(k.id, cid, nextAnc)));
-    wrap.appendChild(childBox);
-  }
-  return wrap;
-}
-
-// ── Drag & drop wiring ──
-function parseDrag(e) { try { return JSON.parse(e.dataTransfer.getData('text/plain')); } catch(_) { return null; } }
-
-function setupRootDrop(canvas) {
-  canvas.addEventListener('dragover', e => {
-    // only treat as root drop if directly over the canvas (not a node)
-    if (e.target === canvas || e.target.classList.contains('canvas-empty')) {
-      e.preventDefault(); canvas.classList.add('drag-over');
-    }
-  });
-  canvas.addEventListener('dragleave', e => { if (e.target===canvas) canvas.classList.remove('drag-over'); });
-  canvas.addEventListener('drop', e => {
-    if (!(e.target === canvas || e.target.classList.contains('canvas-empty'))) return;
-    e.preventDefault(); canvas.classList.remove('drag-over');
-    const d = parseDrag(e); if (!d) return;
-    makeTopConcept(d.cid, d.kind === 'treenode' ? d.parent : null);
-  });
-}
-
-function setupNodeDnD(row, cid, parentId) {
-  row.addEventListener('dragstart', e => {
-    e.stopPropagation();
-    e.dataTransfer.setData('text/plain', JSON.stringify({ kind:'treenode', cid, parent: parentId||'' }));
-    e.dataTransfer.effectAllowed = 'move';
-    row.classList.add('dragging');
-  });
-  row.addEventListener('dragend', () => row.classList.remove('dragging'));
-  row.addEventListener('dragover', e => {
-    e.preventDefault(); e.stopPropagation();
-    row.classList.add('drag-over');
-  });
-  row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
-  row.addEventListener('drop', e => {
-    e.preventDefault(); e.stopPropagation();
-    row.classList.remove('drag-over');
-    const d = parseDrag(e); if (!d) return;
-    dropOnNode(d, cid);
-  });
-}
-
-// Drop a dragged thing (concept from left, or a tree node) onto target concept = make it a child
-function dropOnNode(d, targetId) {
-  const srcId = d.cid;
-  if (srcId === targetId) { toast('Cannot drop a concept on itself', 'error'); return; }
-  if (isAncestor(srcId, targetId)) { toast('Cannot move a concept under its own descendant', 'error'); return; }
-  const c = concepts()[srcId]; if (!c) return;
-
-  if (d.kind === 'treenode') {
-    const oldParent = d.parent || '';
-    // Re-parent: remove old parent link (if any), add new. Keep other broaders (poly).
-    if (oldParent) c.broader = c.broader.filter(b => b !== oldParent);
-    if (!c.broader.includes(targetId)) c.broader.push(targetId);
-  } else {
-    // From left panel: add as an additional broader (poly-hierarchy)
-    if (!c.broader.includes(targetId)) c.broader.push(targetId);
-    else { toast('Already under that concept', 'info'); }
-  }
-  autosave(); renderAll();
-}
-
-function makeTopConcept(cid, oldParent) {
-  const c = concepts()[cid]; if (!c) return;
-  if (oldParent) c.broader = c.broader.filter(b => b !== oldParent);
-  else c.broader = []; // dragged from left to empty canvas → clear all broaders → top concept
-  autosave(); renderAll();
-}
-
-function detach(cid, parentId) {
-  const c = concepts()[cid]; if (!c) return;
-  c.broader = c.broader.filter(b => b !== parentId);
-  autosave(); renderAll();
-}
-
-function addChildPrompt(parentId) {
-  const label = prompt('New child concept label:'); if (!label) return;
-  const id = 'c_' + rnd();
-  concepts()[id] = { id, iri: scheme().base + slug(label), prefLabel: label,
-    altLabels: [], notation: '', definition: '', broader: [parentId], note: '' };
-  autosave(); renderAll(); selectConcept(id);
-}
-
-// is A an ancestor of B? (prevents cycles on re-parent)
-function isAncestor(aId, bId) {
-  const stack = [...(concepts()[bId]?.broader||[])]; const seen = new Set();
-  while (stack.length) {
-    const p = stack.pop(); if (p===aId) return true;
-    if (seen.has(p)) continue; seen.add(p);
-    (concepts()[p]?.broader||[]).forEach(x => stack.push(x));
-  }
-  return false;
-}
-
-function expandAllTree(expand) {
-  if (expand) { collapsed = new Set(); }
-  else {
-    collapsed = new Set();
-    // collapse every parent>child key that has children
-    const walk = (cid, parentId, anc) => {
-      const key = (parentId||'ROOT')+'>'+cid;
-      const kids = childrenOf(cid);
-      if (kids.length && !anc.has(cid)) { collapsed.add(key); const na=new Set(anc); na.add(cid); kids.forEach(k=>walk(k.id,cid,na)); }
-    };
-    topConcepts().forEach(c => walk(c.id, null, new Set()));
-  }
-  renderTree();
-}
-
-// ═══════════════════════════════════════════════════════════
-//  RIGHT — concept details
-// ═══════════════════════════════════════════════════════════
-function selectConcept(id) { selectedConceptId = id; renderConceptList(); renderTree(); renderDetail(); }
-
-function renderDetail() {
-  const panel = document.getElementById('detail-panel');
-  const c = concepts()[selectedConceptId];
-  if (!c) { panel.innerHTML = '<div class="empty-detail">Select a concept to edit its details.</div>'; return; }
-
-  const broaderChips = (c.broader||[]).map(bid => {
-    const b = concepts()[bid];
-    return `<div class="broader-chip">◆ ${esc(b?b.prefLabel:bid)}
-      <span class="x" onclick="detach('${c.id}','${bid}')">✕</span></div>`;
-  }).join('') || '<span style="font-size:11px;color:var(--text-muted)">No broader — this is a top concept.</span>';
-
-  const others = Object.values(concepts())
-    .filter(x => x.id!==c.id && !(c.broader||[]).includes(x.id) && !isAncestor(c.id,x.id))
-    .sort((a,b)=>(a.prefLabel||'').localeCompare(b.prefLabel||''));
-  const narrower = childrenOf(c.id);
-
-  panel.innerHTML = `
-    <div class="field"><label>Preferred label (skos:prefLabel)</label>
-      <input value="${esc(c.prefLabel)}" onchange="updateField('prefLabel',this.value)"></div>
-    <div class="field"><label>Notation (skos:notation)</label>
-      <input class="mono" value="${esc(c.notation)}" onchange="updateField('notation',this.value)" placeholder="e.g. 01.02"></div>
-    <div class="field"><label>Alt labels (comma-separated, skos:altLabel)</label>
-      <input value="${esc((c.altLabels||[]).join(', '))}" onchange="updateAltLabels(this.value)"></div>
-    <div class="field"><label>Definition (skos:definition)</label>
-      <textarea onchange="updateField('definition',this.value)">${esc(c.definition)}</textarea></div>
-    <div class="field"><label>Scope note (skos:scopeNote)</label>
-      <textarea onchange="updateField('note',this.value)">${esc(c.note)}</textarea></div>
-    <div class="field"><label>IRI</label>
-      <input class="mono" value="${esc(c.iri)}" onchange="updateField('iri',this.value)"></div>
-
-    <div class="section-title">Broader (skos:broader)</div>
-    <div class="broader-list">${broaderChips}</div>
-    <div class="field" style="margin-top:8px"><label>Add broader</label>
-      <select onchange="if(this.value){addBroader(this.value);this.value=''}">
-        <option value="">— pick a broader concept —</option>
-        ${others.map(o=>`<option value="${o.id}">${esc(o.prefLabel)}</option>`).join('')}
-      </select></div>
-
-    <div class="section-title">Narrower (skos:narrower)</div>
-    <div class="broader-list">
-      ${narrower.length?narrower.map(n=>`<div class="broader-chip">◆ ${esc(n.prefLabel)}
-        <span class="x" title="Detach" onclick="detach('${n.id}','${c.id}')">✕</span></div>`).join('')
-      :'<span style="font-size:11px;color:var(--text-muted)">No narrower concepts. Drag items onto this concept in the tree to add children.</span>'}
-    </div>
-  `;
-}
-
-function updateField(f, v) { const c=concepts()[selectedConceptId]; if(!c)return; c[f]=v; autosave();
-  if(f==='prefLabel'||f==='notation'){renderConceptList();renderTree();} }
-function updateAltLabels(v){ const c=concepts()[selectedConceptId]; if(!c)return;
-  c.altLabels=v.split(',').map(s=>s.trim()).filter(Boolean); autosave(); }
-function addBroader(bid){ const c=concepts()[selectedConceptId]; if(!c)return;
-  if(isAncestor(c.id,bid)){toast('That would create a cycle','error');return;}
-  if(!c.broader.includes(bid))c.broader.push(bid); autosave(); renderAll(); }
-
-// ═══════════════════════════════════════════════════════════
-//  TTL IMPORT / EXPORT
-// ═══════════════════════════════════════════════════════════
-function exportTTL() {
-  const s = scheme();
-  const lines = [];
-  lines.push('@prefix skos: <'+SKOS+'> .');
-  lines.push('@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .');
-  lines.push('@prefix dct:  <http://purl.org/dc/terms/> .');
-  lines.push('');
-  lines.push(`<${s.iri}> a skos:ConceptScheme ;`);
-  lines.push(`    dct:title "${ttlEsc(s.title)}" .`);
-  lines.push('');
-  Object.values(s.concepts).forEach(c => {
-    const l = [];
-    l.push(`<${c.iri}> a skos:Concept ;`);
-    l.push(`    skos:inScheme <${s.iri}> ;`);
-    l.push(`    skos:prefLabel "${ttlEsc(c.prefLabel)}"@en ;`);
-    (c.altLabels||[]).forEach(a => l.push(`    skos:altLabel "${ttlEsc(a)}"@en ;`));
-    if (c.notation) l.push(`    skos:notation "${ttlEsc(c.notation)}" ;`);
-    if (c.definition) l.push(`    skos:definition "${ttlEsc(c.definition)}"@en ;`);
-    if (c.note) l.push(`    skos:scopeNote "${ttlEsc(c.note)}"@en ;`);
-    (c.broader||[]).forEach(bid => { const b=s.concepts[bid]; if(b) l.push(`    skos:broader <${b.iri}> ;`); });
-    childrenOf(c.id).forEach(n => l.push(`    skos:narrower <${n.iri}> ;`));
-    if (!c.broader || !c.broader.length) l.push(`    skos:topConceptOf <${s.iri}> ;`);
-    // close: replace trailing ' ;' with ' .'
-    l[l.length-1] = l[l.length-1].replace(/ ;$/, ' .');
-    lines.push(l.join('\n'));
-    lines.push('');
-  });
-  openTTLModal('Export Turtle', 'SKOS Turtle for this scheme. Copy, or download below.', lines.join('\n'),
-    'Download .ttl', () => downloadText(slug(s.title).toLowerCase()+'.ttl', lines.join('\n')));
-}
-function ttlEsc(s){return (s==null?'':String(s)).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n');}
-
-function importTTL() {
-  openTTLModal('Import Turtle', 'Paste SKOS Turtle. Concepts, prefLabels, notations, definitions, and skos:broader/narrower will be parsed into the current scheme (added to existing concepts).',
-    '', 'Parse & Import', () => {
-      const txt = document.getElementById('ttl-textarea').value;
-      try { parseTTL(txt); closeModal('ttl-modal'); autosave(); renderAll(); toast('Imported', 'success'); }
-      catch(e){ toast('Parse error: '+e.message, 'error'); }
-    });
-}
-
-// Lightweight SKOS Turtle parser — handles the subset this editor emits + common variants.
-function parseTTL(txt) {
-  // expand prefixes
-  const prefixes = {};
-  txt.replace(/@prefix\s+([\w-]*):\s*<([^>]+)>\s*\./g, (_,p,u)=>{prefixes[p]=u;return '';});
-  const expand = t => {
-    t = t.trim();
-    if (t.startsWith('<') && t.endsWith('>')) return t.slice(1,-1);
-    const m = t.match(/^([\w-]*):(.+)$/); if (m && prefixes[m[1]]!=null) return prefixes[m[1]]+m[2];
-    return t;
-  };
-  // split into statements on ' .' at end of lines (naive but works for block style)
-  // Build per-subject blocks: SUBJECT ... ;  ... .
-  const blocks = txt.split(/\.\s*(?=(?:<|\w+:)[^\n]*\n?\s*(?:a|rdf:type|<|\w+:))/);
-  // Simpler: regex each "subject a skos:Concept" block
-  const s = scheme();
-  const byIri = {}; Object.values(s.concepts).forEach(c=>byIri[c.iri]=c);
-
-  // First pass: find all concept subjects with their predicate-object lists
-  const conceptRe = /(<[^>]+>|[\w-]+:[\w.\-]+)\s+a\s+skos:Concept\b([\s\S]*?)(?:\.\s*(?:\n|$))/g;
-  let m, found = 0;
-  const broaderPairs = [];   // [childIri, broaderIri]
-  const narrowerPairs = [];  // [parentIri, narrowerIri]
-  while ((m = conceptRe.exec(txt))) {
-    found++;
-    const subjIri = expand(m[1]);
-    const body = m[2];
-    let c = byIri[subjIri];
-    if (!c) { const id='c_'+rnd(); c={id,iri:subjIri,prefLabel:'',altLabels:[],notation:'',definition:'',broader:[],note:''};
-      s.concepts[id]=c; byIri[subjIri]=c; }
-    const pref = body.match(/skos:prefLabel\s+"([^"]*)"/); if(pref) c.prefLabel=unesc(pref[1]);
-    if(!c.prefLabel) c.prefLabel = subjIri.split(/[#/]/).pop();
-    const nota = body.match(/skos:notation\s+"([^"]*)"/); if(nota) c.notation=unesc(nota[1]);
-    const defn = body.match(/skos:definition\s+"([^"]*)"/); if(defn) c.definition=unesc(defn[1]);
-    const note = body.match(/skos:scopeNote\s+"([^"]*)"/); if(note) c.note=unesc(note[1]);
-    const alts = [...body.matchAll(/skos:altLabel\s+"([^"]*)"/g)].map(x=>unesc(x[1])); if(alts.length)c.altLabels=alts;
-    [...body.matchAll(/skos:broader\s+(<[^>]+>|[\w-]+:[\w.\-]+)/g)].forEach(x=>broaderPairs.push([subjIri,expand(x[1])]));
-    [...body.matchAll(/skos:narrower\s+(<[^>]+>|[\w-]+:[\w.\-]+)/g)].forEach(x=>narrowerPairs.push([subjIri,expand(x[1])]));
-  }
-  if (!found) throw new Error('no skos:Concept found');
-  // resolve relations by iri
-  const idByIri = {}; Object.values(s.concepts).forEach(c=>idByIri[c.iri]=c.id);
-  broaderPairs.forEach(([childIri,brIri])=>{const ch=byIri[childIri],br=idByIri[brIri];
-    if(ch&&br&&!ch.broader.includes(br))ch.broader.push(br);});
-  narrowerPairs.forEach(([parIri,naIri])=>{const na=byIri[naIri],par=idByIri[parIri];
-    if(na&&par&&!na.broader.includes(par))na.broader.push(par);});
-}
-function unesc(s){return s.replace(/\\n/g,'\n').replace(/\\"/g,'"').replace(/\\\\/g,'\\');}
-
-// ── modal & misc ──
-function openTTLModal(title, desc, content, actionLabel, actionFn) {
-  document.getElementById('ttl-modal-title').textContent = title;
-  document.getElementById('ttl-modal-desc').textContent = desc;
-  document.getElementById('ttl-textarea').value = content;
-  const btn = document.getElementById('ttl-modal-action');
-  btn.textContent = actionLabel; btn.onclick = actionFn;
-  document.getElementById('ttl-modal').classList.add('open');
-}
-function closeModal(id){ document.getElementById(id).classList.remove('open'); }
-function downloadText(name, text){
-  const blob = new Blob([text], {type:'text/turtle'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
-  toast('Downloaded '+name,'success');
-}
-function toast(msg,type='info'){
-  const c=document.getElementById('toast-container');
-  const t=document.createElement('div'); t.className='toast toast-'+type; t.textContent=msg;
-  c.appendChild(t); setTimeout(()=>t.remove(),3000);
-}
-
-function renderAll(){ renderSchemeSelect(); renderConceptList(); renderTree(); renderDetail(); }
-
-// ═══════════════════════════════════════════════════════════
-//  GRAPHDB CONNECT + SKOS LOADER  (via proxy.py, relative path)
-// ═══════════════════════════════════════════════════════════
-let namedGraph = null;     // optional context graph passed from Model Manager
-let loadedSchemeIri = null; // IRI of the scheme/namespace we loaded
-
-function setConnStatus(s){ const el=document.getElementById('conn-status'); el.className='conn-status '+(s||''); }
 
 async function sparqlSelect(query) {
   let ep = document.getElementById('sparql-endpoint').value.trim();
@@ -754,177 +264,270 @@ async function sparqlSelect(query) {
   const body = new URLSearchParams({ query });
   if (namedGraph) body.set('context', '<' + namedGraph + '>');
   const r = await fetch(ep, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'Accept':'application/sparql-results+json' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/sparql-results+json' },
     body
   });
-  if (!r.ok) { const t = await r.text(); throw new Error('SPARQL '+r.status+': '+t); }
+  if (!r.ok) { const t = await r.text(); throw new Error('SPARQL ' + r.status + ': ' + t); }
   return r.json();
 }
 
-// Load all SKOS concepts whose IRI starts with the scheme base namespace.
-async function connectAndLoad() {
-  setConnStatus('loading');
-  try {
-    const s = scheme();
-    const nsBase = s.base;
-    const schemeIri = loadedSchemeIri || s.iri;
-    const G = '<' + schemeIri + '>';
-
-    // Concepts are stored inside the asset's NAMED GRAPH (context = scheme IRI),
-    // which is how the Model Manager loads them. Query within that graph.
-    // Fallback: if the graph-scoped query returns nothing, try a namespace filter
-    // in case the concepts live in the default graph.
-    const qConceptsGraph = `
-      PREFIX skos: <${SKOS}>
-      SELECT ?c ?pref ?nota ?def ?note ?alt WHERE {
-        GRAPH ${G} {
-          ?c a skos:Concept .
-          OPTIONAL { ?c skos:prefLabel ?pref }
-          OPTIONAL { ?c skos:notation ?nota }
-          OPTIONAL { ?c skos:definition ?def }
-          OPTIONAL { ?c skos:scopeNote ?note }
-          OPTIONAL { ?c skos:altLabel ?alt }
-        }
-      }`;
-    const qConceptsNs = `
-      PREFIX skos: <${SKOS}>
-      SELECT ?c ?pref ?nota ?def ?note ?alt WHERE {
-        ?c a skos:Concept .
-        FILTER(STRSTARTS(STR(?c), "${nsBase}"))
-        OPTIONAL { ?c skos:prefLabel ?pref }
-        OPTIONAL { ?c skos:notation ?nota }
-        OPTIONAL { ?c skos:definition ?def }
-        OPTIONAL { ?c skos:scopeNote ?note }
-        OPTIONAL { ?c skos:altLabel ?alt }
-      }`;
-
-    let usedGraph = true;
-    let r1 = await sparqlSelect(qConceptsGraph);
-    if (!r1.results.bindings.length) {
-      usedGraph = false;
-      r1 = await sparqlSelect(qConceptsNs);
-    }
-
-    // Rebuild this scheme's concept set from the repo
-    const byIri = {};
-    const newConcepts = {};
-    r1.results.bindings.forEach(b => {
-      const iri = b.c.value;
-      let c = byIri[iri];
-      if (!c) {
-        const id = 'c_' + rnd();
-        c = { id, iri, prefLabel:'', altLabels:[], notation:'', definition:'', broader:[], note:'' };
-        byIri[iri] = c; newConcepts[id] = c;
-      }
-      if (b.pref && !c.prefLabel) c.prefLabel = b.pref.value;
-      if (b.nota && !c.notation)  c.notation  = b.nota.value;
-      if (b.def  && !c.definition) c.definition = b.def.value;
-      if (b.note && !c.note)      c.note      = b.note.value;
-      if (b.alt && !c.altLabels.includes(b.alt.value)) c.altLabels.push(b.alt.value);
-    });
-    Object.values(newConcepts).forEach(c => { if (!c.prefLabel) c.prefLabel = c.iri.split(/[#/]/).pop(); });
-
-    // broader / narrower — scoped the same way the concepts were found
-    const relWrap = (triples) => usedGraph
-      ? `GRAPH ${G} { ${triples} }`
-      : `${triples} FILTER(STRSTARTS(STR(?c), "${nsBase}"))`;
-
-    const qBroader = `PREFIX skos: <${SKOS}>
-      SELECT ?c ?b WHERE { ${relWrap('?c skos:broader ?b .')} }`;
-    const r2 = await sparqlSelect(qBroader);
-    const idByIri = {}; Object.values(newConcepts).forEach(c => idByIri[c.iri] = c.id);
-    r2.results.bindings.forEach(b => {
-      const child = byIri[b.c.value], parId = idByIri[b.b.value];
-      if (child && parId && !child.broader.includes(parId)) child.broader.push(parId);
-    });
-
-    const qNarrower = `PREFIX skos: <${SKOS}>
-      SELECT ?c ?n WHERE { ${relWrap('?c skos:narrower ?n .')} }`;
-    try {
-      const r3 = await sparqlSelect(qNarrower);
-      r3.results.bindings.forEach(b => {
-        const parent = byIri[b.c.value], child = byIri[b.n.value];
-        if (parent && child && !child.broader.includes(parent.id)) child.broader.push(parent.id);
-      });
-    } catch(e) { /* narrower optional */ }
-
-    s.concepts = newConcepts;
-    selectedConceptId = null; collapsed = new Set();
-    snapshotBaseline();              // remember loaded state for incremental diff
-    document.getElementById('btn-save-graphdb').style.display = 'inline-block';
-    autosave();
-    setConnStatus('connected');
-    renderAll();
-    toast('Loaded ' + Object.keys(newConcepts).length + ' concepts from GraphDB', 'success');
-  } catch(e) {
-    setConnStatus('error');
-    toast('Load failed: ' + e.message, 'error');
-  }
-}
-
-// ── SPARQL UPDATE through proxy (/statements) ──
 async function sparqlUpdate(update) {
   let ep = document.getElementById('sparql-endpoint').value.trim();
   ep = ep.replace(/^https?:\/\/localhost:\d+/, '');
   if (!ep.startsWith('/')) ep = '/' + ep;
   ep = ep.replace(/\/$/, '') + '/statements';
   const r = await fetch(ep, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'update=' + encodeURIComponent(update)
   });
-  if (!r.ok) throw new Error('Update '+r.status+': '+(await r.text()));
+  if (!r.ok) throw new Error('Update ' + r.status + ': ' + (await r.text()));
 }
 
-// ── Baseline snapshot: the set of triples per concept as last loaded/saved ──
-// We store a normalized triple list so the diff is a pure set comparison.
-let baseline = {};   // iri -> Set(tripleString)
+// If scheme is already known (from URL params), load directly.
+// Otherwise, discover taxonomy schemes from repo and show a selector.
+async function connectThenLoad() {
+  if (loadedSchemeIri) {
+    // Launched from Model Manager with ?scheme= — load directly, no selector needed
+    await connectAndLoad();
+  } else {
+    // Standalone: query repo for taxonomy-type ConceptSchemes
+    setConnStatus('loading');
+    try {
+      const q = `PREFIX skos: <${SKOS}>
+SELECT DISTINCT ?s ?label WHERE {
+  ?s a skos:ConceptScheme .
+  OPTIONAL { ?s <http://www.w3.org/2000/01/rdf-schema#label> ?label }
+  OPTIONAL { ?s <http://www.w3.org/2004/02/skos/core#prefLabel> ?label }
+  FILTER(CONTAINS(LCASE(STR(?s)), "tax"))
+} ORDER BY ?label`;
+      const r = await sparqlSelect(q);
+      const sel = document.getElementById('scheme-select');
+      sel.innerHTML = '<option value="">— select taxonomy —</option>';
+      r.results.bindings.forEach(b => {
+        const iri = b.s.value;
+        const label = b.label?.value || iri.split(/[#/]/).pop();
+        const opt = document.createElement('option');
+        opt.value = iri; opt.textContent = label;
+        sel.appendChild(opt);
+      });
+      if (r.results.bindings.length === 1) {
+        // Only one taxonomy — auto-select and load
+        const iri = r.results.bindings[0].s.value;
+        onSchemeChange(iri);
+        sel.value = iri;
+        await connectAndLoad();
+      } else if (r.results.bindings.length > 1) {
+        sel.style.display = 'inline-block';
+        setConnStatus('connected');
+        toast('Select a taxonomy to load', 'info');
+      } else {
+        // No "tax" match — show all ConceptSchemes
+        const q2 = `PREFIX skos: <${SKOS}> SELECT DISTINCT ?s ?label WHERE { ?s a skos:ConceptScheme . OPTIONAL { ?s <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?label`;
+        const r2 = await sparqlSelect(q2);
+        r2.results.bindings.forEach(b => {
+          const iri = b.s.value;
+          const label = b.label?.value || iri.split(/[#/]/).pop();
+          const opt = document.createElement('option');
+          opt.value = iri; opt.textContent = label;
+          sel.appendChild(opt);
+        });
+        sel.style.display = 'inline-block';
+        setConnStatus('connected');
+        toast('No taxonomy-specific schemes found — showing all schemes', 'info');
+      }
+    } catch(e) {
+      setConnStatus('error');
+      toast('Connect failed: ' + e.message, 'error');
+    }
+  }
+}
+
+function onSchemeChange(iri) {
+  if (!iri) return;
+  loadedSchemeIri = iri;
+  const base = iri.includes('#')
+    ? iri.replace(/#.*$/, '#')
+    : iri.replace(/\/[^/]*$/, '/');
+  schemeData = { iri, base, title: (iri.split('/').filter(Boolean).pop()||'Taxonomy').split('#')[0], concepts: {} };
+}
+
+async function connectAndLoad() {
+  if (!loadedSchemeIri) { toast('Please select a taxonomy scheme first', 'error'); return; }
+  setConnStatus('loading');
+  try {
+    const s = schemeData;
+    const nsBase = s.base;
+    const schemeIri = loadedSchemeIri;
+    const G = '<' + schemeIri + '>';
+    console.log('[load] schemeIri:', schemeIri, 'nsBase:', nsBase, 'namedGraph:', namedGraph);
+
+    const qGraph = `PREFIX skos: <${SKOS}>
+SELECT ?c ?pref ?note WHERE {
+  GRAPH ${G} {
+    ?c a skos:Concept .
+    OPTIONAL { ?c skos:prefLabel ?pref . FILTER(LANG(?pref)='en' || LANG(?pref)='') }
+    OPTIONAL { ?c skos:scopeNote ?note }
+  }
+}`;
+    const qNs = `PREFIX skos: <${SKOS}>
+SELECT ?c ?pref ?note WHERE {
+  ?c a skos:Concept .
+  FILTER(STRSTARTS(STR(?c), "${nsBase}"))
+  OPTIONAL { ?c skos:prefLabel ?pref . FILTER(LANG(?pref)='en' || LANG(?pref)='') }
+  OPTIONAL { ?c skos:scopeNote ?note }
+}`;
+
+    let usedGraph = true;
+    let r1 = await sparqlSelect(qGraph);
+    console.log('[load] graph query returned:', r1.results.bindings.length, 'rows');
+    if (!r1.results.bindings.length) {
+      usedGraph = false;
+      r1 = await sparqlSelect(qNs);
+      console.log('[load] ns fallback returned:', r1.results.bindings.length, 'rows');
+    }
+
+    const byIri = {}, newConcepts = {};
+    r1.results.bindings.forEach(b => {
+      const iri = b.c.value;
+      let c = byIri[iri];
+      if (!c) {
+        const id = 'c_' + rnd();
+        c = { id, iri, prefLabel: '', broader: [], note: '' };
+        byIri[iri] = c; newConcepts[id] = c;
+      }
+      if (b.pref && !c.prefLabel) c.prefLabel = b.pref.value;
+      if (b.note && !c.note)      c.note = b.note.value;
+    });
+    Object.values(newConcepts).forEach(c => {
+      if (!c.prefLabel) c.prefLabel = c.iri.split(/[#/]/).pop();
+    });
+
+    const relWrap = t => usedGraph
+      ? `GRAPH ${G} { ${t} }`
+      : `${t} FILTER(STRSTARTS(STR(?c), "${nsBase}"))`;
+
+    // broader
+    const r2 = await sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?b WHERE { ${relWrap('?c skos:broader ?b .')} }`);
+    const idByIri = {}; Object.values(newConcepts).forEach(c => idByIri[c.iri] = c.id);
+    r2.results.bindings.forEach(b => {
+      const child = byIri[b.c.value], parId = idByIri[b.b?.value];
+      if (child && parId && !child.broader.includes(parId)) child.broader.push(parId);
+    });
+
+    // hasTopConcept — mark top concepts explicitly (broader stays empty)
+    try {
+      const r3 = await sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c WHERE { ${relWrap('<'+schemeIri+'> skos:hasTopConcept ?c .')} }`);
+      r3.results.bindings.forEach(b => {
+        const c = byIri[b.c.value];
+        if (c) c.isTopConcept = true;
+      });
+    } catch(e) {}
+
+    schemeData.concepts = newConcepts;
+    selectedId = null; collapsed = new Set();
+    snapshotBaseline();
+    document.getElementById('btn-save-graphdb').style.display = 'inline-block';
+    setConnStatus('connected');
+    renderAll();
+    toast('Loaded ' + Object.keys(newConcepts).length + ' concepts', 'success');
+  } catch(e) {
+    setConnStatus('error');
+    toast('Load failed: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HIERARCHY HELPERS
+// ═══════════════════════════════════════════════════════════
+function childrenOf(id) {
+  return Object.values(concepts()).filter(c => c.broader.includes(id));
+}
+function topConcepts() {
+  return Object.values(concepts()).filter(c => !c.broader || !c.broader.length);
+}
+function isAncestor(ancestorId, descendantId, visited = new Set()) {
+  if (visited.has(descendantId)) return false;
+  visited.add(descendantId);
+  const c = concepts()[descendantId];
+  if (!c) return false;
+  if ((c.broader||[]).includes(ancestorId)) return true;
+  return (c.broader||[]).some(b => isAncestor(ancestorId, b, visited));
+}
+function parentCount(id) { return (concepts()[id]?.broader||[]).length; }
+
+// ═══════════════════════════════════════════════════════════
+//  BASELINE / DIFF
+// ═══════════════════════════════════════════════════════════
+function lit(s) { return '"' + String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n') + '"'; }
 
 function tripleStrings(c, schemeIri) {
-  // Returns the canonical set of triples this editor manages for a concept.
   const t = new Set();
-  const S = '<'+c.iri+'>';
+  const S = '<' + c.iri + '>';
   t.add(`${S} a skos:Concept`);
   t.add(`${S} skos:inScheme <${schemeIri}>`);
-  if (c.prefLabel)  t.add(`${S} skos:prefLabel ${lit(c.prefLabel)}@en`);
-  (c.altLabels||[]).forEach(a => t.add(`${S} skos:altLabel ${lit(a)}@en`));
-  if (c.notation)   t.add(`${S} skos:notation ${lit(c.notation)}`);
-  if (c.definition) t.add(`${S} skos:definition ${lit(c.definition)}@en`);
-  if (c.note)       t.add(`${S} skos:scopeNote ${lit(c.note)}@en`);
+  if (c.prefLabel) t.add(`${S} skos:prefLabel ${lit(c.prefLabel)}@en`);
   (c.broader||[]).forEach(bid => {
-    const b = concepts()[bid]; if (b) t.add(`${S} skos:broader <${b.iri}>`);
+    const b = concepts()[bid];
+    if (b) t.add(`${S} skos:broader <${b.iri}>`);
   });
-  if (!c.broader || !c.broader.length) t.add(`${S} skos:topConceptOf <${schemeIri}>`);
+  if (!c.broader || !c.broader.length) {
+    t.add(`${S} skos:topConceptOf <${schemeIri}>`);
+    t.add(`<${schemeIri}> skos:hasTopConcept ${S}`);
+  }
   return t;
 }
-function lit(s){ return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n')+'"'; }
 
 function snapshotBaseline() {
   baseline = {};
-  const sIri = loadedSchemeIri || scheme().iri;
+  const sIri = loadedSchemeIri || schemeData.iri;
   Object.values(concepts()).forEach(c => { baseline[c.iri] = tripleStrings(c, sIri); });
 }
 
-// Compute INSERT / DELETE triple sets vs baseline.
 function computeDiff() {
-  const sIri = loadedSchemeIri || scheme().iri;
+  const sIri = loadedSchemeIri || schemeData.iri;
   const cur = {};
   Object.values(concepts()).forEach(c => { cur[c.iri] = tripleStrings(c, sIri); });
-
   const toInsert = new Set(), toDelete = new Set();
-
-  // changed / new concepts
   Object.keys(cur).forEach(iri => {
     const now = cur[iri], was = baseline[iri] || new Set();
     now.forEach(tp => { if (!was.has(tp)) toInsert.add(tp); });
     was.forEach(tp => { if (!now.has(tp)) toDelete.add(tp); });
   });
-  // deleted concepts (in baseline, gone now)
   Object.keys(baseline).forEach(iri => {
     if (!cur[iri]) baseline[iri].forEach(tp => toDelete.add(tp));
   });
-  return { toInsert:[...toInsert], toDelete:[...toDelete] };
+  return { toInsert: [...toInsert], toDelete: [...toDelete] };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DIFF MODAL
+// ═══════════════════════════════════════════════════════════
+function showDiff() {
+  const { toInsert, toDelete } = computeDiff();
+  if (!toInsert.length && !toDelete.length) { toast('No hierarchy changes to save', 'info'); return; }
+  const body = document.getElementById('diff-body');
+  let html = '';
+  if (toDelete.length) {
+    html += `<div class="diff-section"><h4>Remove (${toDelete.length} triples)</h4>`;
+    toDelete.forEach(t => { html += `<div class="diff-line diff-del">− ${esc(t)} .</div>`; });
+    html += '</div>';
+  }
+  if (toInsert.length) {
+    html += `<div class="diff-section"><h4>Add (${toInsert.length} triples)</h4>`;
+    toInsert.forEach(t => { html += `<div class="diff-line diff-ins">+ ${esc(t)} .</div>`; });
+    html += '</div>';
+  }
+  body.innerHTML = html;
+  document.getElementById('diff-modal').classList.add('open');
+}
+
+function closeDiff() { document.getElementById('diff-modal').classList.remove('open'); }
+
+async function confirmSave() {
+  closeDiff();
+  await saveToGraphDB();
 }
 
 async function saveToGraphDB() {
@@ -933,65 +536,330 @@ async function saveToGraphDB() {
   setConnStatus('loading');
   const PFX = `PREFIX skos: <${SKOS}>\n`;
   try {
-    // Target the asset's named graph (same context the concepts were read from),
-    // so writes land where the Manager and loader expect them.
-    const sIri = loadedSchemeIri || scheme().iri;
+    const sIri = loadedSchemeIri || schemeData.iri;
     const G = '<' + sIri + '>';
-    // DELETE first, then INSERT, in separate requests for clarity/robustness.
     if (toDelete.length) {
-      await sparqlUpdate(PFX + 'DELETE DATA {\n  GRAPH ' + G + ' {\n  ' + toDelete.join(' .\n  ') + ' .\n  }\n}');
+      await sparqlUpdate(PFX + 'DELETE DATA {\n  GRAPH ' + G + ' {\n    ' + toDelete.join(' .\n    ') + ' .\n  }\n}');
     }
     if (toInsert.length) {
-      await sparqlUpdate(PFX + 'INSERT DATA {\n  GRAPH ' + G + ' {\n  ' + toInsert.join(' .\n  ') + ' .\n  }\n}');
+      await sparqlUpdate(PFX + 'INSERT DATA {\n  GRAPH ' + G + ' {\n    ' + toInsert.join(' .\n    ') + ' .\n  }\n}');
     }
-    snapshotBaseline();             // current state is now the saved state
+    snapshotBaseline();
     setConnStatus('connected');
-    toast(`Saved to GraphDB: +${toInsert.length} / −${toDelete.length} triples`, 'success');
+    toast(`Saved: +${toInsert.length} / −${toDelete.length} triples`, 'success');
   } catch(e) {
     setConnStatus('error');
     toast('Save failed: ' + e.message, 'error');
   }
 }
 
-// ── column resizers ──
-(function(){
-  const ws=document.querySelector('.workspace');
-  const LSL='ev_taxo_left_w', LSR='ev_taxo_right_w';
-  const sl=parseInt(localStorage.getItem(LSL),10), sr=parseInt(localStorage.getItem(LSR),10);
-  if(sl>=200&&sl<=600)ws.style.setProperty('--left-w',sl+'px');
-  if(sr>=240&&sr<=640)ws.style.setProperty('--right-w',sr+'px');
-  let drag=null;
-  function start(side,handle){drag={side,handle};handle.classList.add('dragging');
-    document.body.classList.add('col-resizing');}
-  document.querySelectorAll('.col-resizer').forEach(h=>{
-    h.addEventListener('mousedown',e=>{start(h.dataset.side,h);e.preventDefault();});
-    h.addEventListener('dblclick',()=>{ if(h.dataset.side==='left'){ws.style.removeProperty('--left-w');localStorage.removeItem(LSL);}
-      else{ws.style.removeProperty('--right-w');localStorage.removeItem(LSR);} });
+// ═══════════════════════════════════════════════════════════
+//  DRAG & DROP
+// ═══════════════════════════════════════════════════════════
+function onDragStart(e, id, fromPanel) {
+  dragState = { id, fromPanel };
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', id);
+  setTimeout(() => {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el) el.classList.add(fromPanel ? 'dragging-source' : 'dragging-node');
+  }, 0);
+}
+
+function onDragEnd() {
+  document.querySelectorAll('.dragging-source,.dragging-node,.drop-target').forEach(el => {
+    el.classList.remove('dragging-source','dragging-node','drop-target');
   });
-  window.addEventListener('mousemove',e=>{
-    if(!drag)return;
-    const r=ws.getBoundingClientRect();
-    if(drag.side==='left'){let w=Math.max(200,Math.min(600,e.clientX-r.left));ws.style.setProperty('--left-w',w+'px');}
-    else{let w=Math.max(240,Math.min(640,r.right-e.clientX));ws.style.setProperty('--right-w',w+'px');}
+  dragState = null;
+}
+
+function onDragOver(e, targetId) {
+  e.preventDefault();
+  if (!dragState) return;
+  if (dragState.id === targetId) return;
+  if (isAncestor(dragState.id, targetId)) return; // prevent cycles
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+  const el = document.querySelector(`[data-id="${targetId}"][data-node]`);
+  if (el) el.classList.add('drop-target');
+}
+
+function onDrop(e, targetId) {
+  e.preventDefault();
+  document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+  if (!dragState) return;
+  const { id: dragId, fromPanel } = dragState;
+  dragState = null;
+  if (dragId === targetId) return;
+  if (isAncestor(dragId, targetId)) { toast('Cannot move a concept under its own descendant', 'error'); return; }
+
+  const c = concepts()[dragId];
+  if (!c) return;
+
+  const oldBroaders = [...(c.broader||[])];
+  if (fromPanel) {
+    // From left panel: add targetId as additional broader (poly-hierarchy)
+    if (!c.broader.includes(targetId)) c.broader.push(targetId);
+  } else {
+    // From tree: replace the single broader (or set first broader to target)
+    // Keep poly-hierarchy if multiple parents; replace the visual parent
+    c.broader = [targetId];
+  }
+
+  renderAll();
+  showDiff();
+}
+
+function onDropCanvas(e) {
+  // Drop onto empty canvas = make top concept (no broader)
+  e.preventDefault();
+  document.querySelectorAll('.drop-target,.canvas-drop-root').forEach(el => {
+    el.classList.remove('drop-target','active');
   });
-  window.addEventListener('mouseup',()=>{
-    if(!drag)return;
-    document.querySelectorAll('.col-resizer').forEach(h=>h.classList.remove('dragging'));
-    document.body.classList.remove('col-resizing');
-    const cl=ws.style.getPropertyValue('--left-w'), cr=ws.style.getPropertyValue('--right-w');
-    if(cl)localStorage.setItem(LSL,parseInt(cl,10)); if(cr)localStorage.setItem(LSR,parseInt(cr,10));
-    drag=null;
+  if (!dragState) return;
+  const { id: dragId } = dragState;
+  dragState = null;
+  const c = concepts()[dragId];
+  if (!c) return;
+  c.broader = [];
+  renderAll();
+  showDiff();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER — LEFT PANEL
+// ═══════════════════════════════════════════════════════════
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderLeft() {
+  const filter = document.getElementById('filter-input').value.toLowerCase();
+  const all = Object.values(concepts()).sort((a,b) => a.prefLabel.localeCompare(b.prefLabel));
+  const filtered = filter ? all.filter(c => c.prefLabel.toLowerCase().includes(filter) || c.iri.toLowerCase().includes(filter)) : all;
+  const unplaced = new Set(Object.values(concepts()).filter(c => !c.broader?.length && !childrenOf(c.id).length).map(c=>c.id));
+
+  document.getElementById('concept-list').innerHTML = filtered.map(c => `
+    <div class="concept-item ${unplaced.has(c.id)?'unplaced':''}"
+      draggable="true"
+      data-id="${c.id}"
+      ondragstart="onDragStart(event,'${c.id}',true)"
+      ondragend="onDragEnd()"
+      onclick="selectConcept('${c.id}')">
+      <div style="flex:1;overflow:hidden">
+        <div class="ci-label">${esc(c.prefLabel)}</div>
+        <div class="ci-iri">${esc(c.iri.split(/[#/]/).pop())}</div>
+      </div>
+      ${parentCount(c.id)>1?`<span class="ci-badge">poly</span>`:''}
+      ${c.broader?.length?'':childrenOf(c.id).length?'':unplaced.has(c.id)?'<span class="ci-badge" style="border-color:var(--warn);color:var(--warn)">unplaced</span>':''}
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER — TOP-DOWN TREE
+// ═══════════════════════════════════════════════════════════
+function renderTopDown() {
+  const tops = topConcepts();
+  if (!tops.length) {
+    document.getElementById('canvas-inner').innerHTML =
+      `<div class="canvas-drop-root" ondragover="event.preventDefault();this.classList.add('active')" ondrop="onDropCanvas(event)" ondragleave="this.classList.remove('active')">Drop a concept here to make it a top concept</div>
+       <div class="canvas-empty">No top concepts found. Drag concepts from the left panel.</div>`;
+    return;
+  }
+
+  let html = `<div class="canvas-drop-root" ondragover="event.preventDefault();this.classList.add('active')" ondrop="onDropCanvas(event)" ondragleave="this.classList.remove('active')">↑ Drop here to promote to top concept</div>`;
+  html += `<div style="display:flex;gap:32px;padding:16px;flex-wrap:wrap;align-items:flex-start;">`;
+  tops.forEach(c => { html += renderNodeTD(c.id, null, new Set()); });
+  html += `</div>`;
+  document.getElementById('canvas-inner').innerHTML = html;
+}
+
+function renderNodeTD(id, parentId, visited) {
+  if (visited.has(id)) return `<div style="color:var(--danger);font-size:10px">⚠ cycle</div>`;
+  visited = new Set(visited); visited.add(id);
+  const c = concepts()[id];
+  if (!c) return '';
+  const kids = childrenOf(id);
+  const isCollapsed = collapsed.has(id);
+  const poly = parentCount(id) > 1;
+  const isTop = !c.broader?.length;
+  const sel = selectedId === id;
+
+  let html = `<div class="node-wrap">
+    <div class="tnode ${isTop?'top-concept':''} ${sel?'selected':''}"
+      data-id="${id}" data-node="1"
+      draggable="true"
+      ondragstart="onDragStart(event,'${id}',false)"
+      ondragend="onDragEnd()"
+      ondragover="onDragOver(event,'${id}')"
+      ondrop="onDrop(event,'${id}')"
+      onclick="selectConcept('${id}')"
+      style="cursor:pointer">
+      <div class="tnode-label">${esc(c.prefLabel)}</div>
+      <div class="tnode-iri">${esc(c.iri.split(/[#/]/).pop())}</div>
+      ${poly?`<span class="tnode-poly">poly ×${parentCount(id)}</span>`:''}
+    </div>`;
+
+  if (kids.length) {
+    html += `<div class="tnode-collapse" onclick="toggleCollapse('${id}',event)" title="${isCollapsed?'Expand':'Collapse'}">${isCollapsed?'▶':'▼'}</div>`;
+    if (!isCollapsed) {
+      html += `<div style="width:1.5px;height:16px;background:var(--connector);margin:0 auto;"></div>`;
+      html += `<div style="display:flex;gap:20px;align-items:flex-start;">`;
+      kids.forEach(k => { html += renderNodeTD(k.id, id, visited); });
+      html += `</div>`;
+    }
+  }
+  html += `</div>`;
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER — LEFT-RIGHT TREE
+// ═══════════════════════════════════════════════════════════
+function renderLeftRight() {
+  const tops = topConcepts();
+  if (!tops.length) {
+    document.getElementById('canvas-inner').innerHTML =
+      `<div class="canvas-drop-root" ondragover="event.preventDefault();this.classList.add('active')" ondrop="onDropCanvas(event)" ondragleave="this.classList.remove('active')">Drop a concept here to make it a top concept</div>
+       <div class="canvas-empty">No top concepts found.</div>`;
+    return;
+  }
+
+  let html = `<div class="canvas-drop-root" ondragover="event.preventDefault();this.classList.add('active')" ondrop="onDropCanvas(event)" ondragleave="this.classList.remove('active')">↑ Drop here to promote to top concept</div>`;
+  html += `<div style="display:flex;flex-direction:column;gap:16px;padding:16px;">`;
+  tops.forEach(c => { html += renderNodeLR(c.id, new Set()); });
+  html += `</div>`;
+  document.getElementById('canvas-inner').innerHTML = html;
+}
+
+function renderNodeLR(id, visited) {
+  if (visited.has(id)) return `<span style="color:var(--danger);font-size:10px">⚠ cycle</span>`;
+  visited = new Set(visited); visited.add(id);
+  const c = concepts()[id];
+  if (!c) return '';
+  const kids = childrenOf(id);
+  const isCollapsed = collapsed.has(id);
+  const poly = parentCount(id) > 1;
+  const isTop = !c.broader?.length;
+  const sel = selectedId === id;
+
+  let html = `<div class="lr-node-row">
+    <div class="lr-node ${isTop?'top-concept':''} ${sel?'selected':''}"
+      data-id="${id}" data-node="1"
+      draggable="true"
+      ondragstart="onDragStart(event,'${id}',false)"
+      ondragend="onDragEnd()"
+      ondragover="onDragOver(event,'${id}')"
+      ondrop="onDrop(event,'${id}')"
+      onclick="selectConcept('${id}')"
+      style="cursor:pointer">
+      <div class="lr-node-label">${esc(c.prefLabel)}</div>
+      <div class="lr-node-iri">${esc(c.iri.split(/[#/]/).pop())}</div>
+      ${poly?`<span class="tnode-poly">poly</span>`:''}
+      ${kids.length?`<div class="lr-collapse" onclick="toggleCollapse('${id}',event)">${isCollapsed?'▶':'▼'}</div>`:''}
+    </div>`;
+
+  if (kids.length && !isCollapsed) {
+    html += `<div class="lr-children">`;
+    kids.forEach(k => {
+      html += `<div style="display:flex;align-items:flex-start;">
+        <div class="lr-connector-h"></div>
+        ${renderNodeLR(k.id, visited)}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════
+function setView(v) {
+  view = v;
+  document.getElementById('btn-td').classList.toggle('active', v==='td');
+  document.getElementById('btn-lr').classList.toggle('active', v==='lr');
+  renderCanvas();
+}
+
+function toggleCollapse(id, e) {
+  e.stopPropagation();
+  if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
+  renderCanvas();
+}
+
+function expandAll()   { collapsed.clear(); renderCanvas(); }
+function collapseAll() {
+  Object.keys(concepts()).forEach(id => { if (childrenOf(id).length) collapsed.add(id); });
+  renderCanvas();
+}
+
+function selectConcept(id) {
+  selectedId = id === selectedId ? null : id;
+  renderAll();
+}
+
+function renderCanvas() {
+  if (!Object.keys(concepts()).length) return;
+  if (view === 'td') renderTopDown(); else renderLeftRight();
+}
+
+function renderAll() { renderLeft(); renderCanvas(); }
+
+// ═══════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RESIZER
+// ═══════════════════════════════════════════════════════════
+(function() {
+  const r = document.getElementById('resizer');
+  const ws = document.querySelector('.workspace');
+  let dragging = false, startX = 0, startW = 0;
+  r.addEventListener('mousedown', e => {
+    dragging = true; startX = e.clientX;
+    startW = parseInt(getComputedStyle(document.querySelector('.left-panel')).width, 10);
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const w = Math.max(200, Math.min(420, startW + (e.clientX - startX)));
+    document.documentElement.style.setProperty('--left-w', w + 'px');
+  });
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
   });
 })();
 
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); });
+// ═══════════════════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDiff();
+    selectedId = null; renderAll();
+  }
+  if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault(); showDiff();
+  }
+});
 
-// ── Auto-connect when launched from Model Manager via URL params ──
-// Expects ?endpoint=<sparql>&scheme=<modelIRI>&graph=<namedGraph?>
+// ═══════════════════════════════════════════════════════════
+//  AUTO-CONNECT FROM URL PARAMS (same as tax-editor.html)
+// ═══════════════════════════════════════════════════════════
 (function() {
   const params = new URLSearchParams(window.location.search);
-  const ep = params.get('endpoint');
-  const sch = params.get('scheme') || params.get('ontology') || params.get('vocabulary');
+  const ep    = params.get('endpoint');
+  const sch   = params.get('scheme') || params.get('taxonomy') || params.get('ontology') || params.get('vocabulary');
   const graph = params.get('graph');
 
   if (ep) {
@@ -999,29 +867,21 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySele
     if (!epClean.startsWith('/graphdb/')) epClean = epClean.replace(/^\/repositories\//, '/graphdb/repositories/');
     document.getElementById('sparql-endpoint').value = epClean;
   }
-  if (graph) namedGraph = graph;
 
   if (sch) {
-    // Configure the current scheme to match the selected model.
     loadedSchemeIri = sch;
-    const s = scheme();
-    // base namespace = everything up to and including the # or final /
-    const base = sch.includes('#') ? sch.replace(/#.*$/, '#') : sch.replace(/\/[^/]*$/, '/');
-    s.base = base;
-    s.iri = sch;
-    s.title = (sch.split('/').filter(Boolean).pop() || 'Taxonomy').split('#')[0];
-    renderSchemeSelect();
-    document.title = s.title + ' — Taxonomy Editor';
+    // Match tax-editor.html's exact base derivation:
+    // everything up to and including the # or the last /
+    const base = sch.includes('#')
+      ? sch.replace(/#.*$/, '#')
+      : sch.replace(/\/[^/]*$/, '/');
+    schemeData = { iri: sch, base, title: (sch.split('/').filter(Boolean).pop()||'Taxonomy').split('#')[0], concepts: {} };
+    console.log('[init] scheme:', sch, 'base:', base, 'graph:', graph);
   }
+  if (graph) namedGraph = graph;
 
-  if (ep && sch) {
-    document.getElementById('connect-bar').style.display = 'flex';
-    setTimeout(connectAndLoad, 150);
-  }
+  if (ep && sch) connectAndLoad(); else if (ep) connectThenLoad();
 })();
-
-// ── init ──
-renderAll();
 </script>
 </body>
 </html>
