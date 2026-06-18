@@ -190,6 +190,14 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
 .view-act-btn.danger:hover{color:var(--danger);}
 .new-view-form{padding:8px;border-top:1px solid var(--border);flex-shrink:0;}
 .new-view-form input{width:100%;margin-bottom:6px;}
+/* ── RUBBER BAND ── */
+#rubber-band{position:absolute;border:1.5px dashed var(--accent);
+  background:rgba(124,131,245,.08);pointer-events:none;z-index:10;display:none;}
+/* multi-selected node */
+.tnode.multi-selected{border-color:#facc15!important;
+  box-shadow:0 0 0 2px rgba(250,204,21,.35)!important;
+  background:rgba(250,204,21,.06)!important;}
+
 /* scrollbars */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -295,9 +303,15 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
   <div class="resizer" id="resizer"></div>
 
   <!-- CANVAS -->
-  <div class="canvas-area" id="canvas-area">
-    <div class="canvas-inner" id="canvas-inner">
-      <div class="canvas-empty">Connect to GraphDB and load a taxonomy scheme.</div>
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+    <div id="selection-hint" style="display:none;background:rgba(250,204,21,.1);
+      border-bottom:1px solid rgba(250,204,21,.3);color:var(--warn);font-size:11px;
+      padding:4px 14px;flex-shrink:0;user-select:none;">
+    </div>
+    <div class="canvas-area" id="canvas-area">
+      <div class="canvas-inner" id="canvas-inner">
+        <div class="canvas-empty">Connect to GraphDB and load a taxonomy scheme.</div>
+      </div>
     </div>
   </div>
 <!-- PROPERTIES PANEL -->
@@ -885,6 +899,7 @@ function renderTopDown() {
 
   // SVG connector layer (rendered on top via JS after DOM insert)
   html += `<svg id="td-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>`;
+  html += `<div id="rubber-band"></div>`;
 
   // Drop zone bar at top
   html += `<div class="canvas-drop-root" style="position:absolute;top:4px;left:${STAGE_PAD}px;right:${STAGE_PAD}px;min-height:28px;"
@@ -1120,7 +1135,18 @@ function collapseAll() {
 }
 
 function selectConcept(id) {
+  // If rubber-band just finished, don't override multi-selection
+  if (multiSelected.size > 1) return;
   selectedId = id === selectedId ? null : id;
+  // Shift+click adds/removes from multi-selection
+  if (window._shiftHeld) {
+    if (multiSelected.has(id)) multiSelected.delete(id);
+    else multiSelected.add(id);
+    renderSelectionHighlights();
+  } else {
+    multiSelected.clear();
+    renderSelectionHighlights();
+  }
   renderAll();
   if (propsPanelOpen && selectedId) renderPropsPanel(selectedId);
 }
@@ -1364,6 +1390,9 @@ let manualOffsets = {}; // conceptIRI -> {dx, dy}
 let subtreeDrag = null;
 let _pendingDrag = null;
 let isDirty = false; // true when layout has unsaved changes
+let multiSelected = new Set(); // set of node IDs currently selected
+let rubberBand = null; // {startX,startY,originX,originY} in stage coords
+let groupDrag = null;  // {startMx,startMy, offsets:{id:{startDx,startDy}}}
 
 function iriKey(id) {
   return concepts()[id]?.iri || id;
@@ -1466,6 +1495,18 @@ function computeLayout() {
 // startSubtreeDrag removed — drag attached directly to handle bar in requestAnimationFrame
 
 window.addEventListener('mousemove', e => {
+  // ── group drag ──────────────────────────────────────────
+  if (groupDrag) {
+    const dx = (e.clientX - groupDrag.startMx) / zoom;
+    const dy = (e.clientY - groupDrag.startMy) / zoom;
+    Object.entries(groupDrag.offsets).forEach(([id, start]) => {
+      manualOffsets[iriKey(id)] = { dx: start.startDx + dx, dy: start.startDy + dy };
+    });
+    markDirty();
+    applyLayoutLive();
+    return;
+  }
+  // ── single node drag ────────────────────────────────────
   if (subtreeDrag) {
     const { offsetKey, startMx, startMy, startDx, startDy } = subtreeDrag;
     manualOffsets[offsetKey] = {
@@ -1476,19 +1517,66 @@ window.addEventListener('mousemove', e => {
     applyLayoutLive();
     return;
   }
-  if (!_pendingDrag) return;
-  const ddx = e.clientX - _pendingDrag.startMx;
-  const ddy = e.clientY - _pendingDrag.startMy;
-  if (Math.sqrt(ddx*ddx + ddy*ddy) < DRAG_THRESHOLD) return;
-  subtreeDrag = { ..._pendingDrag, active: true };
-  _pendingDrag = null;
-  const el = document.getElementById('nd_' + subtreeDrag.id);
-  if (el) el.style.cursor = 'grabbing';
-  document.body.style.cursor     = 'grabbing';
-  document.body.style.userSelect = 'none';
+  // ── pending single drag — threshold check ───────────────
+  if (_pendingDrag) {
+    const ddx = e.clientX - _pendingDrag.startMx;
+    const ddy = e.clientY - _pendingDrag.startMy;
+    if (Math.sqrt(ddx*ddx + ddy*ddy) < DRAG_THRESHOLD) return;
+    // If the node being dragged is in multiSelected, start a group drag
+    if (multiSelected.has(_pendingDrag.id) && multiSelected.size > 1) {
+      const offsets = {};
+      multiSelected.forEach(id => {
+        const off = manualOffsets[iriKey(id)] || { dx: 0, dy: 0 };
+        offsets[id] = { startDx: off.dx, startDy: off.dy };
+      });
+      groupDrag = { startMx: e.clientX, startMy: e.clientY, offsets };
+      _pendingDrag = null;
+      document.body.style.cursor     = 'grabbing';
+      document.body.style.userSelect = 'none';
+      return;
+    }
+    subtreeDrag = { ..._pendingDrag, active: true };
+    _pendingDrag = null;
+    const el = document.getElementById('nd_' + subtreeDrag.id);
+    if (el) el.style.cursor = 'grabbing';
+    document.body.style.cursor     = 'grabbing';
+    document.body.style.userSelect = 'none';
+    return;
+  }
+  // ── rubber-band update ──────────────────────────────────
+  if (!rubberBand) return;
+  const area = document.getElementById('canvas-area');
+  const rect = area.getBoundingClientRect();
+  const cx = (e.clientX - rect.left - panX) / zoom;
+  const cy = (e.clientY - rect.top  - panY) / zoom;
+  const x1 = Math.min(rubberBand.startX, cx);
+  const y1 = Math.min(rubberBand.startY, cy);
+  const x2 = Math.max(rubberBand.startX, cx);
+  const y2 = Math.max(rubberBand.startY, cy);
+  const rb = document.getElementById('rubber-band');
+  if (rb) {
+    rb.style.left   = x1 + 'px'; rb.style.top    = y1 + 'px';
+    rb.style.width  = (x2 - x1) + 'px';
+    rb.style.height = (y2 - y1) + 'px';
+  }
+  // Hit-test nodes in current layout
+  const layout = computeLayout();
+  Object.entries(layout).forEach(([nid, pos]) => {
+    const nx = pos.x - NODE_W / 2, ny = pos.y;
+    const overlaps = nx < x2 && nx + NODE_W > x1 && ny < y2 && ny + NODE_H > y1;
+    if (overlaps) multiSelected.add(nid);
+    else if (!rubberBand._shift) multiSelected.delete(nid);
+  });
+  rubberBand._shift = e.shiftKey;
+  renderSelectionHighlights();
 });
 
 window.addEventListener('mouseup', () => {
+  if (groupDrag) {
+    groupDrag = null;
+    document.body.style.cursor    = '';
+    document.body.style.userSelect = '';
+  }
   if (subtreeDrag) {
     const el = document.getElementById('nd_' + subtreeDrag.id);
     if (el) el.style.cursor = 'grab';
@@ -1497,7 +1585,35 @@ window.addEventListener('mouseup', () => {
     document.body.style.userSelect = '';
   }
   _pendingDrag = null;
+  if (rubberBand) {
+    rubberBand = null;
+    const rb = document.getElementById('rubber-band');
+    if (rb) rb.style.display = 'none';
+    // If only one node selected, treat as click-select (not multi)
+    if (multiSelected.size === 1) {
+      selectedId = [...multiSelected][0];
+    }
+    renderSelectionHighlights();
+  }
 });
+
+// Sync multi-selected CSS highlights to multiSelected set
+function renderSelectionHighlights() {
+  document.querySelectorAll('#td-stage .tnode').forEach(el => {
+    const nid = el.dataset.id;
+    el.classList.toggle('multi-selected', multiSelected.has(nid));
+  });
+  // Update selection count hint
+  const hint = document.getElementById('selection-hint');
+  if (hint) {
+    if (multiSelected.size > 1) {
+      hint.textContent = multiSelected.size + ' selected — drag any to move all';
+      hint.style.display = 'block';
+    } else {
+      hint.style.display = 'none';
+    }
+  }
+}
 
 // Live position update during drag (no full re-render)
 function applyLayoutLive() {
@@ -1543,17 +1659,39 @@ function centerView() {
 (function initPan() {
   const area = document.getElementById('canvas-area');
 
-  // Mouse pan — only fires when dragging the canvas background (not nodes)
+  // Canvas mousedown:
+  //   Alt+drag OR middle-mouse  → pan
+  //   plain drag on background  → rubber-band selection
   area.addEventListener('mousedown', e => {
-    // Don't pan if clicking on a node, button, or select
     if (e.target.closest('.tnode,.lr-node,.concept-item,.btn,.tnode-collapse,.lr-collapse,.canvas-drop-root')) return;
-    if (e.button !== 0) return;
-    if (_pendingDrag || subtreeDrag) return;
-    isPanning = true;
-    panStartX = e.clientX; panStartY = e.clientY;
-    panOriginX = panX; panOriginY = panY;
-    area.classList.add('panning');
+    if (_pendingDrag || subtreeDrag || groupDrag) return;
+    const isPanGesture = e.altKey || e.button === 1;
+    if (e.button !== 0 && e.button !== 1) return;
     e.preventDefault();
+
+    if (isPanGesture) {
+      isPanning = true;
+      panStartX = e.clientX; panStartY = e.clientY;
+      panOriginX = panX; panOriginY = panY;
+      area.classList.add('panning');
+    } else {
+      // Rubber-band: convert mouse to stage coordinates
+      const rect = area.getBoundingClientRect();
+      const sx = (e.clientX - rect.left - panX) / zoom;
+      const sy = (e.clientY - rect.top  - panY) / zoom;
+      rubberBand = { startX: sx, startY: sy, originX: e.clientX, originY: e.clientY };
+      // Clear selection unless Shift held
+      if (!e.shiftKey) {
+        multiSelected.clear();
+        renderSelectionHighlights();
+      }
+      const rb = document.getElementById('rubber-band');
+      if (rb) {
+        rb.style.display = 'block';
+        rb.style.left = sx + 'px'; rb.style.top  = sy + 'px';
+        rb.style.width = '0px';    rb.style.height = '0px';
+      }
+    }
   });
 
   window.addEventListener('mousemove', e => {
@@ -1628,15 +1766,26 @@ function centerView() {
 // ═══════════════════════════════════════════════════════════
 //  KEYBOARD
 // ═══════════════════════════════════════════════════════════
+window._shiftHeld = false;
 document.addEventListener('keydown', e => {
+  window._shiftHeld = e.shiftKey;
   if (e.key === 'Escape') {
     closeDiff();
+    multiSelected.clear();
+    renderSelectionHighlights();
     selectedId = null; renderAll();
   }
   if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey)) {
     e.preventDefault(); showDiff();
   }
+  // Escape clears rubber-band too
+  if (e.key === 'Escape' && rubberBand) {
+    rubberBand = null;
+    const rb = document.getElementById('rubber-band');
+    if (rb) rb.style.display = 'none';
+  }
 });
+document.addEventListener('keyup', e => { window._shiftHeld = e.shiftKey; });
 
 // ═══════════════════════════════════════════════════════════
 //  LAYOUT VIEWS — save, recall, set default
@@ -1681,6 +1830,7 @@ function applySnapshot(snap) {
   zoom      = snap.zoom ?? 1;
   collapsed = new Set(snap.collapsed || []);
   manualOffsets = snap.manualOffsets || {};
+  multiSelected.clear();
   document.getElementById('btn-td').classList.toggle('active', view === 'td');
   document.getElementById('btn-lr').classList.toggle('active', view === 'lr');
   applyTransform();
