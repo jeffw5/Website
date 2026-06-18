@@ -52,7 +52,8 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
   display:flex;flex-direction:column;flex-shrink:0;}
 .resizer{width:5px;background:var(--border);cursor:col-resize;flex-shrink:0;transition:background .15s;}
 .resizer:hover{background:var(--accent);}
-.canvas-area{flex:1;overflow:auto;position:relative;}
+.canvas-area{flex:1;overflow:hidden;position:relative;cursor:grab;}
+.canvas-area.panning{cursor:grabbing;}
 .panel-hdr{padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;
   letter-spacing:.07em;color:var(--text-dim);border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:6px;flex-shrink:0;}
@@ -72,7 +73,8 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
   border-radius:3px;padding:1px 5px;color:var(--text-dim);flex-shrink:0;}
 
 /* ── TREE CANVAS ── */
-.canvas-inner{padding:32px;min-width:100%;min-height:100%;display:inline-block;}
+.canvas-inner{padding:40px;display:inline-block;transform-origin:0 0;will-change:transform;
+  transition:none;user-select:none;}
 .canvas-empty{display:flex;align-items:center;justify-content:center;
   height:100%;color:var(--text-muted);font-size:13px;text-align:center;padding:40px;}
 
@@ -80,13 +82,13 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
 .tree-root{display:flex;flex-direction:column;gap:0;}
 .tree-level{display:flex;gap:24px;justify-content:center;margin-bottom:0;}
 .tree-col{display:flex;flex-direction:column;align-items:center;}
-.node-wrap{display:flex;flex-direction:column;align-items:center;}
+.node-wrap{display:flex;flex-direction:column;align-items:center;position:relative;}
 .node-children-td{display:flex;gap:16px;margin-top:0;}
 
 .tnode{background:var(--node-bg);border:1.5px solid var(--node-border);
-  border-radius:8px;padding:8px 12px;min-width:120px;max-width:200px;
-  cursor:pointer;user-select:none;transition:all .15s;position:relative;
-  display:flex;flex-direction:column;gap:2px;}
+  border-radius:8px;padding:6px 10px 18px 10px;min-width:100px;max-width:160px;
+  cursor:grab;user-select:none;transition:border-color .15s,background .15s;
+  position:relative;display:flex;flex-direction:column;gap:2px;overflow:visible;}
 .tnode:hover{border-color:var(--accent);background:var(--node-hover);}
 .tnode.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,131,245,.3);}
 .tnode.top-concept{border-color:var(--accent2);}
@@ -161,10 +163,95 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
 .toast.info{border-color:var(--accent);color:var(--accent);}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
+
+/* ── VIEWS PANEL ── */
+.views-panel{width:240px;background:var(--panel);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+.views-panel.hidden{display:none;}
+.views-hdr{padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--text-dim);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.views-body{flex:1;overflow-y:auto;padding:8px;}
+.view-item{display:flex;align-items:center;gap:6px;padding:7px 8px;
+  border-radius:6px;margin-bottom:3px;cursor:pointer;border:1.5px solid transparent;
+  transition:all .15s;background:var(--panel2);}
+.view-item:hover{border-color:var(--border);}
+.view-item.active{border-color:var(--accent);background:rgba(124,131,245,.08);}
+.view-item.default-view{border-color:var(--warn);}
+.view-item.active.default-view{border-color:var(--accent);}
+.view-name{font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.view-meta{font-size:10px;color:var(--text-muted);}
+.view-default-badge{font-size:9px;background:var(--warn);color:#1a1d2e;border-radius:3px;
+  padding:1px 5px;font-weight:700;white-space:nowrap;}
+.view-actions{display:flex;gap:3px;flex-shrink:0;}
+.view-act-btn{background:transparent;border:none;color:var(--text-muted);cursor:pointer;
+  font-size:11px;padding:2px 4px;border-radius:3px;transition:all .1s;}
+.view-act-btn:hover{color:var(--text);background:var(--border);}
+.view-act-btn.danger:hover{color:var(--danger);}
+.new-view-form{padding:8px;border-top:1px solid var(--border);flex-shrink:0;}
+.new-view-form input{width:100%;margin-bottom:6px;}
 /* scrollbars */
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* ── CHEVRON ── */
+.tnode-chevron{position:absolute;bottom:-13px;left:50%;transform:translateX(-50%);
+  width:22px;height:22px;background:#facc15;border:2px solid #ca8a04;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;cursor:pointer;z-index:3;color:#1a1d2e;font-weight:900;
+  box-shadow:0 1px 4px rgba(0,0,0,.4);transition:background .15s,border-color .15s;}
+.tnode-chevron:hover{background:#fde047;}
+.tnode-chevron.collapsed{background:#f59e0b;border-color:#b45309;}
+/* subtree drag wrapper */
+.subtree-wrap{position:absolute;display:inline-flex;flex-direction:column;align-items:center;}
+
+.lr-chevron{position:absolute;right:-13px;top:50%;transform:translateY(-50%);
+  width:20px;height:20px;background:#facc15;border:2px solid #ca8a04;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:10px;cursor:pointer;z-index:3;color:#1a1d2e;font-weight:900;
+  box-shadow:0 1px 4px rgba(0,0,0,.4);transition:all .15s;}
+.lr-chevron:hover{background:#fde047;transform:translateY(-50%) scale(1.15);}
+.lr-chevron.collapsed{background:#f59e0b;border-color:#b45309;}
+
+/* ── PROPERTIES PANEL ── */
+.props-panel{width:280px;background:var(--panel);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
+  transition:width .2s;}
+.props-panel.hidden{width:0;border-left:none;}
+.props-hdr{padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--text-dim);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:between;gap:6px;flex-shrink:0;}
+.props-body{flex:1;overflow-y:auto;padding:12px;}
+.prop-row{margin-bottom:10px;}
+.prop-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-dim);margin-bottom:3px;}
+.prop-val{font-size:12px;color:var(--text);background:var(--panel2);border:1px solid var(--border);
+  border-radius:4px;padding:5px 8px;width:100%;word-break:break-all;}
+.prop-val-alt{font-size:11px;color:var(--accent2);background:var(--panel2);border:1px solid var(--border);
+  border-radius:4px;padding:3px 7px;margin:2px 0;display:block;}
+
+/* ── CONTEXT MENU ── */
+.ctx-menu{position:fixed;background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:300;
+  min-width:200px;padding:4px 0;overflow:hidden;}
+.ctx-item{padding:8px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;
+  transition:background .1s;}
+.ctx-item:hover{background:var(--panel2);}
+.ctx-item.danger{color:var(--danger);}
+.ctx-sep{height:1px;background:var(--border);margin:3px 0;}
+
+/* ── EDIT MODAL ── */
+.edit-modal{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  width:480px;max-width:96vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;}
+.edit-modal textarea,.edit-modal input[type=text]{
+  background:var(--panel2);border:1px solid var(--border);color:var(--text);
+  border-radius:var(--radius);padding:6px 9px;font-size:12px;font-family:var(--sans);width:100%;}
+.edit-modal textarea{resize:vertical;min-height:60px;}
+.edit-modal input:focus,.edit-modal textarea:focus{outline:none;border-color:var(--accent);}
+.alt-label-row{display:flex;gap:6px;align-items:center;margin-bottom:4px;}
+.alt-label-row input{flex:1;}
+.alt-label-del{background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:0 4px;}
 </style>
 </head>
 <body>
@@ -172,6 +259,9 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="brand">Taxonomy Tree <span>| Enabling Value</span></div>
+  <span id="dirty-indicator" style="display:none;font-size:10px;color:var(--warn);
+    background:rgba(251,191,36,.1);border:1px solid var(--warn);border-radius:4px;
+    padding:2px 7px;white-space:nowrap;">● Unsaved changes</span>
   <div id="conn-status" class="conn-status" title="Not connected"></div>
   <input type="text" id="sparql-endpoint" placeholder="/graphdb/repositories/value-kb" style="width:260px;">
   <select id="scheme-select" onchange="onSchemeChange(this.value)"
@@ -186,6 +276,9 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
   </div>
   <button class="btn btn-sm" onclick="expandAll()">Expand All</button>
   <button class="btn btn-sm" onclick="collapseAll()">Collapse All</button>
+  <button class="btn btn-sm" onclick="resetView()" title="Reset pan &amp; zoom">⌖ Reset View</button>
+  <button class="btn btn-sm" onclick="togglePropsPanel()" id="btn-props">📋 Properties</button>
+  <button class="btn btn-sm" onclick="toggleViewsPanel()" id="btn-views">🗂 Views</button>
   <button id="btn-save-graphdb" class="btn btn-sm btn-primary" onclick="saveToGraphDB()" style="display:none">💾 Save to GraphDB</button>
 </div>
 
@@ -205,6 +298,97 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
   <div class="canvas-area" id="canvas-area">
     <div class="canvas-inner" id="canvas-inner">
       <div class="canvas-empty">Connect to GraphDB and load a taxonomy scheme.</div>
+    </div>
+  </div>
+<!-- PROPERTIES PANEL -->
+<div class="props-panel hidden" id="props-panel">
+  <div class="props-hdr">
+    <span id="props-title">Properties</span>
+    <button class="btn btn-ghost btn-sm" onclick="togglePropsPanel()" style="margin-left:auto">✕</button>
+  </div>
+  <div class="props-body" id="props-body">
+    <div style="color:var(--text-muted);font-size:11px">Select a concept to view properties.</div>
+  </div>
+</div>
+  <!-- VIEWS PANEL -->
+  <div class="views-panel hidden" id="views-panel">
+    <div class="views-hdr">
+      <span>💾 Saved Views</span>
+      <button class="btn btn-ghost btn-sm" onclick="toggleViewsPanel()" style="margin-left:auto">✕</button>
+    </div>
+    <div class="views-body" id="views-list"></div>
+    <div class="new-view-form">
+      <input type="text" id="new-view-name" placeholder="View name…" maxlength="40"
+        onkeydown="if(event.key==='Enter')saveCurrentView()">
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-bottom:6px" onclick="saveCurrentView()">
+        + Save Current Layout
+      </button>
+      <div style="display:flex;gap:5px;">
+        <button class="btn btn-sm" style="flex:1" onclick="exportViewsFile()" title="Download views as JSON file for GitHub">
+          ⬇ Export to File
+        </button>
+        <button class="btn btn-sm" style="flex:1" onclick="document.getElementById('import-views-input').click()" title="Load views from a previously exported JSON file">
+          ⬆ Import File
+        </button>
+      </div>
+      <input type="file" id="import-views-input" accept=".json" style="display:none" onchange="importViewsFile(event)">
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;line-height:1.5">
+        Export saves to <code style="color:var(--accent2)">Knowledge/Graph Views/</code><br>
+        in your GitHub repo when promoted.
+      </div>
+    </div>
+  </div>
+</div><!-- end workspace -->
+
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctx-menu" style="display:none"></div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="edit-modal modal">
+    <div class="modal-hdr">✏️ Edit Concept</div>
+    <div class="modal-body" id="edit-body" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="prop-row">
+        <div class="prop-label">Preferred Label (skos:prefLabel)</div>
+        <input type="text" id="edit-prefLabel" placeholder="Preferred label…">
+      </div>
+      <div class="prop-row">
+        <div class="prop-label">Definition (skos:definition)</div>
+        <textarea id="edit-definition" placeholder="Definition…" rows="3"></textarea>
+      </div>
+      <div class="prop-row">
+        <div class="prop-label">Scope Note (skos:scopeNote)</div>
+        <textarea id="edit-scopeNote" placeholder="Scope note…" rows="2"></textarea>
+      </div>
+      <div class="prop-row">
+        <div class="prop-label">Alternate Labels (skos:altLabel)</div>
+        <div id="alt-labels-wrap"></div>
+        <button class="btn btn-sm" onclick="addAltLabelRow()" style="margin-top:4px">+ Add Alternate Label</button>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditModal()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE PROMPT MODAL -->
+<div class="modal-overlay" id="save-prompt-modal">
+  <div class="modal" style="width:400px;max-width:96vw">
+    <div class="modal-hdr">💾 Unsaved Layout Changes</div>
+    <div class="modal-body" style="padding:16px 18px">
+      <p style="font-size:13px;color:var(--text)">
+        You have unsaved changes to the current view layout.<br>
+        Would you like to save them before continuing?
+      </p>
+    </div>
+    <div class="modal-ftr" style="justify-content:space-between">
+      <button class="btn" id="spm-cancel">Cancel</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" id="spm-discard" style="color:var(--danger)">Discard Changes</button>
+        <button class="btn btn-primary" id="spm-save">Save View</button>
+      </div>
     </div>
   </div>
 </div>
@@ -409,7 +593,22 @@ SELECT ?c ?pref ?note WHERE {
       : `${t} FILTER(STRSTARTS(STR(?c), "${nsBase}"))`;
 
     // broader
-    const r2 = await sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?b WHERE { ${relWrap('?c skos:broader ?b .')} }`);
+    // Also fetch altLabels and definitions
+    const [r2raw, r4, r5] = await Promise.all([
+      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?b WHERE { ${relWrap('?c skos:broader ?b .')} }`),
+      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?al WHERE { ${relWrap('?c skos:altLabel ?al .')} }`),
+      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?def WHERE { ${relWrap('?c skos:definition ?def .')} }`)
+    ]);
+    const r2 = r2raw;
+    r4.results.bindings.forEach(b => {
+      const cc = byIri[b.c.value]; if (!cc) return;
+      if (!cc.altLabels) cc.altLabels = [];
+      if (!cc.altLabels.includes(b.al.value)) cc.altLabels.push(b.al.value);
+    });
+    r5.results.bindings.forEach(b => {
+      const cc = byIri[b.c.value]; if (!cc) return;
+      if (!cc.definition) cc.definition = b.def.value;
+    });
     const idByIri = {}; Object.values(newConcepts).forEach(c => idByIri[c.iri] = c.id);
     r2.results.bindings.forEach(b => {
       const child = byIri[b.c.value], parId = idByIri[b.b?.value];
@@ -432,6 +631,8 @@ SELECT ?c ?pref ?note WHERE {
     setConnStatus('connected');
     renderAll();
     toast('Loaded ' + Object.keys(newConcepts).length + ' concepts', 'success');
+    loadDefaultView();
+    if (viewsPanelOpen) renderViewsList();
   } catch(e) {
     setConnStatus('error');
     toast('Load failed: ' + e.message, 'error');
@@ -467,7 +668,10 @@ function tripleStrings(c, schemeIri) {
   const S = '<' + c.iri + '>';
   t.add(`${S} a skos:Concept`);
   t.add(`${S} skos:inScheme <${schemeIri}>`);
-  if (c.prefLabel) t.add(`${S} skos:prefLabel ${lit(c.prefLabel)}@en`);
+  if (c.prefLabel)  t.add(`${S} skos:prefLabel ${lit(c.prefLabel)}@en`);
+  if (c.definition) t.add(`${S} skos:definition ${lit(c.definition)}@en`);
+  if (c.note)       t.add(`${S} skos:scopeNote ${lit(c.note)}@en`);
+  (c.altLabels||[]).forEach(al => t.add(`${S} skos:altLabel ${lit(al)}@en`));
   (c.broader||[]).forEach(bid => {
     const b = concepts()[bid];
     if (b) t.add(`${S} skos:broader <${b.iri}>`);
@@ -658,19 +862,127 @@ function renderLeft() {
 // ═══════════════════════════════════════════════════════════
 function renderTopDown() {
   const tops = topConcepts();
+  const inner = document.getElementById('canvas-inner');
   if (!tops.length) {
-    document.getElementById('canvas-inner').innerHTML =
+    inner.innerHTML =
       `<div class="canvas-drop-root" ondragover="event.preventDefault();this.classList.add('active')" ondrop="onDropCanvas(event)" ondragleave="this.classList.remove('active')">Drop a concept here to make it a top concept</div>
        <div class="canvas-empty">No top concepts found. Drag concepts from the left panel.</div>`;
     return;
   }
 
-  let html = `<div class="canvas-drop-root" ondragover="event.preventDefault();this.classList.add('active')" ondrop="onDropCanvas(event)" ondragleave="this.classList.remove('active')">↑ Drop here to promote to top concept</div>`;
-  html += `<div style="display:flex;gap:32px;padding:16px;flex-wrap:wrap;align-items:flex-start;">`;
-  tops.forEach(c => { html += renderNodeTD(c.id, null, new Set()); });
+  // 1. Compute positions for every node
+  const layout = computeLayout();
+
+  // 2. Estimate stage size from layout extents
+  let maxX = 800, maxY = 600;
+  Object.values(layout).forEach(p => {
+    maxX = Math.max(maxX, p.x + NODE_W / 2 + STAGE_PAD);
+    maxY = Math.max(maxY, p.y + NODE_H    + STAGE_PAD);
+  });
+
+  // 3. Build flat absolutely-positioned nodes (no nested HTML tree)
+  let html = `<div id="td-stage" style="position:relative;width:${maxX}px;height:${maxY}px;">`;
+
+  // SVG connector layer (rendered on top via JS after DOM insert)
+  html += `<svg id="td-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>`;
+
+  // Drop zone bar at top
+  html += `<div class="canvas-drop-root" style="position:absolute;top:4px;left:${STAGE_PAD}px;right:${STAGE_PAD}px;min-height:28px;"
+    ondragover="event.preventDefault();this.classList.add('active')"
+    ondrop="onDropCanvas(event)"
+    ondragleave="this.classList.remove('active')">↑ Drop here → top concept</div>`;
+
+  // Render every node at its computed position
+  Object.entries(layout).forEach(([nid, pos]) => {
+    const c = concepts()[nid];
+    if (!c) return;
+    const kids = childrenOf(nid);
+    const isCollapsed = collapsed.has(nid);
+    const poly = parentCount(nid) > 1;
+    const isTop = !c.broader?.length;
+    const sel = selectedId === nid;
+    const hasAlt = (c.altLabels||[]).length > 0;
+    const isTopConcept = tops.some(t => t.id === nid);
+
+    const nx = pos.x - NODE_W / 2;
+    const ny = pos.y;
+
+    html += `<div id="nd_${nid}"
+      class="tnode ${isTop?'top-concept':''} ${sel?'selected':''}"
+      data-id="${nid}" data-node="1" data-is-top="${isTopConcept}"
+      onclick="selectConcept('${nid}')"
+      ondblclick="toggleCollapse('${nid}',event)"
+      oncontextmenu="openCtxMenu(event,'${nid}')"
+      style="position:absolute;left:${nx}px;top:${ny}px;width:${NODE_W}px;box-sizing:border-box;cursor:grab;">
+      <div class="tnode-label">${esc(c.prefLabel)}</div>
+      <div class="tnode-iri">${esc(c.iri.split(/[#/]/).pop())}</div>
+      ${poly?`<span class="tnode-poly">poly ×${parentCount(nid)}</span>`:''}
+      ${hasAlt?`<span class="tnode-poly" style="background:var(--accent);color:#fff">${c.altLabels.length} alt</span>`:''}
+      ${kids.length?`<div class="tnode-chevron ${isCollapsed?'collapsed':''}"
+        onclick="toggleCollapse('${nid}',event);event.stopPropagation()"
+        title="${isCollapsed?'Expand ('+kids.length+' children)':'Collapse'}"
+      >${isCollapsed?'&#9658;':'&#9660;'}</div>`:''}
+    </div>`;
+  });
+
   html += `</div>`;
-  document.getElementById('canvas-inner').innerHTML = html;
+  inner.innerHTML = html;
+
+  // 4. Attach mousedown to every node div for free-drag movement
+  requestAnimationFrame(() => {
+    drawConnectors(layout);
+    document.querySelectorAll('#td-stage .tnode').forEach(el => {
+      el.addEventListener('mousedown', nodeMD);
+    });
+  });
 }
+
+// Drag threshold — must move this many px before drag starts
+// (allows normal click/dblclick without triggering drag)
+const DRAG_THRESHOLD = 6;
+
+function nodeMD(e) {
+  if (e.button !== 0) return;
+  if (e.target.closest('.tnode-chevron')) return;
+  const nid      = this.dataset.id;
+  const isTop    = this.dataset.isTop === 'true';
+  // Shift+drag on top concept = move whole subtree; plain drag = node only
+  const useSubtree = isTop && e.shiftKey;
+  const offsetKey  = useSubtree
+    ? iriKey(nid) + '__sub'
+    : iriKey(nid);
+  const off = manualOffsets[offsetKey] || { dx: 0, dy: 0 };
+  _pendingDrag = {
+    id: nid, offsetKey,
+    startMx: e.clientX, startMy: e.clientY,
+    startDx: off.dx, startDy: off.dy,
+    active: false
+  };
+}
+
+// Draw SVG lines from parent center-bottom to child center-top
+function drawConnectors(layout) {
+  const svg = document.getElementById('td-svg');
+  if (!svg) return;
+  const lines = [];
+  Object.values(concepts()).forEach(c => {
+    const cPos = layout[c.id];
+    if (!cPos || collapsed.has(c.id)) return;
+    childrenOf(c.id).forEach(k => {
+      const kPos = layout[k.id];
+      if (!kPos) return;
+      const x1 = cPos.x, y1 = cPos.y + NODE_H - 10; // above chevron
+      const x2 = kPos.x, y2 = kPos.y;
+      const my = (y1 + y2) / 2;
+      lines.push(`<path d="M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}"
+        stroke="var(--connector)" stroke-width="1.5" fill="none" opacity="0.7"/>`);
+    });
+  });
+  svg.innerHTML = lines.join('');
+}
+
+// Top-concept drag: mousedown on the node itself (not drag-and-drop API)
+// onNodeMouseDown removed — drag wired directly to handle bar in renderTopDown
 
 function renderNodeTD(id, parentId, visited) {
   if (visited.has(id)) return `<div style="color:var(--danger);font-size:10px">⚠ cycle</div>`;
@@ -682,6 +994,7 @@ function renderNodeTD(id, parentId, visited) {
   const poly = parentCount(id) > 1;
   const isTop = !c.broader?.length;
   const sel = selectedId === id;
+  const hasAlt = (c.altLabels||[]).length > 0;
 
   let html = `<div class="node-wrap">
     <div class="tnode ${isTop?'top-concept':''} ${sel?'selected':''}"
@@ -692,20 +1005,24 @@ function renderNodeTD(id, parentId, visited) {
       ondragover="onDragOver(event,'${id}')"
       ondrop="onDrop(event,'${id}')"
       onclick="selectConcept('${id}')"
+      ondblclick="toggleCollapse('${id}',event)"
+      oncontextmenu="openCtxMenu(event,'${id}')"
       style="cursor:pointer">
       <div class="tnode-label">${esc(c.prefLabel)}</div>
       <div class="tnode-iri">${esc(c.iri.split(/[#/]/).pop())}</div>
       ${poly?`<span class="tnode-poly">poly ×${parentCount(id)}</span>`:''}
+      ${hasAlt?`<span class="tnode-poly" style="background:var(--accent);color:#fff">${c.altLabels.length} alt</span>`:''}
+      ${kids.length?`<div class="tnode-chevron ${isCollapsed?'collapsed':''}"
+        onclick="toggleCollapse('${id}',event);event.stopPropagation()"
+        title="${isCollapsed?'Expand ('+kids.length+' children)':'Collapse'}"
+      >${isCollapsed?'&#9658;':'&#9660;'}</div>`:''}
     </div>`;
 
-  if (kids.length) {
-    html += `<div class="tnode-collapse" onclick="toggleCollapse('${id}',event)" title="${isCollapsed?'Expand':'Collapse'}">${isCollapsed?'▶':'▼'}</div>`;
-    if (!isCollapsed) {
-      html += `<div style="width:1.5px;height:16px;background:var(--connector);margin:0 auto;"></div>`;
-      html += `<div style="display:flex;gap:20px;align-items:flex-start;">`;
-      kids.forEach(k => { html += renderNodeTD(k.id, id, visited); });
-      html += `</div>`;
-    }
+  if (kids.length && !isCollapsed) {
+    html += `<div style="width:1.5px;height:20px;background:var(--connector);margin:0 auto;"></div>`;
+    html += `<div style="display:flex;gap:20px;align-items:flex-start;">`;
+    kids.forEach(k => { html += renderNodeTD(k.id, id, visited); });
+    html += `</div>`;
   }
   html += `</div>`;
   return html;
@@ -740,6 +1057,7 @@ function renderNodeLR(id, visited) {
   const poly = parentCount(id) > 1;
   const isTop = !c.broader?.length;
   const sel = selectedId === id;
+  const hasAlt = (c.altLabels||[]).length > 0;
 
   let html = `<div class="lr-node-row">
     <div class="lr-node ${isTop?'top-concept':''} ${sel?'selected':''}"
@@ -750,11 +1068,17 @@ function renderNodeLR(id, visited) {
       ondragover="onDragOver(event,'${id}')"
       ondrop="onDrop(event,'${id}')"
       onclick="selectConcept('${id}')"
+      ondblclick="toggleCollapse('${id}',event)"
+      oncontextmenu="openCtxMenu(event,'${id}')"
       style="cursor:pointer">
       <div class="lr-node-label">${esc(c.prefLabel)}</div>
       <div class="lr-node-iri">${esc(c.iri.split(/[#/]/).pop())}</div>
       ${poly?`<span class="tnode-poly">poly</span>`:''}
-      ${kids.length?`<div class="lr-collapse" onclick="toggleCollapse('${id}',event)">${isCollapsed?'▶':'▼'}</div>`:''}
+      ${hasAlt?`<span class="tnode-poly" style="background:var(--accent);color:#fff">${c.altLabels.length} alt</span>`:''}
+      ${kids.length?`<div class="lr-chevron ${isCollapsed?'collapsed':''}"
+        onclick="toggleCollapse('${id}',event)"
+        title="${isCollapsed?'Expand ('+kids.length+' children)':'Collapse'}"
+      >${isCollapsed?'▶':'▼'}</div>`:''}
     </div>`;
 
   if (kids.length && !isCollapsed) {
@@ -778,12 +1102,14 @@ function setView(v) {
   view = v;
   document.getElementById('btn-td').classList.toggle('active', v==='td');
   document.getElementById('btn-lr').classList.toggle('active', v==='lr');
+  markDirty();
   renderCanvas();
 }
 
 function toggleCollapse(id, e) {
-  e.stopPropagation();
+  if (e && e.stopPropagation) e.stopPropagation();
   if (collapsed.has(id)) collapsed.delete(id); else collapsed.add(id);
+  markDirty();
   renderCanvas();
 }
 
@@ -796,11 +1122,13 @@ function collapseAll() {
 function selectConcept(id) {
   selectedId = id === selectedId ? null : id;
   renderAll();
+  if (propsPanelOpen && selectedId) renderPropsPanel(selectedId);
 }
 
 function renderCanvas() {
   if (!Object.keys(concepts()).length) return;
   if (view === 'td') renderTopDown(); else renderLeftRight();
+  applyTransform();
 }
 
 function renderAll() { renderLeft(); renderCanvas(); }
@@ -816,6 +1144,463 @@ function toast(msg, type='info') {
   wrap.appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
+
+// ═══════════════════════════════════════════════════════════
+//  PROPERTIES PANEL
+// ═══════════════════════════════════════════════════════════
+let propsPanelOpen = false;
+
+function togglePropsPanel() {
+  propsPanelOpen = !propsPanelOpen;
+  document.getElementById('props-panel').classList.toggle('hidden', !propsPanelOpen);
+  if (propsPanelOpen && selectedId) renderPropsPanel(selectedId);
+}
+
+function renderPropsPanel(id) {
+  const c = concepts()[id];
+  if (!c) return;
+  document.getElementById('props-title').textContent = c.prefLabel || 'Properties';
+  const kids = childrenOf(id);
+  const parentConcepts = (c.broader||[]).map(bid => concepts()[bid]).filter(Boolean);
+  const altLabels = c.altLabels || [];
+
+  let html = `
+    <div class="prop-row">
+      <div class="prop-label">IRI</div>
+      <div class="prop-val" style="font-size:10px;word-break:break-all">${esc(c.iri)}</div>
+    </div>
+    <div class="prop-row">
+      <div class="prop-label">Preferred Label</div>
+      <div class="prop-val">${esc(c.prefLabel)}</div>
+    </div>`;
+
+  if (altLabels.length) {
+    html += `<div class="prop-row"><div class="prop-label">Alternate Labels</div>`;
+    altLabels.forEach(al => { html += `<span class="prop-val-alt">${esc(al)}</span>`; });
+    html += `</div>`;
+  }
+
+  if (c.definition) html += `<div class="prop-row"><div class="prop-label">Definition</div><div class="prop-val">${esc(c.definition)}</div></div>`;
+  if (c.note)       html += `<div class="prop-row"><div class="prop-label">Scope Note</div><div class="prop-val">${esc(c.note)}</div></div>`;
+
+  if (parentConcepts.length) {
+    html += `<div class="prop-row"><div class="prop-label">Broader (${parentConcepts.length})</div>`;
+    parentConcepts.forEach(p => { html += `<div class="prop-val" style="margin-bottom:2px">${esc(p.prefLabel)}</div>`; });
+    html += `</div>`;
+  } else {
+    html += `<div class="prop-row"><div class="prop-label">Position</div><div class="prop-val" style="color:var(--accent2)">Top Concept</div></div>`;
+  }
+
+  if (kids.length) {
+    html += `<div class="prop-row"><div class="prop-label">Narrower (${kids.length})</div>`;
+    kids.slice(0,8).forEach(k => { html += `<div class="prop-val" style="margin-bottom:2px;cursor:pointer" onclick="selectConcept('${k.id}')">${esc(k.prefLabel)}</div>`; });
+    if (kids.length > 8) html += `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">…and ${kids.length-8} more</div>`;
+    html += `</div>`;
+  }
+
+  html += `<div style="margin-top:12px">
+    <button class="btn btn-sm" style="width:100%" onclick="openEditModal('${id}')">✏️ Edit Properties</button>
+  </div>`;
+
+  document.getElementById('props-body').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONTEXT MENU
+// ═══════════════════════════════════════════════════════════
+let ctxId = null;
+
+function openCtxMenu(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  ctxId = id;
+  const c = concepts()[id];
+  const kids = childrenOf(id);
+  const isCollapsed = collapsed.has(id);
+
+  const menu = document.getElementById('ctx-menu');
+  menu.innerHTML = `
+    <div class="ctx-item" onclick="closeCtxMenu();selectConcept('${id}');if(!propsPanelOpen)togglePropsPanel();else renderPropsPanel('${id}')">
+      📋 View Properties
+    </div>
+    <div class="ctx-item" onclick="closeCtxMenu();openEditModal('${id}')">
+      ✏️ Edit Properties &amp; Labels
+    </div>
+    <div class="ctx-sep"></div>
+    ${kids.length ? `<div class="ctx-item" onclick="closeCtxMenu();toggleCollapse('${id}',{stopPropagation:()=>{}})">
+      ${isCollapsed ? '▶ Expand' : '▼ Collapse'} (${kids.length} children)
+    </div>` : ''}
+    <div class="ctx-item" onclick="closeCtxMenu();expandSubtree('${id}')">⬇ Expand Subtree</div>
+    <div class="ctx-item" onclick="closeCtxMenu();collapseSubtree('${id}')">▶ Collapse Subtree</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="closeCtxMenu();resetNodePosition('${id}')">
+      ↺ Reset Position
+    </div>
+    <div class="ctx-item danger" onclick="closeCtxMenu();removeFromParent('${id}')">
+      ✕ Remove from Parent
+    </div>`;
+
+  // Position near cursor, keep on screen
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let x = e.clientX, y = e.clientY;
+  menu.style.display = 'block';
+  if (x + 210 > vw) x = vw - 215;
+  if (y + menu.offsetHeight + 10 > vh) y = vh - menu.offsetHeight - 10;
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+}
+
+function closeCtxMenu() {
+  document.getElementById('ctx-menu').style.display = 'none';
+  ctxId = null;
+}
+
+function expandSubtree(id) {
+  collapsed.delete(id);
+  childrenOf(id).forEach(k => expandSubtree(k.id));
+  renderCanvas();
+}
+
+function collapseSubtree(id) {
+  if (childrenOf(id).length) collapsed.add(id);
+  childrenOf(id).forEach(k => collapseSubtree(k.id));
+  renderCanvas();
+}
+
+function removeFromParent(id) {
+  const c = concepts()[id];
+  if (!c) return;
+  c.broader = [];
+  renderAll();
+  showDiff();
+}
+
+function resetNodePosition(id) {
+  delete manualOffsets[iriKey(id)];
+  delete manualOffsets[iriKey(id) + '__sub'];
+  markDirty();
+  renderCanvas();
+  toast('Position reset to auto-layout', 'info');
+}
+
+// Close ctx menu on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#ctx-menu')) closeCtxMenu();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCtxMenu(); });
+
+// ═══════════════════════════════════════════════════════════
+//  EDIT MODAL
+// ═══════════════════════════════════════════════════════════
+let editingId = null;
+
+function openEditModal(id) {
+  editingId = id;
+  const c = concepts()[id];
+  if (!c) return;
+  document.getElementById('edit-prefLabel').value  = c.prefLabel || '';
+  document.getElementById('edit-definition').value = c.definition || '';
+  document.getElementById('edit-scopeNote').value  = c.note || '';
+
+  // Render alt label rows
+  const wrap = document.getElementById('alt-labels-wrap');
+  wrap.innerHTML = '';
+  (c.altLabels || []).forEach((al, i) => addAltLabelRow(al));
+  if (!(c.altLabels||[]).length) addAltLabelRow('');
+
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function addAltLabelRow(val) {
+  const wrap = document.getElementById('alt-labels-wrap');
+  const row = document.createElement('div');
+  row.className = 'alt-label-row';
+  row.innerHTML = `<input type="text" placeholder="Alternate label…" value="${esc(val||'')}">
+    <button class="alt-label-del" onclick="this.parentElement.remove()" title="Remove">✕</button>`;
+  wrap.appendChild(row);
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingId = null;
+}
+
+function saveEditModal() {
+  if (!editingId) return;
+  const c = concepts()[editingId];
+  if (!c) return;
+  c.prefLabel  = document.getElementById('edit-prefLabel').value.trim();
+  c.definition = document.getElementById('edit-definition').value.trim();
+  c.note       = document.getElementById('edit-scopeNote').value.trim();
+  c.altLabels  = [...document.getElementById('alt-labels-wrap')
+    .querySelectorAll('input[type=text]')]
+    .map(el => el.value.trim()).filter(Boolean);
+
+  closeEditModal();
+  renderAll();
+  if (propsPanelOpen) renderPropsPanel(editingId);
+  showDiff();
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  AUTO-LAYOUT ENGINE
+//  Computes non-overlapping positions for all nodes using a
+//  recursive subtree-width algorithm (Reingold-Tilford style).
+//  Manual drags are stored as offsets on top of auto positions.
+// ═══════════════════════════════════════════════════════════
+
+const NODE_W    = 156;  // visual node width (px)
+const NODE_H    = 62;   // visual node height (px)
+const H_GAP     = 12;   // horizontal gap between adjacent nodes at same level
+const V_GAP     = 48;   // vertical gap between levels (bottom of parent → top of child)
+const TOP_GAP   = 48;   // horizontal gap between separate top-concept trees
+const STAGE_PAD = 36;   // canvas padding
+
+// manualOffsets is keyed by CONCEPT IRI (stable across sessions),
+// NOT by internal ID (which is regenerated with rnd() on every load).
+// Use iriKey(id) to get the stable key for any internal ID.
+let manualOffsets = {}; // conceptIRI -> {dx, dy}
+let subtreeDrag = null;
+let _pendingDrag = null;
+let isDirty = false; // true when layout has unsaved changes
+
+function iriKey(id) {
+  return concepts()[id]?.iri || id;
+}
+function idFromIri(iri) {
+  return Object.values(concepts()).find(c => c.iri === iri)?.id || null;
+}
+
+function markDirty() {
+  if (isDirty) return;
+  isDirty = true;
+  // Show unsaved indicator on topbar
+  const ind = document.getElementById('dirty-indicator');
+  if (ind) ind.style.display = 'inline';
+}
+function markClean() {
+  isDirty = false;
+  const ind = document.getElementById('dirty-indicator');
+  if (ind) ind.style.display = 'none';
+}
+
+// ── Recursive layout ─────────────────────────────────────
+// Returns {width, nodes:[{id,x,y}]}
+// x,y are relative to the subtree root's top-center.
+// Width is exactly what the subtree needs — no artificial floor.
+function layoutSubtree(id, visited) {
+  if (visited.has(id)) return { width: NODE_W, nodes: [] };
+  visited = new Set(visited); visited.add(id);
+  const isCollapsed = collapsed.has(id);
+  const kids = isCollapsed ? [] : childrenOf(id);
+
+  // Leaf node: width = NODE_W
+  if (!kids.length) {
+    return { width: NODE_W, nodes: [{ id, x: 0, y: 0 }] };
+  }
+
+  // Layout each child subtree recursively
+  const childLayouts = kids.map(k => layoutSubtree(k.id, visited));
+
+  // Total width = sum of children widths + gaps between them
+  const childrenTotalW = childLayouts.reduce((s, l) => s + l.width, 0)
+                       + H_GAP * (kids.length - 1);
+
+  // Parent width = max of its own width and total children span
+  const myWidth = Math.max(NODE_W, childrenTotalW);
+
+  // Place children left-to-right, centered under parent
+  const childStartX = -childrenTotalW / 2;
+  let cursor = childStartX;
+  const allNodes = [{ id, x: 0, y: 0 }];
+
+  childLayouts.forEach((cl, i) => {
+    const childCenterX = cursor + cl.width / 2;
+    const childRootY   = NODE_H + V_GAP;
+    cl.nodes.forEach(n => {
+      allNodes.push({
+        id: n.id,
+        x: childCenterX + n.x,
+        y: childRootY + n.y
+      });
+    });
+    cursor += cl.width + H_GAP;
+  });
+
+  return { width: myWidth, nodes: allNodes };
+}
+
+// ── Assign absolute positions ────────────────────────────
+// Offset key types:
+//   iriKey(id)           = per-node independent offset (moves node only)
+//   iriKey(id)+'__sub'   = subtree offset for top concepts (moves all children)
+function computeLayout() {
+  const tops = topConcepts();
+  const layout = {};
+
+  let cursorX = STAGE_PAD;
+  tops.forEach(top => {
+    const { width, nodes } = layoutSubtree(top.id, new Set());
+    const rootX = cursorX + width / 2;
+    const rootY = STAGE_PAD;
+
+    // Subtree offset — only top concepts have this, moves whole subtree
+    const subOff = manualOffsets[iriKey(top.id) + '__sub'] || { dx: 0, dy: 0 };
+
+    nodes.forEach(n => {
+      // Every node gets its own personal offset on top of auto position
+      const nodeOff = manualOffsets[iriKey(n.id)] || { dx: 0, dy: 0 };
+      layout[n.id] = {
+        x: rootX + n.x + subOff.dx + nodeOff.dx,
+        y: rootY + n.y + subOff.dy + nodeOff.dy
+      };
+    });
+
+    cursorX += width + TOP_GAP;
+  });
+
+  return layout;
+}
+
+// startSubtreeDrag removed — drag attached directly to handle bar in requestAnimationFrame
+
+window.addEventListener('mousemove', e => {
+  if (subtreeDrag) {
+    const { offsetKey, startMx, startMy, startDx, startDy } = subtreeDrag;
+    manualOffsets[offsetKey] = {
+      dx: startDx + (e.clientX - startMx) / zoom,
+      dy: startDy + (e.clientY - startMy) / zoom
+    };
+    markDirty();
+    applyLayoutLive();
+    return;
+  }
+  if (!_pendingDrag) return;
+  const ddx = e.clientX - _pendingDrag.startMx;
+  const ddy = e.clientY - _pendingDrag.startMy;
+  if (Math.sqrt(ddx*ddx + ddy*ddy) < DRAG_THRESHOLD) return;
+  subtreeDrag = { ..._pendingDrag, active: true };
+  _pendingDrag = null;
+  const el = document.getElementById('nd_' + subtreeDrag.id);
+  if (el) el.style.cursor = 'grabbing';
+  document.body.style.cursor     = 'grabbing';
+  document.body.style.userSelect = 'none';
+});
+
+window.addEventListener('mouseup', () => {
+  if (subtreeDrag) {
+    const el = document.getElementById('nd_' + subtreeDrag.id);
+    if (el) el.style.cursor = 'grab';
+    subtreeDrag = null;
+    document.body.style.cursor    = '';
+    document.body.style.userSelect = '';
+  }
+  _pendingDrag = null;
+});
+
+// Live position update during drag (no full re-render)
+function applyLayoutLive() {
+  const layout = computeLayout();
+  Object.entries(layout).forEach(([nid, pos]) => {
+    const el = document.getElementById('nd_' + nid);
+    if (el) {
+      el.style.left = (pos.x - NODE_W / 2) + 'px';
+      el.style.top  = pos.y + 'px';
+    }
+  });
+  drawConnectors(layout);
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  PAN & ZOOM
+// ═══════════════════════════════════════════════════════════
+let panX = 40, panY = 40, zoom = 1;
+let isPanning = false, panStartX = 0, panStartY = 0, panOriginX = 0, panOriginY = 0;
+
+function applyTransform() {
+  const inner = document.getElementById('canvas-inner');
+  inner.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+}
+
+function resetView() {
+  panX = 40; panY = 40; zoom = 1;
+  applyTransform();
+}
+
+function centerView() {
+  // Center content after render
+  const area = document.getElementById('canvas-area');
+  const inner = document.getElementById('canvas-inner');
+  const aw = area.clientWidth, ah = area.clientHeight;
+  const iw = inner.scrollWidth * zoom, ih = inner.scrollHeight * zoom;
+  panX = Math.max(40, (aw - iw) / 2);
+  panY = Math.max(40, (ah - ih) / 2);
+  applyTransform();
+}
+
+(function initPan() {
+  const area = document.getElementById('canvas-area');
+
+  // Mouse pan — only fires when dragging the canvas background (not nodes)
+  area.addEventListener('mousedown', e => {
+    // Don't pan if clicking on a node, button, or select
+    if (e.target.closest('.tnode,.lr-node,.concept-item,.btn,.tnode-collapse,.lr-collapse,.canvas-drop-root')) return;
+    if (e.button !== 0) return;
+    if (_pendingDrag || subtreeDrag) return;
+    isPanning = true;
+    panStartX = e.clientX; panStartY = e.clientY;
+    panOriginX = panX; panOriginY = panY;
+    area.classList.add('panning');
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isPanning) return;
+    panX = panOriginX + (e.clientX - panStartX);
+    panY = panOriginY + (e.clientY - panStartY);
+    applyTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!isPanning) return;
+    isPanning = false;
+    document.getElementById('canvas-area').classList.remove('panning');
+  });
+
+  // Mouse wheel zoom
+  area.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = area.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const delta = e.deltaY < 0 ? 1.1 : 0.91;
+    const newZoom = Math.min(3, Math.max(0.2, zoom * delta));
+    // Zoom toward mouse position
+    panX = mouseX - (mouseX - panX) * (newZoom / zoom);
+    panY = mouseY - (mouseY - panY) * (newZoom / zoom);
+    zoom = newZoom;
+    applyTransform();
+  }, { passive: false });
+
+  // Touch pan (two-finger zoom optional, single-finger pan)
+  let lastTouch = null;
+  area.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY, px: panX, py: panY };
+    }
+  }, { passive: true });
+  area.addEventListener('touchmove', e => {
+    if (e.touches.length === 1 && lastTouch) {
+      panX = lastTouch.px + (e.touches[0].clientX - lastTouch.x);
+      panY = lastTouch.py + (e.touches[0].clientY - lastTouch.y);
+      applyTransform();
+    }
+  }, { passive: true });
+  area.addEventListener('touchend', () => { lastTouch = null; });
+})();
+
 
 // ═══════════════════════════════════════════════════════════
 //  RESIZER
@@ -850,6 +1635,310 @@ document.addEventListener('keydown', e => {
   }
   if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey)) {
     e.preventDefault(); showDiff();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  LAYOUT VIEWS — save, recall, set default
+// ═══════════════════════════════════════════════════════════
+
+const VIEWS_LS_KEY_PREFIX = 'ev_tax_views_';  // + schemeIRI hash
+
+function viewsKey() {
+  // Use the scheme IRI directly as the storage key (readable, stable)
+  const iri = loadedSchemeIri || schemeData.iri || 'default';
+  // Sanitize for localStorage key
+  return VIEWS_LS_KEY_PREFIX + iri.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function loadViewsStore() {
+  try { return JSON.parse(localStorage.getItem(viewsKey()) || '{}'); } catch { return {}; }
+}
+
+function saveViewsStore(store) {
+  try { localStorage.setItem(viewsKey(), JSON.stringify(store)); } catch(e) {
+    toast('Storage error: ' + e.message, 'error');
+  }
+}
+
+// Capture current editor state into a view snapshot
+function captureSnapshot(name) {
+  return {
+    name,
+    viewMode: view,
+    panX, panY, zoom,
+    collapsed: [...collapsed],
+    manualOffsets: JSON.parse(JSON.stringify(manualOffsets)),
+    savedAt: Date.now()
+  };
+}
+
+// Apply a snapshot to the editor
+function applySnapshot(snap) {
+  view      = snap.viewMode || 'td';
+  panX      = snap.panX ?? 40;
+  panY      = snap.panY ?? 40;
+  zoom      = snap.zoom ?? 1;
+  collapsed = new Set(snap.collapsed || []);
+  manualOffsets = snap.manualOffsets || {};
+  document.getElementById('btn-td').classList.toggle('active', view === 'td');
+  document.getElementById('btn-lr').classList.toggle('active', view === 'lr');
+  applyTransform();
+  renderCanvas();
+}
+
+function saveCurrentView() {
+  const input = document.getElementById('new-view-name');
+  const name  = input.value.trim();
+  if (!name) { toast('Enter a view name first', 'error'); input.focus(); return; }
+  if (!loadedSchemeIri && !schemeData.iri) {
+    toast('Load a taxonomy first before saving a view', 'error'); return;
+  }
+
+  const store = loadViewsStore();
+  const id    = 'v' + Date.now().toString(36);
+  const isFirstView = Object.keys(store).length === 0;
+  store[id] = { ...captureSnapshot(name), isDefault: isFirstView };
+
+  console.log('[views] saving view', name, 'key=', viewsKey(), 'offsets=', manualOffsets);
+  saveViewsStore(store);
+  input.value = '';
+  currentViewId = id;
+  markClean();
+  renderViewsList();
+  toast(`View "${name}" saved${isFirstView ? ' (set as default)' : ''}`, 'success');
+}
+
+async function loadView(id) {
+  if (isDirty && currentViewId) {
+    const ok = await promptSaveChanges();
+    if (ok === null) return; // cancelled
+  }
+  const store = loadViewsStore();
+  const snap  = store[id];
+  if (!snap) return;
+  console.log('[views] loading view', snap.name, 'offsets=', snap.manualOffsets);
+  currentViewId = id;
+  applySnapshot(snap);
+  markClean();
+  renderViewsList();
+  toast(`Loaded view "${snap.name}"`, 'info');
+}
+
+function deleteView(id) {
+  const store = loadViewsStore();
+  const name  = store[id]?.name || 'view';
+  delete store[id];
+  // If we deleted the default, assign a new one if any remain
+  if (!Object.values(store).some(v => v.isDefault)) {
+    const first = Object.keys(store)[0];
+    if (first) store[first].isDefault = true;
+  }
+  if (currentViewId === id) currentViewId = null;
+  saveViewsStore(store);
+  renderViewsList();
+  toast(`Deleted "${name}"`, 'info');
+}
+
+function setDefaultView(id) {
+  const store = loadViewsStore();
+  Object.values(store).forEach(v => { v.isDefault = false; });
+  if (store[id]) store[id].isDefault = true;
+  saveViewsStore(store);
+  renderViewsList();
+  toast(`"${store[id]?.name}" is now the default view`, 'success');
+}
+
+function overwriteView(id) {
+  const store = loadViewsStore();
+  if (!store[id]) return;
+  const wasDefault = store[id].isDefault;
+  const name = store[id].name;
+  store[id] = { ...captureSnapshot(name), isDefault: wasDefault, savedAt: Date.now() };
+  console.log('[views] overwrite view', name, 'key=', viewsKey(), 'offsets=', manualOffsets);
+  saveViewsStore(store);
+  currentViewId = id;
+  markClean();
+  renderViewsList();
+  toast(`Updated "${name}"`, 'success');
+}
+
+function renameView(id) {
+  const store = loadViewsStore();
+  if (!store[id]) return;
+  const newName = prompt('Rename view:', store[id].name);
+  if (!newName || !newName.trim()) return;
+  store[id].name = newName.trim();
+  saveViewsStore(store);
+  renderViewsList();
+}
+
+let currentViewId = null;
+let viewsPanelOpen = false;
+
+function toggleViewsPanel() {
+  viewsPanelOpen = !viewsPanelOpen;
+  document.getElementById('views-panel').classList.toggle('hidden', !viewsPanelOpen);
+  if (viewsPanelOpen) renderViewsList();
+}
+
+function renderViewsList() {
+  const store  = loadViewsStore();
+  const ids    = Object.keys(store).sort((a,b) => (store[a].savedAt||0) - (store[b].savedAt||0));
+  const listEl = document.getElementById('views-list');
+
+  if (!ids.length) {
+    listEl.innerHTML = `<div style="color:var(--text-muted);font-size:11px;padding:8px 4px">
+      No views saved yet. Set up the layout you want, then click "+ Save Current Layout".
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = ids.map(id => {
+    const v    = store[id];
+    const isAct = id === currentViewId;
+    const date = v.savedAt ? new Date(v.savedAt).toLocaleDateString() : '';
+    return `<div class="view-item ${isAct?'active':''} ${v.isDefault?'default-view':''}"
+      onclick="loadView('${id}')">
+      <div style="flex:1;overflow:hidden">
+        <div class="view-name">${esc(v.name)}</div>
+        <div class="view-meta">${v.viewMode==='lr'?'Left-Right':'Top-Down'} · ${date}</div>
+      </div>
+      ${v.isDefault?`<span class="view-default-badge">DEFAULT</span>`:''}
+      <div class="view-actions" onclick="event.stopPropagation()">
+        <button class="view-act-btn" onclick="overwriteView('${id}')" title="Update with current layout">↑</button>
+        <button class="view-act-btn" onclick="setDefaultView('${id}')" title="Set as default">★</button>
+        <button class="view-act-btn" onclick="renameView('${id}')" title="Rename">✎</button>
+        <button class="view-act-btn danger" onclick="deleteView('${id}')" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Export / Import ─────────────────────────────────────
+
+function taxonomySlug() {
+  // Derive a filesystem-safe name from the scheme IRI
+  // e.g. https://www.enablingvalue.com/taxonomy-core-product
+  //   -> taxonomy-core-product
+  const iri = loadedSchemeIri || 'taxonomy';
+  const slug = iri.split('/').filter(Boolean).pop() || 'taxonomy';
+  return slug.replace(/[^a-zA-Z0-9_-]/g, '-');
+}
+
+function exportViewsFile() {
+  const store = loadViewsStore();
+  if (!Object.keys(store).length) {
+    toast('No views to export — save at least one view first', 'error');
+    return;
+  }
+
+  const payload = {
+    _meta: {
+      schemeIri:   loadedSchemeIri || '',
+      schemeName:  taxonomySlug(),
+      exportedAt:  new Date().toISOString(),
+      exportedBy:  'Taxonomy Tree Editor — Enabling Value',
+      githubPath:  'Knowledge/Graph Views/' + taxonomySlug() + '-views.json'
+    },
+    views: store
+  };
+
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = taxonomySlug() + '-views.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Exported: ' + a.download, 'success');
+}
+
+function importViewsFile(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const payload = JSON.parse(ev.target.result);
+      // Accept either raw store format {viewId: {...}} or wrapped {views: {...}}
+      const incomingStore = payload.views || payload;
+
+      // Validate: every entry should have a name and savedAt
+      const ids = Object.keys(incomingStore);
+      if (!ids.length) { toast('No views found in file', 'error'); return; }
+      const valid = ids.every(id => incomingStore[id]?.name);
+      if (!valid) { toast('Invalid views file format', 'error'); return; }
+
+      // Merge with existing — incoming views take precedence on ID collision
+      const existing = loadViewsStore();
+      const merged   = { ...existing, ...incomingStore };
+      saveViewsStore(merged);
+      renderViewsList();
+
+      const schemeNote = payload._meta?.schemeName
+        ? ' (from ' + payload._meta.schemeName + ')'
+        : '';
+      toast('Imported ' + ids.length + ' view(s)' + schemeNote, 'success');
+    } catch(err) {
+      toast('Import failed: ' + err.message, 'error');
+    }
+    // Reset input so same file can be re-imported
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// Load default view automatically after concepts load
+
+// ── Unsaved-changes prompt ────────────────────────────────
+// Returns a Promise: 'saved' if user saved, 'discard' if discarded, null if cancelled
+function promptSaveChanges() {
+  return new Promise(resolve => {
+    const modal = document.getElementById('save-prompt-modal');
+    modal.classList.add('open');
+
+    const onSave = () => {
+      modal.classList.remove('open');
+      if (currentViewId) {
+        overwriteView(currentViewId);
+        resolve('saved');
+      } else {
+        // No current view — open the views panel and let user name it
+        if (!viewsPanelOpen) toggleViewsPanel();
+        document.getElementById('new-view-name').focus();
+        resolve(null); // stay on current view
+      }
+    };
+    const onDiscard = () => { modal.classList.remove('open'); resolve('discard'); };
+    const onCancel  = () => { modal.classList.remove('open'); resolve(null); };
+
+    document.getElementById('spm-save').onclick    = onSave;
+    document.getElementById('spm-discard').onclick = onDiscard;
+    document.getElementById('spm-cancel').onclick  = onCancel;
+  });
+}
+
+function loadDefaultView() {
+  const key   = viewsKey();
+  const store = loadViewsStore();
+  const defId = Object.keys(store).find(id => store[id].isDefault);
+  console.log('[views] loadDefaultView key=', key, 'found=', !!defId, 'store=', store);
+  if (defId) {
+    currentViewId = defId;
+    applySnapshot(store[defId]);
+    toast(`Loaded default view "${store[defId].name}"`, 'info');
+  }
+}
+
+
+// ─── beforeunload ────────────────────────────────────────
+window.addEventListener('beforeunload', e => {
+  if (isDirty) {
+    e.preventDefault();
+    e.returnValue = 'You have unsaved layout changes. Leave anyway?';
+    return e.returnValue;
   }
 });
 
