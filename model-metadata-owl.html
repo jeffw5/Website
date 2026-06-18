@@ -231,6 +231,7 @@
 <script>
 const params  = new URLSearchParams(window.location.search);
 let assetUri  = params.get('uri');
+let assetGraphs = [];
 let repoId    = params.get('repo') || 'value-kb';
 
 document.getElementById('assetUri').textContent     = assetUri || '(no asset)';
@@ -393,35 +394,7 @@ const FIELDS = [
 async function loadMetadata() {
     if (!assetUri) return;
     try {
-        const query = `SELECT ?p ?o WHERE {
-            { GRAPH <${assetUri}> { <${assetUri}> ?p ?o . } }
-            UNION { <${assetUri}> ?p ?o . }
-        }`;
-        const resp = await fetch(getBaseUrl(), {
-            method:'POST',
-            headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},
-            body: new URLSearchParams({query})
-        });
-        const data = await resp.json();
-        const byPred = {};
-        data.results.bindings.forEach(b => {
-            if (!byPred[b.p.value]) byPred[b.p.value] = [];
-            byPred[b.p.value].push(b.o.value);
-        });
-        // Collect current imports before populating fields
-        const currentImports = byPred['http://www.w3.org/2002/07/owl#imports'] || [];
-
-        FIELDS.forEach(f => {
-            const el = document.getElementById(f.id);
-            if (!el) return;
-            const vals = byPred[f.pred] || [];
-            if (f.isMultiSelect) return; // handled separately below
-            el.value = f.multi ? vals.join(', ') : (vals[0] || '');
-        });
-
-        // Populate imports dropdown with current selections
-        await populateImportsDropdown(currentImports);
-
+        // STEP 1: Detect actual graphs FIRST
         const gq = `SELECT DISTINCT ?g WHERE { GRAPH ?g { <${assetUri}> ?p ?o } } LIMIT 5`;
         const gr = await fetch(getBaseUrl(), {
             method:'POST',
@@ -429,60 +402,121 @@ async function loadMetadata() {
             body: new URLSearchParams({query:gq})
         });
         const gd = await gr.json();
-        const graphs = gd.results.bindings.map(b => b.g.value);
+        assetGraphs = gd.results.bindings.map(b => b.g.value);
+
         const gel = document.getElementById('display_graph');
-        if (graphs.length > 0) { gel.textContent = graphs.join('\n'); gel.style.color = '#34d399'; }
-        else { gel.textContent = '⚠ Default graph only — use ⊕ Set Named Graph to fix'; gel.style.color = '#f59e0b'; }
+        if (assetGraphs.length > 0) {
+            gel.textContent = assetGraphs.join('\n');
+            gel.style.color = '#34d399';
+        } else {
+            gel.textContent = '\u26a0 Default graph only \u2014 use \u2295 Set Named Graph to fix';
+            gel.style.color = '#f59e0b';
+        }
+
+        // STEP 2: Dynamically target the detected graph (or fall back to empty set)
+        let ngQuery = `SELECT ?p ?o WHERE { BIND("dummy" AS ?p) FILTER(1=0) }`;
+        if (assetGraphs.length > 0) {
+            ngQuery = `SELECT ?p ?o WHERE { GRAPH <${assetGraphs[0]}> { <${assetUri}> ?p ?o . } }`;
+        }
+        const dgQuery = `SELECT ?p ?o WHERE { <${assetUri}> ?p ?o . }`;
+
+        const [ngResp, dgResp] = await Promise.all([
+            fetch(getBaseUrl(), {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:ngQuery})}),
+            fetch(getBaseUrl(), {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:dgQuery})})
+        ]);
+
+        const [ngData, dgData] = await Promise.all([ngResp.json(), dgResp.json()]);
+
+        const byPred = {};
+        dgData.results.bindings.forEach(b => {
+            if (!byPred[b.p.value]) byPred[b.p.value] = [];
+            byPred[b.p.value].push(b.o.value);
+        });
+        ngData.results.bindings.forEach(b => {
+            byPred[b.p.value] = byPred[b.p.value] || [];
+            if (!byPred[b.p.value].includes(b.o.value)) byPred[b.p.value].unshift(b.o.value);
+        });
+
+        const ngPreds = new Set(ngData.results.bindings.map(b => b.p.value));
+        const currentImports = byPred['http://www.w3.org/2002/07/owl#imports'] || [];
+
+        FIELDS.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (!el) return;
+            const vals = byPred[f.pred] || [];
+            if (f.isMultiSelect) return;
+            const ngVals = ngPreds.has(f.pred)
+                ? ngData.results.bindings.filter(b => b.p.value === f.pred).map(b => b.o.value)
+                : vals;
+            el.value = f.multi ? ngVals.join(', ') : (ngVals[0] || '');
+        });
+
+        if (typeof populateImportsDropdown === 'function') {
+            await populateImportsDropdown(currentImports);
+        }
 
     } catch(err) { showStatus('Failed to load: ' + err.message, true); }
 }
 
 async function saveAndClose() {
+    console.log('[save] ENTERED, assetUri=', assetUri, 'assetGraphs=', assetGraphs);
     if (!assetUri) return;
     const now = new Date().toISOString().replace(/\.\d{3}Z$/,'Z');
     document.getElementById('f_modified').value = now;
 
-    const PREFIXES = `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX dct:  <http://purl.org/dc/terms/>
-PREFIX owl:  <http://www.w3.org/2002/07/owl#>
-PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-PREFIX bibo: <http://purl.org/ontology/bibo/>
-PREFIX vaem: <http://www.linkedmodel.org/schema/vaem#>
-PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
-`;
-    let del=[], ins=[], opt=[];
+    const g      = assetGraphs.length > 0 ? assetGraphs[0] : null;
+    const gOpen  = g ? `GRAPH <${g}> { ` : '';
+    const gClose = g ? ` }` : '';
+
+    let atomicUpdate = "";
+
+    for (const f of FIELDS) {
+        const vn = f.id.replace('f_', '');
+        atomicUpdate += `DELETE WHERE { ${gOpen}<${assetUri}> <${f.pred}> ?${vn} .${gClose} };\n`;
+    }
+
+    const insLines = [];
     FIELDS.forEach(f => {
         const el = document.getElementById(f.id);
         if (!el) return;
         const v = el.value.trim();
-        const vn = f.id.replace('f_','');
-        del.push(`<${assetUri}> <${f.pred}> ?${vn} .`);
-        opt.push(`OPTIONAL { <${assetUri}> <${f.pred}> ?${vn} . }`);
         if (!v) return;
         if (f.multi) {
-            v.split(',').map(s=>s.trim()).filter(Boolean).forEach(item => {
-                if (f.isUri) ins.push(`<${assetUri}> <${f.pred}> <${item}> .`);
-                else ins.push(`<${assetUri}> <${f.pred}> "${esc(item)}" .`);
+            v.split(',').map(s => s.trim()).filter(Boolean).forEach(item => {
+                if (f.isUri) insLines.push(`<${assetUri}> <${f.pred}> <${item}> .`);
+                else         insLines.push(`<${assetUri}> <${f.pred}> "${esc(item)}" .`);
             });
-        } else if (f.isSelect && f.isUri && v) {
-            ins.push(`<${assetUri}> <${f.pred}> <${v}> .`);
+        } else if (f.isSelect && f.isUri) {
+            insLines.push(`<${assetUri}> <${f.pred}> <${v}> .`);
         } else if (f.datatype) {
-            ins.push(`<${assetUri}> <${f.pred}> "${esc(v)}"^^<${f.datatype}> .`);
+            insLines.push(`<${assetUri}> <${f.pred}> "${esc(v)}"^^<${f.datatype}> .`);
         } else if (f.lang) {
-            ins.push(`<${assetUri}> <${f.pred}> "${esc(v)}"@${f.lang} .`);
+            insLines.push(`<${assetUri}> <${f.pred}> "${esc(v)}"@${f.lang} .`);
         } else {
-            ins.push(`<${assetUri}> <${f.pred}> "${esc(v)}" .`);
+            insLines.push(`<${assetUri}> <${f.pred}> "${esc(v)}" .`);
         }
     });
 
-    const update = `${PREFIXES}\nDELETE { ${del.join('\n')} }\nINSERT { ${ins.join('\n')} }\nWHERE  { ${opt.join('\n')} }`;
+    if (insLines.length > 0) {
+        atomicUpdate += `INSERT DATA { ${gOpen}\n${insLines.join('\n')}\n${gClose} };\n`;
+    }
+
+    console.log('[save] Atomic Payload:\n', atomicUpdate);
+
     try {
-        const r = await fetch(`${getBaseUrl()}/statements`,{method:'POST',headers:{'Content-Type':'application/sparql-update'},body:update});
+        const r = await fetch(`${getBaseUrl()}/statements`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/sparql-update' },
+            body: atomicUpdate
+        });
         if (!r.ok) throw new Error(await r.text());
-        showStatus('✓ Saved. Closing…');
-        if (window.opener && !window.opener.closed) { try{window.opener.refreshSidebar();}catch(e){} }
-        setTimeout(()=>window.close(), 800);
-    } catch(err) { showStatus('Save failed: ' + err.message, true); }
+        showStatus('\u2713 Saved. Closing\u2026');
+        if (window.opener && !window.opener.closed) { try { window.opener.refreshSidebar(); } catch(e) {} }
+        setTimeout(() => window.close(), 800);
+    } catch(err) {
+        console.error('[save] ERROR:', err);
+        showStatus('Save failed: ' + err.message, true);
+    }
 }
 
 function showStatus(msg, err=false) {
