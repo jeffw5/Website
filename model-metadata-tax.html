@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taxonomy Metadata Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans h-screen flex flex-col">
+
+<!-- Header -->
+<div class="border-b border-gray-700 flex items-center justify-between px-6 flex-shrink-0" style="min-height:56px;background:#1e2030;">
+    <div>
+        <div class="flex items-center gap-3">
+            <h1 class="text-base font-bold text-amber-400">🌳 Taxonomy Metadata Editor</h1>
+            <span class="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-amber-900 text-amber-300">owl:Class Taxonomy</span>
+        </div>
+        <p id="assetUri" class="text-xs text-gray-500 italic truncate max-w-lg mt-0.5"></p>
+    </div>
+    <div class="flex gap-2 flex-shrink-0">
+        <button onclick="openRenameModal()" class="bg-violet-700 hover:bg-violet-600 text-white font-bold py-1.5 px-3 rounded text-sm transition">✏️ Rename URI</button>
+        <button onclick="saveAndClose()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-3 rounded text-sm transition">💾 Save &amp; Close</button>
+        <button onclick="window.close()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded text-sm transition">Cancel</button>
+    </div>
+</div>
+
+<div id="status" class="hidden px-6 py-2 text-sm flex-shrink-0"></div>
+
+<div class="flex-1 overflow-y-auto p-6 max-w-3xl w-full space-y-4">
+
+    <!-- Identity block -->
+    <div class="border border-gray-700 rounded p-3 space-y-3" style="background:#1a1d2e;">
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Asset URI</label>
+            <div id="display_uri" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-amber-300 break-all select-all"></div>
+        </div>
+        <div>
+            <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Named Graph</label>
+                <button onclick="openSetGraphModal()" class="text-xs bg-violet-800 hover:bg-violet-700 text-white px-2 py-0.5 rounded transition">⊕ Set Named Graph</button>
+            </div>
+            <div id="display_graph" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono break-all select-all"></div>
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Repository</label>
+            <div id="display_repo" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs font-mono text-gray-400"></div>
+        </div>
+        <div id="member-count-display" class="text-xs text-gray-500"></div>
+    </div>
+
+    <!-- Core labels -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">rdfs:label</label>
+            <input id="f_label" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:title</label>
+            <input id="f_title" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-amber-500">
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:description</label>
+        <textarea id="f_description" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-amber-500 resize-none"></textarea>
+    </div>
+
+    <!-- Creators -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:creator <span class="text-gray-600 normal-case">(comma-separated)</span></label>
+            <input id="f_creator" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:contributor <span class="text-gray-600 normal-case">(comma-separated)</span></label>
+            <input id="f_contributor" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-amber-500">
+        </div>
+    </div>
+
+    <!-- Dates -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:created</label>
+            <input id="f_created" type="text" placeholder="2026-01-01T00:00:00Z" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-mono focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">dct:modified <span class="text-gray-600 normal-case">(auto on save)</span></label>
+            <input id="f_modified" type="text" readonly class="w-full rounded p-2 text-sm font-mono text-gray-500" style="background:#0f1117;border:1px solid #374151;">
+        </div>
+    </div>
+
+    <!-- Taxonomy-specific -->
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">owl:versionInfo</label>
+            <input id="f_version" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-amber-500">
+        </div>
+        <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">vaem:namespace</label>
+            <input id="f_namespace" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm font-mono focus:outline-none focus:border-amber-500">
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">skos:changeNote</label>
+        <input id="f_changeNote" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-amber-500">
+    </div>
+
+</div>
+
+<!-- RENAME MODAL -->
+<div id="renameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:#1a1d2e;border:1px solid #374151;border-radius:10px;width:560px;max-width:96vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:14px 18px;font-size:13px;font-weight:700;border-bottom:1px solid #374151;color:#e2e8f0;">
+      ✏️ Rename Taxonomy URI
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">Current URI</div>
+        <div id="rename_old" style="font-size:11px;font-family:monospace;color:#fbbf24;word-break:break-all;background:#111827;border:1px solid #374151;border-radius:4px;padding:6px 9px;"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">New URI</div>
+        <input id="rename_new" type="text" style="width:100%;font-size:11px;font-family:monospace;background:#111827;border:1px solid #374151;border-radius:4px;padding:6px 9px;color:#e2e8f0;">
+      </div>
+      <button onclick="previewRename()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;align-self:flex-start;">🔍 Preview Impact</button>
+      <div id="rename_preview" style="font-size:12px;color:#9ca3af;line-height:1.7;"></div>
+      <div id="rename_status" style="display:none;"></div>
+    </div>
+    <div style="padding:12px 18px;border-top:1px solid #374151;display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeRenameModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
+      <button id="rename_confirm_btn" onclick="executeRename()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Execute Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- SET NAMED GRAPH MODAL -->
+<div id="setGraphModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:#1a1d2e;border:1px solid #374151;border-radius:10px;width:520px;max-width:96vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:14px 18px;font-size:13px;font-weight:700;border-bottom:1px solid #374151;color:#e2e8f0;">
+      ⊕ Set Named Graph
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">Asset</div>
+        <div id="sg_asset_uri" style="font-size:11px;font-family:monospace;color:#fbbf24;word-break:break-all;"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">Target Named Graph URI</div>
+        <input id="sg_graph_uri" type="text" style="width:100%;font-size:11px;font-family:monospace;background:#111827;border:1px solid #374151;border-radius:4px;padding:6px 9px;color:#e2e8f0;">
+      </div>
+      <div>
+        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">Scope</div>
+        <select id="sg_scope" style="width:100%;background:#111827;border:1px solid #374151;border-radius:4px;padding:6px 9px;font-size:12px;color:#e2e8f0;">
+          <option value="members">This asset + its members, by namespace (recommended)</option>
+          <option value="subject">Only triples where Asset URI is subject</option>
+          <option value="all">All triples currently in default graph</option>
+        </select>
+      </div>
+      <button onclick="previewSetGraph()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;align-self:flex-start;">🔍 Preview Impact</button>
+      <div id="sg_status" style="display:none;"></div>
+    </div>
+    <div style="padding:12px 18px;border-top:1px solid #374151;display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeSetGraphModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
+      <button id="sg_confirm_btn" onclick="executeSetGraph()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Move to Named Graph</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const params  = new URLSearchParams(window.location.search);
+let assetUri  = params.get('uri');
+let assetGraphs = [];
+let repoId    = params.get('repo') || 'value-kb';
+
+document.getElementById('assetUri').textContent     = assetUri || '(no asset)';
+document.getElementById('display_uri').textContent  = assetUri || '—';
+document.getElementById('display_repo').textContent = `http://localhost:7200/repositories/${repoId}`;
+
+function getBaseUrl() { return `/graphdb/repositories/${repoId}`; }
+
+const RDFS = 'http://www.w3.org/2000/01/rdf-schema#';
+const OWL  = 'http://www.w3.org/2002/07/owl#';
+
+const FIELDS = [
+    { id:'f_label',       pred:RDFS+'label',                            lang:'en' },
+    { id:'f_title',       pred:'http://purl.org/dc/terms/title',        lang:'en' },
+    { id:'f_description', pred:'http://purl.org/dc/terms/description',  lang:'en' },
+    { id:'f_creator',     pred:'http://purl.org/dc/terms/creator',      multi:true },
+    { id:'f_contributor', pred:'http://purl.org/dc/terms/contributor',  multi:true },
+    { id:'f_created',     pred:'http://purl.org/dc/terms/created',      datatype:'http://www.w3.org/2001/XMLSchema#dateTime' },
+    { id:'f_modified',    pred:'http://purl.org/dc/terms/modified',     datatype:'http://www.w3.org/2001/XMLSchema#dateTime', readonly:true },
+    { id:'f_version',     pred:OWL+'versionInfo' },
+    { id:'f_namespace',   pred:'http://www.linkedmodel.org/schema/vaem#namespace' },
+    { id:'f_changeNote',  pred:'http://www.w3.org/2004/02/skos/core#changeNote' },
+];
+
+// ── Load metadata (header fields) — same proven pattern as OWL editor ──
+async function loadMetadata() {
+    if (!assetUri) return;
+    try {
+        const gq = `SELECT DISTINCT ?g WHERE { GRAPH ?g { <${assetUri}> ?p ?o } } LIMIT 5`;
+        const gr = await fetch(getBaseUrl(), {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},
+            body: new URLSearchParams({query:gq})
+        });
+        const gd = await gr.json();
+        assetGraphs = gd.results.bindings.map(b => b.g.value);
+
+        const gel = document.getElementById('display_graph');
+        if (assetGraphs.length > 0) {
+            gel.textContent = assetGraphs.join('\n');
+            gel.style.color = '#34d399';
+        } else {
+            gel.textContent = '\u26a0 Default graph only \u2014 use \u2295 Set Named Graph to fix';
+            gel.style.color = '#f59e0b';
+        }
+
+        let ngQuery = `SELECT ?p ?o WHERE { BIND("dummy" AS ?p) FILTER(1=0) }`;
+        if (assetGraphs.length > 0) {
+            ngQuery = `SELECT ?p ?o WHERE { GRAPH <${assetGraphs[0]}> { <${assetUri}> ?p ?o . } }`;
+        }
+        const dgQuery = `SELECT ?p ?o WHERE { <${assetUri}> ?p ?o . }`;
+
+        const [ngResp, dgResp] = await Promise.all([
+            fetch(getBaseUrl(), {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:ngQuery})}),
+            fetch(getBaseUrl(), {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:dgQuery})})
+        ]);
+
+        const [ngData, dgData] = await Promise.all([ngResp.json(), dgResp.json()]);
+
+        const byPred = {};
+        dgData.results.bindings.forEach(b => {
+            if (!byPred[b.p.value]) byPred[b.p.value] = [];
+            byPred[b.p.value].push(b.o.value);
+        });
+        ngData.results.bindings.forEach(b => {
+            byPred[b.p.value] = byPred[b.p.value] || [];
+            if (!byPred[b.p.value].includes(b.o.value)) byPred[b.p.value].unshift(b.o.value);
+        });
+
+        const ngPreds = new Set(ngData.results.bindings.map(b => b.p.value));
+
+        FIELDS.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (!el) return;
+            const vals = byPred[f.pred] || [];
+            const ngVals = ngPreds.has(f.pred)
+                ? ngData.results.bindings.filter(b => b.p.value === f.pred).map(b => b.o.value)
+                : vals;
+            el.value = f.multi ? ngVals.join(', ') : (ngVals[0] || '');
+        });
+
+        // Show member class count for context
+        await refreshMemberCount();
+
+    } catch(err) { showStatus('Failed to load: ' + err.message, true); }
+}
+
+async function refreshMemberCount() {
+    try {
+        const q = `PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}>
+SELECT (COUNT(DISTINCT ?c) AS ?n) WHERE {
+  ?c a owl:Class .
+  ?c rdfs:isDefinedBy <${assetUri}> .
+}`;
+        const n = await countTriples(q);
+        const el = document.getElementById('member-count-display');
+        if (el) el.textContent = `${n} owl:Class member${n===1?'':'s'} (via rdfs:isDefinedBy)`;
+    } catch(e) {}
+}
+
+// ── Save (atomic payload) — exact proven pattern, header fields only ──
+async function saveAndClose() {
+    console.log('[save] ENTERED, assetUri=', assetUri, 'assetGraphs=', assetGraphs);
+    if (!assetUri) return;
+    const now = new Date().toISOString().replace(/\.\d{3}Z$/,'Z');
+    document.getElementById('f_modified').value = now;
+
+    const g      = assetGraphs.length > 0 ? assetGraphs[0] : null;
+    const gOpen  = g ? `GRAPH <${g}> { ` : '';
+    const gClose = g ? ` }` : '';
+
+    let atomicUpdate = "";
+
+    for (const f of FIELDS) {
+        const vn = f.id.replace('f_', '');
+        atomicUpdate += `DELETE WHERE { ${gOpen}<${assetUri}> <${f.pred}> ?${vn} .${gClose} };\n`;
+    }
+
+    const insLines = [];
+    FIELDS.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (!el) return;
+        const v = el.value.trim();
+        if (!v) return;
+        if (f.multi) {
+            v.split(',').map(s => s.trim()).filter(Boolean).forEach(item => {
+                insLines.push(`<${assetUri}> <${f.pred}> "${esc(item)}" .`);
+            });
+        } else if (f.datatype) {
+            insLines.push(`<${assetUri}> <${f.pred}> "${esc(v)}"^^<${f.datatype}> .`);
+        } else if (f.lang) {
+            insLines.push(`<${assetUri}> <${f.pred}> "${esc(v)}"@${f.lang} .`);
+        } else {
+            insLines.push(`<${assetUri}> <${f.pred}> "${esc(v)}" .`);
+        }
+    });
+
+    if (insLines.length > 0) {
+        atomicUpdate += `INSERT DATA { ${gOpen}\n${insLines.join('\n')}\n${gClose} };\n`;
+    }
+
+    console.log('[save] Atomic Payload:\n', atomicUpdate);
+
+    try {
+        const r = await fetch(`${getBaseUrl()}/statements`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/sparql-update' },
+            body: atomicUpdate
+        });
+        if (!r.ok) throw new Error(await r.text());
+        showStatus('\u2713 Saved. Closing\u2026');
+        if (window.opener && !window.opener.closed) { try { window.opener.refreshSidebar(); } catch(e) {} }
+        setTimeout(() => window.close(), 800);
+    } catch(err) {
+        console.error('[save] ERROR:', err);
+        showStatus('Save failed: ' + err.message, true);
+    }
+}
+
+function showStatus(msg, err=false) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = `px-6 py-2 text-sm flex-shrink-0 ${err?'bg-rose-900 text-rose-200':'bg-indigo-900 text-indigo-200'}`;
+    el.classList.remove('hidden');
+}
+
+function esc(s) { return s.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n'); }
+
+async function sparqlUpdate(u) {
+    const r = await fetch(`${getBaseUrl()}/statements`,{method:'POST',headers:{'Content-Type':'application/sparql-update'},body:u});
+    if (!r.ok) throw new Error(await r.text()||`HTTP ${r.status}`);
+}
+
+async function countTriples(q) {
+    const r = await fetch(getBaseUrl(),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:q})});
+    const d = await r.json();
+    return parseInt(d.results.bindings[0]?.c?.value || d.results.bindings[0]?.n?.value || '0');
+}
+
+function setModalStatus(id,msg,c) {
+    const el=document.getElementById(id);
+    el.textContent=msg;
+    el.style.cssText=`display:block;padding:8px 12px;border-radius:4px;font-size:12px;background:${c==='red'?'#450a0a':c==='green'?'#052e16':c==='amber'?'#431407':'#1e1b4b'};color:${c==='red'?'#fca5a5':c==='green'?'#86efac':c==='amber'?'#fed7aa':'#a5b4fc'}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENAME — purpose-built for owl:Class taxonomies
+//
+//  Members are owl:Class instances that declare membership via
+//  rdfs:isDefinedBy <assetUri> — NOT via a shared namespace prefix
+//  (they're frequently minted under a completely different domain,
+//  e.g. ontologies.verizon.com vs www.enablingvalue.com). So instead
+//  of a STRSTARTS namespace-prefix rewrite, we:
+//    1. Find every member via rdfs:isDefinedBy <oldAsset>
+//    2. Compute each member's new IRI: newAssetBase + localName
+//       (localName = the part after the last '/' or '#' in the old IRI)
+//    3. Rewrite each member's own triples (subject + rdfs:subClassOf
+//       references to sibling members + rdfs:isDefinedBy) into the
+//       new named graph
+//    4. Rewrite the asset header itself and move its named graph
+// ═══════════════════════════════════════════════════════════
+
+function openRenameModal() {
+    document.getElementById('rename_old').textContent=assetUri;
+    document.getElementById('rename_new').value=assetUri;
+    document.getElementById('rename_preview').textContent='';
+    document.getElementById('rename_status').style.display='none';
+    document.getElementById('rename_confirm_btn').style.display='none';
+    document.getElementById('renameModal').style.display='flex';
+    setTimeout(()=>document.getElementById('rename_new').focus(),50);
+}
+function closeRenameModal() { document.getElementById('renameModal').style.display='none'; }
+
+function localName(iri) {
+    const m = iri.match(/[\/#]([^\/#]+)\/?$/);
+    return m ? m[1] : iri;
+}
+
+async function previewRename() {
+    const nu=document.getElementById('rename_new').value.trim();
+    if (!nu||nu===assetUri) { document.getElementById('rename_preview').textContent='New URI must differ.'; return; }
+    document.getElementById('rename_preview').textContent='Counting…';
+    document.getElementById('rename_confirm_btn').style.display='none';
+    try {
+        const [headerS, headerO, headerG, members] = await Promise.all([
+            countTriples(`SELECT (COUNT(*) as ?c) WHERE{<${assetUri}> ?p ?o}`),
+            countTriples(`SELECT (COUNT(*) as ?c) WHERE{?s ?p <${assetUri}>}`),
+            countTriples(`SELECT (COUNT(*) as ?c) WHERE{GRAPH<${assetUri}>{?s ?p ?o}}`),
+            countTriples(`PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}> SELECT (COUNT(DISTINCT ?c) as ?c) WHERE{?c a owl:Class . ?c rdfs:isDefinedBy <${assetUri}>}`)
+        ]);
+        document.getElementById('rename_preview').innerHTML=
+            `<span style="color:#e2e8f0">Impact:</span><br>`+
+            `• <strong style="color:#818cf8">${headerS}</strong> header triples (subject)<br>`+
+            `• <strong style="color:#10b981">${headerO}</strong> header references (object)<br>`+
+            `• <strong style="color:#f59e0b">${headerG}</strong> in named graph<br>`+
+            `• <strong style="color:#facc15">${members}</strong> owl:Class member(s) to migrate<br>`+
+            `• <strong style="color:#f87171">${headerS+headerO+headerG} total header triples + ${members} member classes</strong>`;
+        if (headerS+headerO+headerG+members>0) document.getElementById('rename_confirm_btn').style.display='inline-block';
+    } catch(err) { document.getElementById('rename_preview').textContent='Failed: '+err.message; }
+}
+
+async function executeRename() {
+    const nu=document.getElementById('rename_new').value.trim();
+    const btn=document.getElementById('rename_confirm_btn');
+    btn.disabled=true; btn.textContent='Renaming…';
+    try {
+        const newBase = nu.replace(/\/+$/,'') + '/';
+
+        // STEP 1: Find all member classes via rdfs:isDefinedBy (before any rewrite)
+        setModalStatus('rename_status','Step 1/5 — Finding member classes…','blue');
+        const memberQuery = `PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}>
+SELECT DISTINCT ?c WHERE { ?c a owl:Class . ?c rdfs:isDefinedBy <${assetUri}> }`;
+        const mr = await fetch(getBaseUrl(),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:memberQuery})});
+        const md = await mr.json();
+        const members = md.results.bindings.map(b => b.c.value);
+        console.log('[rename] found', members.length, 'member classes:', members);
+
+        // Build old->new IRI map using local name preserved under new base
+        const iriMap = new Map();
+        iriMap.set(assetUri, nu);
+        members.forEach(oldIri => {
+            const newIri = newBase + localName(oldIri);
+            iriMap.set(oldIri, newIri);
+        });
+
+        // STEP 2: For each member, copy its triples to the new graph with rewritten IRIs
+        setModalStatus('rename_status',`Step 2/5 — Migrating ${members.length} member classes…`,'blue');
+        for (const oldIri of members) {
+            const newIri = iriMap.get(oldIri);
+            // Fetch this member's own triples (as subject) from wherever they live
+            const tq = `SELECT ?p ?o WHERE { ?s ?p ?o . FILTER(?s = <${oldIri}>) }`;
+            // Use a graph-agnostic SELECT, then construct explicit triples (avoids relying on BIND/IF in INSERT)
+            const tr = await fetch(getBaseUrl(),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:`SELECT ?p ?o ?oIsIri WHERE { <${oldIri}> ?p ?o BIND(isIRI(?o) AS ?oIsIri) }`})});
+            const td = await tr.json();
+            if (!td.results.bindings.length) continue;
+
+            const insertLines = [];
+            const deleteOldGraphs = new Set();
+            for (const b of td.results.bindings) {
+                const p = b.p.value;
+                let oVal, oIsIri = b.oIsIri && b.oIsIri.value === 'true';
+                if (oIsIri) {
+                    // Rewrite object IRI if it's a known member or the old asset
+                    oVal = iriMap.has(b.o.value) ? iriMap.get(b.o.value) : b.o.value;
+                    insertLines.push(`<${newIri}> <${p}> <${oVal}> .`);
+                } else {
+                    const lit = b.o.value.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n');
+                    const lang = b.o['xml:lang'] ? '@'+b.o['xml:lang'] : '';
+                    const dtype = b.o.datatype ? `^^<${b.o.datatype}>` : '';
+                    insertLines.push(`<${newIri}> <${p}> "${lit}"${lang}${dtype} .`);
+                }
+            }
+            // Find which graph(s) this member currently lives in, to delete from there
+            const gq = `SELECT DISTINCT ?g WHERE { GRAPH ?g { <${oldIri}> ?p ?o } }`;
+            const gr = await fetch(getBaseUrl(),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:gq})});
+            const gd = await gr.json();
+            const memberGraphs = gd.results.bindings.map(b => b.g.value);
+
+            // Delete old triples (from named graphs and default graph)
+            for (const mg of memberGraphs) {
+                await sparqlUpdate(`DELETE { GRAPH <${mg}> { <${oldIri}> ?p ?o } } WHERE { GRAPH <${mg}> { <${oldIri}> ?p ?o } }`);
+            }
+            await sparqlUpdate(`DELETE { <${oldIri}> ?p ?o } WHERE { <${oldIri}> ?p ?o }`);
+
+            // Also delete any inbound references to oldIri (e.g. rdfs:subClassOf from siblings
+            // not yet processed — those will be re-pointed when WE process them, but references
+            // from already-processed members need fixing too). We handle this by rewriting
+            // sibling subClassOf pointers in step 3 below instead of here.
+
+            // Insert rewritten triples into the new named graph
+            if (insertLines.length) {
+                await sparqlUpdate(`INSERT DATA { GRAPH <${nu}> { ${insertLines.join('\n')} } }`);
+            }
+        }
+
+        // STEP 3: Fix up any rdfs:subClassOf / other references between members that were
+        // processed before their parent/child was renamed (order-independent repair pass).
+        setModalStatus('rename_status','Step 3/5 — Repairing cross-member references…','blue');
+        for (const [oldIri, newIri] of iriMap.entries()) {
+            if (oldIri === assetUri) continue;
+            // Any triple in the new graph still pointing at the OLD member IRI as object → fix it
+            await sparqlUpdate(
+`DELETE { GRAPH <${nu}> { ?s ?p <${oldIri}> } }
+INSERT { GRAPH <${nu}> { ?s ?p <${newIri}> } }
+WHERE  { GRAPH <${nu}> { ?s ?p <${oldIri}> } }`);
+        }
+
+        // STEP 4: Rewrite the asset header itself (subject + inbound object refs) + move graph
+        setModalStatus('rename_status','Step 4/5 — Rewriting asset header…','blue');
+        await sparqlUpdate(`DELETE{<${assetUri}> ?p ?o}INSERT{<${nu}> ?p ?o}WHERE{<${assetUri}> ?p ?o}`);
+        await sparqlUpdate(`DELETE{?s ?p <${assetUri}>}INSERT{?s ?p <${nu}>}WHERE{?s ?p <${assetUri}>}`);
+        await sparqlUpdate(`DELETE{GRAPH<${assetUri}>{?s ?p ?o}}INSERT{GRAPH<${nu}>{?s ?p ?o}}WHERE{GRAPH<${assetUri}>{?s ?p ?o}}`);
+        await sparqlUpdate(`DELETE{GRAPH ?g{?s ?p <${assetUri}>}}INSERT{GRAPH ?g{?s ?p <${nu}>}}WHERE{GRAPH ?g{?s ?p <${assetUri}>}}`);
+
+        setModalStatus('rename_status','Step 5/5 — Finalizing…','blue');
+
+        setModalStatus('rename_status',`\u2713 Done — renamed asset + ${members.length} member classes to ${nu}`,'green');
+        assetUri=nu;
+        document.getElementById('display_uri').textContent=nu;
+        document.getElementById('assetUri').textContent=nu;
+        if(window.opener&&!window.opener.closed) try{window.opener.refreshSidebar();}catch(e){}
+        btn.textContent='✓ Done';
+        setTimeout(()=>{closeRenameModal();loadMetadata();},1800);
+    } catch(err) {
+        console.error('[rename] ERROR:', err);
+        setModalStatus('rename_status','Failed: '+err.message,'red');
+        btn.disabled=false; btn.textContent='⚡ Execute Rename';
+    }
+}
+
+// ── Set Named Graph — same proven pattern, plus a members-by-isDefinedBy scope ──
+function openSetGraphModal() {
+    document.getElementById('sg_asset_uri').textContent=assetUri;
+    document.getElementById('sg_graph_uri').value=assetUri;
+    document.getElementById('sg_status').style.display='none';
+    document.getElementById('sg_confirm_btn').style.display='none';
+    document.getElementById('setGraphModal').style.display='flex';
+    setTimeout(()=>document.getElementById('sg_graph_uri').focus(),50);
+}
+function closeSetGraphModal() { document.getElementById('setGraphModal').style.display='none'; }
+
+async function previewSetGraph() {
+    const gu=document.getElementById('sg_graph_uri').value.trim();
+    const scope=document.getElementById('sg_scope').value;
+    document.getElementById('sg_confirm_btn').style.display='none';
+    if (!gu) { setModalStatus('sg_status','Enter a named graph URI.','red'); return; }
+    setModalStatus('sg_status','Counting…','blue');
+    try {
+        let q;
+        if (scope==='subject') {
+            q = `SELECT (COUNT(*) as ?c) WHERE{<${assetUri}> ?p ?o . FILTER NOT EXISTS{GRAPH ?g{<${assetUri}> ?p ?o}}}`;
+        } else if (scope==='members') {
+            q = `PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}>
+SELECT (COUNT(*) as ?c) WHERE {
+  ?s ?p ?o . FILTER NOT EXISTS{GRAPH ?g{?s ?p ?o}}
+  FILTER(?s = <${assetUri}> || EXISTS { ?s a owl:Class . ?s rdfs:isDefinedBy <${assetUri}> })
+}`;
+        } else {
+            q = `SELECT (COUNT(*) as ?c) WHERE{?s ?p ?o . FILTER NOT EXISTS{GRAPH ?g{?s ?p ?o}}}`;
+        }
+        const n=await countTriples(q);
+        if (n===0) {
+            const alreadyInGraph = assetGraphs.length > 0;
+            if (alreadyInGraph) {
+                setModalStatus('sg_status','✓ Asset is already in named graph: ' + assetGraphs[0] + ' — no action needed.', 'green');
+            } else {
+                setModalStatus('sg_status','⚠ No matching default-graph triples found.','amber');
+            }
+        } else {
+            setModalStatus('sg_status',`✓ ${n} triples will move into <${gu}>`,'green');
+            document.getElementById('sg_confirm_btn').style.display='inline-block';
+        }
+    } catch(err) { setModalStatus('sg_status','Failed: '+err.message,'red'); }
+}
+
+async function executeSetGraph() {
+    const gu=document.getElementById('sg_graph_uri').value.trim();
+    const scope=document.getElementById('sg_scope').value;
+    const btn=document.getElementById('sg_confirm_btn');
+    btn.disabled=true; btn.textContent='Moving…';
+    setModalStatus('sg_status','Moving triples…','blue');
+    try {
+        let u;
+        if (scope==='subject') {
+            u = `DELETE{<${assetUri}> ?p ?o}INSERT{GRAPH<${gu}>{<${assetUri}> ?p ?o}}WHERE{<${assetUri}> ?p ?o . FILTER NOT EXISTS{GRAPH ?g{<${assetUri}> ?p ?o}}}`;
+        } else if (scope==='members') {
+            u = `PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}>
+DELETE { ?s ?p ?o }
+INSERT { GRAPH <${gu}> { ?s ?p ?o } }
+WHERE {
+  ?s ?p ?o . FILTER NOT EXISTS{GRAPH ?g{?s ?p ?o}}
+  FILTER(?s = <${assetUri}> || EXISTS { ?s a owl:Class . ?s rdfs:isDefinedBy <${assetUri}> })
+}`;
+        } else {
+            u = `DELETE{?s ?p ?o}INSERT{GRAPH<${gu}>{?s ?p ?o}}WHERE{?s ?p ?o . FILTER NOT EXISTS{GRAPH ?g{?s ?p ?o}}}`;
+        }
+        await sparqlUpdate(u);
+        const v=await countTriples(`SELECT (COUNT(*) as ?c) WHERE{GRAPH<${gu}>{<${assetUri}> ?p ?o}}`);
+        setModalStatus('sg_status',`✓ Done — ${v} header triples now in <${gu}>`,'green');
+        assetGraphs = [gu];
+        const gel=document.getElementById('display_graph');
+        gel.textContent=gu; gel.style.color='#34d399';
+        if(window.opener&&!window.opener.closed) try{window.opener.refreshSidebar();}catch(e){}
+        btn.textContent='✓ Done';
+        setTimeout(()=>{closeSetGraphModal();loadMetadata();},1500);
+    } catch(err) {
+        setModalStatus('sg_status','Failed: '+err.message,'red');
+        btn.disabled=false; btn.textContent='⚡ Move to Named Graph';
+    }
+}
+
+loadMetadata();
+</script>
+</body>
+</html>

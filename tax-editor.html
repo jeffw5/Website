@@ -54,6 +54,7 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
 .resizer:hover{background:var(--accent);}
 .canvas-area{flex:1;overflow:hidden;position:relative;cursor:grab;}
 .canvas-area.panning{cursor:grabbing;}
+.canvas-area.rubber-banding{cursor:crosshair;}
 .panel-hdr{padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;
   letter-spacing:.07em;color:var(--text-dim);border-bottom:1px solid var(--border);
   display:flex;align-items:center;gap:6px;flex-shrink:0;}
@@ -267,6 +268,9 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="brand">Taxonomy Tree <span>| Enabling Value</span></div>
+  <span id="loaded-model-name" style="font-size:12px;font-weight:700;color:var(--accent2);
+    background:rgba(124,131,245,.1);border:1px solid var(--accent);border-radius:4px;
+    padding:3px 10px;white-space:nowrap;display:none;">— no model loaded —</span>
   <span id="dirty-indicator" style="display:none;font-size:10px;color:var(--warn);
     background:rgba(251,191,36,.1);border:1px solid var(--warn);border-radius:4px;
     padding:2px 7px;white-space:nowrap;">● Unsaved changes</span>
@@ -285,9 +289,10 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
   <button class="btn btn-sm" onclick="expandAll()">Expand All</button>
   <button class="btn btn-sm" onclick="collapseAll()">Collapse All</button>
   <button class="btn btn-sm" onclick="resetView()" title="Reset pan &amp; zoom">⌖ Reset View</button>
-  <button class="btn btn-sm" onclick="togglePropsPanel()" id="btn-props">📋 Properties</button>
+  <button class="btn btn-sm" onclick="togglePropsPanel()" id="btn-props" title="View concept properties">📋 Properties</button>
   <button class="btn btn-sm" onclick="toggleViewsPanel()" id="btn-views">🗂 Views</button>
-  <button id="btn-save-graphdb" class="btn btn-sm btn-primary" onclick="saveToGraphDB()" style="display:none">💾 Save to GraphDB</button>
+  <button class="btn btn-sm" onclick="openRelationsModal()" id="btn-relations" style="display:none">🔗 Relations</button>
+  <button id="btn-save-all" class="btn btn-sm btn-primary" onclick="saveAll()" style="display:none">💾 Save</button>
 </div>
 
 <!-- WORKSPACE -->
@@ -387,6 +392,54 @@ input[type=text]:focus{outline:none;border-color:var(--accent);}
   </div>
 </div>
 
+<!-- RELATIONS MODAL -->
+<div class="modal-overlay" id="relations-modal">
+  <div class="modal" style="width:580px;max-width:98vw">
+    <div class="modal-hdr">🔗 Manage Relations</div>
+    <div class="modal-body" style="padding:14px 18px;display:flex;flex-direction:column;gap:14px;">
+      <!-- Add relation -->
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:10px;">Add / Update Relation</div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:8px;">
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px">Subject concept</div>
+            <select id="rel-subject" style="width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:5px 7px;font-size:11px;"></select>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px">Relation</div>
+            <select id="rel-type" style="background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:5px 7px;font-size:11px;">
+              <option value="broader">skos:broader</option>
+              <option value="narrower">skos:narrower</option>
+              <option value="related">skos:related</option>
+              <option value="broadMatch">skos:broadMatch</option>
+              <option value="closeMatch">skos:closeMatch</option>
+              <option value="exactMatch">skos:exactMatch</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px">Object concept</div>
+            <select id="rel-object" style="width:100%;background:var(--panel);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:5px 7px;font-size:11px;"></select>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="width:100%" onclick="addRelation()">+ Add Relation</button>
+      </div>
+      <!-- Existing relations -->
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:8px;">
+          Existing Relations
+          <input type="text" id="rel-filter" placeholder="Filter…" style="margin-left:8px;width:140px;font-size:11px;padding:2px 6px;"
+            oninput="renderRelationsList()">
+        </div>
+        <div id="relations-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;"></div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn" onclick="closeRelationsModal()">Close</button>
+      <button class="btn btn-primary" onclick="saveAll();closeRelationsModal()">💾 Save All</button>
+    </div>
+  </div>
+</div>
+
 <!-- SAVE PROMPT MODAL -->
 <div class="modal-overlay" id="save-prompt-modal">
   <div class="modal" style="width:400px;max-width:96vw">
@@ -460,7 +513,9 @@ async function sparqlSelect(query) {
   ep = ep.replace(/^https?:\/\/localhost:\d+/, '');
   if (!ep.startsWith('/')) ep = '/' + ep;
   const body = new URLSearchParams({ query });
-  if (namedGraph) body.set('context', '<' + namedGraph + '>');
+  // Do NOT set context= here — graph scoping is handled explicitly
+  // inside each query via GRAPH clauses. Setting context would restrict
+  // ALL queries to one named graph, breaking the fallback namespace query.
   const r = await fetch(ep, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/sparql-results+json' },
@@ -547,8 +602,9 @@ function onSchemeChange(iri) {
   loadedSchemeIri = iri;
   const base = iri.includes('#')
     ? iri.replace(/#.*$/, '#')
-    : iri.replace(/\/[^/]*$/, '/');
+    : iri.replace(/\/+$/, '') + '/';
   schemeData = { iri, base, title: (iri.split('/').filter(Boolean).pop()||'Taxonomy').split('#')[0], concepts: {} };
+  updateModelNameDisplay();
 }
 
 async function connectAndLoad() {
@@ -561,29 +617,92 @@ async function connectAndLoad() {
     const G = '<' + schemeIri + '>';
     console.log('[load] schemeIri:', schemeIri, 'nsBase:', nsBase, 'namedGraph:', namedGraph);
 
+    // Use namedGraph (from ?graph= param) if set, else the scheme IRI itself as graph
+    const graphIri = namedGraph || schemeIri;
+    const GG = '<' + graphIri + '>';
+
     const qGraph = `PREFIX skos: <${SKOS}>
 SELECT ?c ?pref ?note WHERE {
-  GRAPH ${G} {
+  GRAPH ${GG} {
     ?c a skos:Concept .
     OPTIONAL { ?c skos:prefLabel ?pref . FILTER(LANG(?pref)='en' || LANG(?pref)='') }
     OPTIONAL { ?c skos:scopeNote ?note }
   }
 }`;
+    // Namespace fallback: concepts whose IRI starts with schemeIri + '/'
+    const conceptBase = schemeIri.replace(/\/+$/, '') + '/';
     const qNs = `PREFIX skos: <${SKOS}>
 SELECT ?c ?pref ?note WHERE {
   ?c a skos:Concept .
-  FILTER(STRSTARTS(STR(?c), "${nsBase}"))
+  FILTER(STRSTARTS(STR(?c), "${conceptBase}"))
   OPTIONAL { ?c skos:prefLabel ?pref . FILTER(LANG(?pref)='en' || LANG(?pref)='') }
   OPTIONAL { ?c skos:scopeNote ?note }
 }`;
+    // OWL fallback: query owl:Class + rdfs:label when SKOS finds nothing.
+    // Taxonomies stored as OWL ontologies use owl:Class + rdfs:subClassOf.
+    // Try both the enablingvalue named graph AND the original Verizon graph.
+    const verizonBase = schemeIri.replace('www.enablingvalue.com/', 'ontologies.verizon.com/');
+    const qOwlGraph = (graphToTry) => `PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?c ?pref WHERE {
+  GRAPH <${graphToTry}> {
+    ?c a owl:Class .
+    OPTIONAL { ?c rdfs:label ?pref . FILTER(LANG(?pref)='en' || LANG(?pref)='') }
+  }
+}`;
+    const qOwlNs = (baseToTry) => `PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?c ?pref WHERE {
+  ?c a owl:Class .
+  FILTER(STRSTARTS(STR(?c), "${baseToTry}"))
+  OPTIONAL { ?c rdfs:label ?pref . FILTER(LANG(?pref)='en' || LANG(?pref)='') }
+}`;
 
+    console.log('[load] graphIri:', graphIri, '| conceptBase:', conceptBase);
     let usedGraph = true;
+    let isOwl = false;
+    let owlGraphIri = graphIri;
+
+    // 1. Try SKOS in named graph
     let r1 = await sparqlSelect(qGraph);
-    console.log('[load] graph query returned:', r1.results.bindings.length, 'rows');
+    console.log('[load] SKOS graph query returned:', r1.results.bindings.length, 'rows');
+
+    // 2. SKOS namespace fallback
     if (!r1.results.bindings.length) {
       usedGraph = false;
       r1 = await sparqlSelect(qNs);
-      console.log('[load] ns fallback returned:', r1.results.bindings.length, 'rows');
+      console.log('[load] SKOS ns fallback returned:', r1.results.bindings.length, 'rows');
+    }
+
+    // 3. OWL fallback — try enablingvalue graph, then Verizon graph, then namespace
+    if (!r1.results.bindings.length) {
+      isOwl = true;
+      console.log('[load] No SKOS concepts — trying OWL owl:Class fallback');
+      r1 = await sparqlSelect(qOwlGraph(graphIri));
+      console.log('[load] OWL graph (enablingvalue) returned:', r1.results.bindings.length, 'rows');
+      owlGraphIri = graphIri;
+    }
+    if (!r1.results.bindings.length && isOwl) {
+      // Try original Verizon ontology graph
+      const verizonGraph = verizonBase + '/';
+      r1 = await sparqlSelect(qOwlGraph(verizonBase + '/'));
+      console.log('[load] OWL graph (verizon slash) returned:', r1.results.bindings.length, 'rows');
+      owlGraphIri = verizonBase + '/';
+      if (!r1.results.bindings.length) {
+        r1 = await sparqlSelect(qOwlGraph(verizonBase));
+        console.log('[load] OWL graph (verizon no slash) returned:', r1.results.bindings.length, 'rows');
+        owlGraphIri = verizonBase;
+      }
+    }
+    if (!r1.results.bindings.length && isOwl) {
+      // Namespace fallback for OWL
+      const verizonConceptBase = verizonBase.replace(/\/+$/, '') + '/';
+      r1 = await sparqlSelect(qOwlNs(conceptBase));
+      console.log('[load] OWL ns (enablingvalue) returned:', r1.results.bindings.length, 'rows');
+      if (!r1.results.bindings.length) {
+        r1 = await sparqlSelect(qOwlNs(verizonConceptBase));
+        console.log('[load] OWL ns (verizon) returned:', r1.results.bindings.length, 'rows');
+      }
     }
 
     const byIri = {}, newConcepts = {};
@@ -592,7 +711,7 @@ SELECT ?c ?pref ?note WHERE {
       let c = byIri[iri];
       if (!c) {
         const id = 'c_' + rnd();
-        c = { id, iri, prefLabel: '', broader: [], note: '' };
+        c = { id, iri, prefLabel: '', broader: [], related: [], note: '' };
         byIri[iri] = c; newConcepts[id] = c;
       }
       if (b.pref && !c.prefLabel) c.prefLabel = b.pref.value;
@@ -603,17 +722,32 @@ SELECT ?c ?pref ?note WHERE {
     });
 
     const relWrap = t => usedGraph
-      ? `GRAPH ${G} { ${t} }`
-      : `${t} FILTER(STRSTARTS(STR(?c), "${nsBase}"))`;
+      ? `GRAPH ${GG} { ${t} }`
+      : `${t} FILTER(STRSTARTS(STR(?c), "${conceptBase}"))`;
 
-    // broader
+    // For OWL mode: use rdfs:subClassOf instead of skos:broader
+    // and the actual OWL graph where classes were found
+    const owlRelWrap = t => `GRAPH <${owlGraphIri}> { ${t} }`;
+
+    // broader / subClassOf
+    const broaderQuery = isOwl
+      ? `PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+         SELECT ?c ?b WHERE { ${owlRelWrap('?c rdfs:subClassOf ?b .')} }`
+      : `PREFIX skos: <${SKOS}> SELECT ?c ?b WHERE { ${relWrap('?c skos:broader ?b .')} }`;
     // Also fetch altLabels and definitions
-    const [r2raw, r4, r5] = await Promise.all([
-      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?b WHERE { ${relWrap('?c skos:broader ?b .')} }`),
-      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?al WHERE { ${relWrap('?c skos:altLabel ?al .')} }`),
-      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?def WHERE { ${relWrap('?c skos:definition ?def .')} }`)
+    const [r2raw, r4, r5, r6] = await Promise.all([
+      sparqlSelect(broaderQuery),
+      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?al WHERE { ${isOwl ? owlRelWrap('?c skos:altLabel ?al .') : relWrap('?c skos:altLabel ?al .')} }`),
+      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?def WHERE { ${isOwl ? owlRelWrap('?c skos:definition ?def .') : relWrap('?c skos:definition ?def .')} }`),
+      sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c ?r WHERE { ${isOwl ? owlRelWrap('?c skos:related ?r .') : relWrap('?c skos:related ?r .')} }`)
     ]);
     const r2 = r2raw;
+    r6.results.bindings.forEach(b => {
+      const cc = byIri[b.c.value]; if (!cc) return;
+      const relId = idByIri[b.r?.value]; if (!relId) return;
+      if (!cc.related) cc.related = [];
+      if (!cc.related.includes(relId)) cc.related.push(relId);
+    });
     r4.results.bindings.forEach(b => {
       const cc = byIri[b.c.value]; if (!cc) return;
       if (!cc.altLabels) cc.altLabels = [];
@@ -631,18 +765,29 @@ SELECT ?c ?pref ?note WHERE {
 
     // hasTopConcept — mark top concepts explicitly (broader stays empty)
     try {
-      const r3 = await sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c WHERE { ${relWrap('<'+schemeIri+'> skos:hasTopConcept ?c .')} }`);
-      r3.results.bindings.forEach(b => {
-        const c = byIri[b.c.value];
-        if (c) c.isTopConcept = true;
-      });
+      if (isOwl) {
+        // In OWL mode, top concepts = classes with no rdfs:subClassOf in the graph
+        // They're already identified by having broader=[] after the subClassOf query
+        // Just mark any that rdfs:isDefinedBy the scheme and have no broader
+        Object.values(newConcepts).forEach(c => {
+          if (!c.broader.length) c.isTopConcept = true;
+        });
+      } else {
+        const r3 = await sparqlSelect(`PREFIX skos: <${SKOS}> SELECT ?c WHERE { ${relWrap('<'+schemeIri+'> skos:hasTopConcept ?c .')} }`);
+        r3.results.bindings.forEach(b => {
+          const c = byIri[b.c.value];
+          if (c) c.isTopConcept = true;
+        });
+      }
     } catch(e) {}
 
     schemeData.concepts = newConcepts;
     selectedId = null; collapsed = new Set();
     snapshotBaseline();
-    document.getElementById('btn-save-graphdb').style.display = 'inline-block';
+    document.getElementById('btn-save-all').style.display = 'inline-block';
+    document.getElementById('btn-relations').style.display = 'inline-block';
     setConnStatus('connected');
+    updateModelNameDisplay();
     renderAll();
     toast('Loaded ' + Object.keys(newConcepts).length + ' concepts', 'success');
     loadDefaultView();
@@ -686,6 +831,10 @@ function tripleStrings(c, schemeIri) {
   if (c.definition) t.add(`${S} skos:definition ${lit(c.definition)}@en`);
   if (c.note)       t.add(`${S} skos:scopeNote ${lit(c.note)}@en`);
   (c.altLabels||[]).forEach(al => t.add(`${S} skos:altLabel ${lit(al)}@en`));
+  (c.related||[]).forEach(rid => {
+    const r = concepts()[rid];
+    if (r) { t.add(`${S} skos:related <${r.iri}>`); t.add(`<${r.iri}> skos:related ${S}`); }
+  });
   (c.broader||[]).forEach(bid => {
     const b = concepts()[bid];
     if (b) t.add(`${S} skos:broader <${b.iri}>`);
@@ -746,6 +895,50 @@ function closeDiff() { document.getElementById('diff-modal').classList.remove('o
 async function confirmSave() {
   closeDiff();
   await saveToGraphDB();
+}
+
+// ── Combined save: view layout + taxonomy triples ────────
+async function saveAll() {
+  const btn = document.getElementById('btn-save-all');
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving…';
+  let saved = [];
+  try {
+    // 1. Save current view if one is active
+    if (currentViewId) {
+      const store = loadViewsStore();
+      if (store[currentViewId]) {
+        const wasDefault = store[currentViewId].isDefault;
+        const name = store[currentViewId].name;
+        store[currentViewId] = { ...captureSnapshot(name), isDefault: wasDefault, savedAt: Date.now() };
+        saveViewsStore(store);
+        markClean();
+        saved.push('view "' + name + '"');
+        if (viewsPanelOpen) renderViewsList();
+      }
+    } else if (isDirty) {
+      // No current view — prompt to name one
+      if (!viewsPanelOpen) toggleViewsPanel();
+      document.getElementById('new-view-name').focus();
+      toast('Name your view first to save the layout', 'error');
+      btn.disabled = false; btn.textContent = '💾 Save';
+      return;
+    }
+
+    // 2. Save taxonomy triples to GraphDB
+    const { toInsert, toDelete } = computeDiff();
+    if (toInsert.length || toDelete.length) {
+      await saveToGraphDB();
+      saved.push('taxonomy (' + toInsert.length + ' added, ' + toDelete.length + ' removed)');
+    }
+
+    if (saved.length) toast('Saved: ' + saved.join(' · '), 'success');
+    else toast('Nothing to save', 'info');
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Save';
+  }
 }
 
 async function saveToGraphDB() {
@@ -1223,6 +1416,12 @@ function renderPropsPanel(id) {
     if (kids.length > 8) html += `<div style="font-size:10px;color:var(--text-muted);margin-top:2px">…and ${kids.length-8} more</div>`;
     html += `</div>`;
   }
+  const relConcepts = (c.related||[]).map(rid => concepts()[rid]).filter(Boolean);
+  if (relConcepts.length) {
+    html += `<div class="prop-row"><div class="prop-label">Related (${relConcepts.length})</div>`;
+    relConcepts.forEach(r => { html += `<div class="prop-val" style="margin-bottom:2px;cursor:pointer;color:var(--accent2)" onclick="selectConcept('${r.id}')">${esc(r.prefLabel)}</div>`; });
+    html += `</div>`;
+  }
 
   html += `<div style="margin-top:12px">
     <button class="btn btn-sm" style="width:100%" onclick="openEditModal('${id}')">✏️ Edit Properties</button>
@@ -1251,6 +1450,9 @@ function openCtxMenu(e, id) {
     </div>
     <div class="ctx-item" onclick="closeCtxMenu();openEditModal('${id}')">
       ✏️ Edit Properties &amp; Labels
+    </div>
+    <div class="ctx-item" onclick="closeCtxMenu();selectConcept('${id}');openRelationsModal()">
+      🔗 Manage Relations
     </div>
     <div class="ctx-sep"></div>
     ${kids.length ? `<div class="ctx-item" onclick="closeCtxMenu();toggleCollapse('${id}',{stopPropagation:()=>{}})">
@@ -1662,35 +1864,38 @@ function centerView() {
   // Canvas mousedown:
   //   Alt+drag OR middle-mouse  → pan
   //   plain drag on background  → rubber-band selection
+  // Canvas drag gestures:
+  //   plain drag    → PAN (move the canvas)
+  //   Shift+drag    → rubber-band selection
+  //   Alt+drag / middle-mouse → also pan
   area.addEventListener('mousedown', e => {
     if (e.target.closest('.tnode,.lr-node,.concept-item,.btn,.tnode-collapse,.lr-collapse,.canvas-drop-root')) return;
     if (_pendingDrag || subtreeDrag || groupDrag) return;
-    const isPanGesture = e.altKey || e.button === 1;
     if (e.button !== 0 && e.button !== 1) return;
     e.preventDefault();
 
-    if (isPanGesture) {
-      isPanning = true;
-      panStartX = e.clientX; panStartY = e.clientY;
-      panOriginX = panX; panOriginY = panY;
-      area.classList.add('panning');
-    } else {
-      // Rubber-band: convert mouse to stage coordinates
+    const isRubberBand = e.shiftKey && e.button === 0;
+
+    if (isRubberBand) {
+      // Shift+drag = rubber-band selection
       const rect = area.getBoundingClientRect();
       const sx = (e.clientX - rect.left - panX) / zoom;
       const sy = (e.clientY - rect.top  - panY) / zoom;
       rubberBand = { startX: sx, startY: sy, originX: e.clientX, originY: e.clientY };
-      // Clear selection unless Shift held
-      if (!e.shiftKey) {
-        multiSelected.clear();
-        renderSelectionHighlights();
-      }
+      multiSelected.clear();
+      renderSelectionHighlights();
       const rb = document.getElementById('rubber-band');
       if (rb) {
         rb.style.display = 'block';
-        rb.style.left = sx + 'px'; rb.style.top  = sy + 'px';
+        rb.style.left = sx + 'px'; rb.style.top = sy + 'px';
         rb.style.width = '0px';    rb.style.height = '0px';
       }
+    } else {
+      // Plain drag (or Alt/middle) = pan
+      isPanning = true;
+      panStartX = e.clientX; panStartY = e.clientY;
+      panOriginX = panX; panOriginY = panY;
+      area.classList.add('panning');
     }
   });
 
@@ -2083,6 +2288,165 @@ function loadDefaultView() {
 }
 
 
+
+// ═══════════════════════════════════════════════════════════
+//  RELATIONS MANAGER
+// ═══════════════════════════════════════════════════════════
+
+const MATCH_PREDS = {
+  broader:    SKOS + 'broader',
+  narrower:   SKOS + 'narrower',
+  related:    SKOS + 'related',
+  broadMatch: SKOS + 'broadMatch',
+  closeMatch: SKOS + 'closeMatch',
+  exactMatch: SKOS + 'exactMatch',
+};
+
+// Extra relations not stored in concept model — stored as raw triples
+let extraRelations = []; // [{s, p, o}] IRIs
+
+function openRelationsModal() {
+  // Populate concept dropdowns
+  const opts = Object.values(concepts())
+    .sort((a,b) => a.prefLabel.localeCompare(b.prefLabel))
+    .map(c => `<option value="${c.id}">${esc(c.prefLabel)}</option>`)
+    .join('');
+  document.getElementById('rel-subject').innerHTML = opts;
+  document.getElementById('rel-object').innerHTML  = opts;
+  // Pre-select selected concept if any
+  if (selectedId) {
+    document.getElementById('rel-subject').value = selectedId;
+  }
+  renderRelationsList();
+  document.getElementById('relations-modal').classList.add('open');
+}
+
+function closeRelationsModal() {
+  document.getElementById('relations-modal').classList.remove('open');
+}
+
+function addRelation() {
+  const subId = document.getElementById('rel-subject').value;
+  const objId = document.getElementById('rel-object').value;
+  const type  = document.getElementById('rel-type').value;
+
+  if (!subId || !objId || subId === objId) {
+    toast('Select two different concepts', 'error'); return;
+  }
+
+  const sub = concepts()[subId];
+  const obj = concepts()[objId];
+  if (!sub || !obj) return;
+
+  if (type === 'broader') {
+    if (!sub.broader.includes(objId)) {
+      sub.broader.push(objId);
+      toast(`Added: ${sub.prefLabel} broader ${obj.prefLabel}`, 'success');
+    } else { toast('Relation already exists', 'info'); return; }
+  } else if (type === 'narrower') {
+    // narrower = set obj.broader to sub
+    if (!obj.broader.includes(subId)) {
+      obj.broader.push(subId);
+      toast(`Added: ${obj.prefLabel} broader ${sub.prefLabel}`, 'success');
+    } else { toast('Relation already exists', 'info'); return; }
+  } else if (type === 'related') {
+    if (!sub.related) sub.related = [];
+    if (!sub.related.includes(objId)) {
+      sub.related.push(objId);
+      toast(`Added: ${sub.prefLabel} related ${obj.prefLabel}`, 'success');
+    } else { toast('Relation already exists', 'info'); return; }
+  } else {
+    // Match predicates stored as extra relations
+    const pred = MATCH_PREDS[type];
+    const already = extraRelations.find(r => r.s===sub.iri && r.p===pred && r.o===obj.iri);
+    if (!already) {
+      extraRelations.push({s: sub.iri, p: pred, o: obj.iri});
+      toast(`Added: ${sub.prefLabel} ${type} ${obj.prefLabel}`, 'success');
+    } else { toast('Relation already exists', 'info'); return; }
+  }
+
+  markDirty();
+  renderAll();
+  renderRelationsList();
+}
+
+function deleteRelation(subId, type, objId) {
+  const sub = concepts()[subId];
+  const obj = concepts()[objId];
+  if (!sub || !obj) {
+    // Try extra relations
+    const pred = MATCH_PREDS[type];
+    extraRelations = extraRelations.filter(r => !(r.s===subId && r.p===pred && r.o===objId));
+    markDirty(); renderRelationsList(); return;
+  }
+  if (type === 'broader') {
+    sub.broader = sub.broader.filter(b => b !== objId);
+  } else if (type === 'related') {
+    sub.related = (sub.related||[]).filter(r => r !== objId);
+  } else if (type === 'narrower') {
+    obj.broader = obj.broader.filter(b => b !== subId);
+  }
+  markDirty();
+  renderAll();
+  renderRelationsList();
+  toast('Relation removed', 'info');
+}
+
+function renderRelationsList() {
+  const filter = (document.getElementById('rel-filter')?.value || '').toLowerCase();
+  const rows = [];
+
+  // broader / narrower (from concept model)
+  Object.values(concepts()).forEach(c => {
+    (c.broader||[]).forEach(bid => {
+      const b = concepts()[bid]; if (!b) return;
+      const label = `${c.prefLabel}  →  skos:broader  →  ${b.prefLabel}`;
+      if (filter && !label.toLowerCase().includes(filter)) return;
+      rows.push({ subId: c.id, type: 'broader', objId: bid, label });
+    });
+    (c.related||[]).forEach(rid => {
+      const r = concepts()[rid]; if (!r) return;
+      const label = `${c.prefLabel}  ↔  skos:related  ↔  ${r.prefLabel}`;
+      if (filter && !label.toLowerCase().includes(filter)) return;
+      rows.push({ subId: c.id, type: 'related', objId: rid, label });
+    });
+  });
+  // extra match relations
+  extraRelations.forEach(r => {
+    const predName = Object.entries(MATCH_PREDS).find(([k,v])=>v===r.p)?.[0] || r.p;
+    const label = `${r.s}  →  skos:${predName}  →  ${r.o}`;
+    if (filter && !label.toLowerCase().includes(filter)) return;
+    rows.push({ subId: r.s, type: predName, objId: r.o, label, isExtra: true });
+  });
+
+  const el = document.getElementById('relations-list');
+  if (!rows.length) {
+    el.innerHTML = '<div style="padding:10px 12px;font-size:11px;color:var(--text-muted)">No relations found.</div>';
+    return;
+  }
+  el.innerHTML = rows.map((r,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;
+      border-bottom:1px solid var(--border);font-size:11px;
+      background:${i%2===0?'transparent':'rgba(255,255,255,.02)'}">
+      <span style="flex:1;color:var(--text-dim)">${esc(r.label)}</span>
+      <button class="view-act-btn danger" title="Delete relation"
+        onclick="deleteRelation('${r.subId}','${r.type}','${r.objId}')">✕</button>
+    </div>`).join('');
+}
+
+// Include extraRelations in diff / save
+const _origComputeDiff = computeDiff;
+function computeDiff() {
+  const result = _origComputeDiff();
+  const sIri = loadedSchemeIri || schemeData.iri;
+  const G = '<' + sIri + '>';
+  // Add extra relations to INSERT
+  extraRelations.forEach(r => {
+    result.toInsert.push(`<${r.s}> <${r.p}> <${r.o}>`);
+  });
+  return result;
+}
+
 // ─── beforeunload ────────────────────────────────────────
 window.addEventListener('beforeunload', e => {
   if (isDirty) {
@@ -2095,7 +2459,7 @@ window.addEventListener('beforeunload', e => {
 // ═══════════════════════════════════════════════════════════
 //  AUTO-CONNECT FROM URL PARAMS (same as tax-editor.html)
 // ═══════════════════════════════════════════════════════════
-(function() {
+function initFromParams() {
   const params = new URLSearchParams(window.location.search);
   const ep    = params.get('endpoint');
   const sch   = params.get('scheme') || params.get('taxonomy') || params.get('ontology') || params.get('vocabulary');
@@ -2109,18 +2473,99 @@ window.addEventListener('beforeunload', e => {
 
   if (sch) {
     loadedSchemeIri = sch;
-    // Match tax-editor.html's exact base derivation:
-    // everything up to and including the # or the last /
     const base = sch.includes('#')
       ? sch.replace(/#.*$/, '#')
-      : sch.replace(/\/[^/]*$/, '/');
+      : sch.replace(/\/+$/, '') + '/';
     schemeData = { iri: sch, base, title: (sch.split('/').filter(Boolean).pop()||'Taxonomy').split('#')[0], concepts: {} };
-    console.log('[init] scheme:', sch, 'base:', base, 'graph:', graph);
+    console.log('[init] URL params → endpoint:', ep, '| scheme:', sch, '| base:', base, '| graph:', graph);
+    updateModelNameDisplay();
+  } else {
+    console.log('[init] No ?scheme= param found in URL. Full URL:', window.location.href);
   }
   if (graph) namedGraph = graph;
 
   if (ep && sch) connectAndLoad(); else if (ep) connectThenLoad();
+}
+
+function updateModelNameDisplay() {
+  const el = document.getElementById('loaded-model-name');
+  if (!el) return;
+  if (schemeData.title) {
+    el.textContent = '📂 ' + schemeData.title;
+    el.title = loadedSchemeIri || schemeData.iri;
+    el.style.display = 'inline-block';
+    document.title = schemeData.title + ' — Taxonomy Tree';
+  } else {
+    el.style.display = 'none';
+    document.title = 'Taxonomy Tree Editor';
+  }
+}
+
+// Run on first load
+initFromParams();
+
+// MOST RELIABLE FIX: if the Model Manager navigates this window to a new URL
+// (via window.open with a named target), detect the scheme change and reload.
+// We store the current scheme in sessionStorage so we can detect a change.
+(function() {
+  const currentSch = new URLSearchParams(location.search).get('scheme')
+                  || new URLSearchParams(location.search).get('taxonomy') || '';
+  const storedSch  = sessionStorage.getItem('ev_tree_scheme') || '';
+
+  if (currentSch && storedSch && currentSch !== storedSch) {
+    // Scheme changed — this window was reused. Force a clean reload.
+    console.log('[scheme-change] was:', storedSch, 'now:', currentSch, '→ reloading');
+    sessionStorage.setItem('ev_tree_scheme', currentSch);
+    location.reload();
+    return;
+  }
+  if (currentSch) sessionStorage.setItem('ev_tree_scheme', currentSch);
 })();
+
+// Re-initialize if the window is reused with a different scheme.
+// The Model Manager may call window.open(url, 'same-name') which navigates
+// an existing window without a full page reload — detect this via pageshow
+// and visibilitychange, comparing the current URL scheme param to what's loaded.
+window.addEventListener('pageshow', () => {
+  const sch = new URLSearchParams(window.location.search).get('scheme')
+           || new URLSearchParams(window.location.search).get('taxonomy');
+  if (sch && sch !== loadedSchemeIri) {
+    console.log('[reinit] scheme changed from', loadedSchemeIri, 'to', sch);
+    // Reset all state
+    schemeData = { iri: '', base: '', title: '', concepts: {} };
+    loadedSchemeIri = null;
+    namedGraph = null;
+    manualOffsets = {};
+    collapsed = new Set();
+    multiSelected.clear();
+    baseline = {};
+    selectedId = null;
+    isDirty = false;
+    markClean();
+    _autoFillsDone = false;
+    initFromParams();
+  }
+});
+
+// Also handle the case where the Model Manager navigates via history.pushState
+// by observing URL changes with a polling fallback
+let _lastHref = location.href;
+setInterval(() => {
+  if (location.href !== _lastHref) {
+    _lastHref = location.href;
+    const sch = new URLSearchParams(location.search).get('scheme')
+             || new URLSearchParams(location.search).get('taxonomy');
+    if (sch && sch !== loadedSchemeIri) {
+      console.log('[url-change] reinit for scheme:', sch);
+      schemeData = { iri: '', base: '', title: '', concepts: {} };
+      loadedSchemeIri = null; namedGraph = null;
+      manualOffsets = {}; collapsed = new Set();
+      multiSelected.clear(); baseline = {};
+      selectedId = null; isDirty = false; markClean();
+      initFromParams();
+    }
+  }
+}, 500);
 </script>
 </body>
 </html>

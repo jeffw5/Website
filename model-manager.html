@@ -280,9 +280,10 @@
                 return;
             }
             const repo = document.getElementById('repoId').value;
-            const metaFile = modelKindOf(selectedGraphUri) === 'onto'
-                ? 'model-metadata-owl.html'
-                : 'model-metadata-skos.html';
+            const kind = modelKindOf(selectedGraphUri);
+            const metaFile = kind === 'taxo'  ? 'model-metadata-tax.html'
+                            : kind === 'vocab' ? 'model-metadata-skos.html'
+                            : 'model-metadata-owl.html';
             const url = `${metaFile}?uri=${encodeURIComponent(selectedGraphUri)}&repo=${encodeURIComponent(repo)}`;
             window.open(url, '_blank');
         }
