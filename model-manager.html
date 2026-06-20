@@ -69,9 +69,6 @@
                 <button id="btnVisualize" onclick="openVisualizer()" disabled class="bg-cyan-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
                     🕸️ Visualize
                 </button>
-                <button id="btnMetadata" onclick="openMetadataEditor()" disabled class="bg-amber-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
-                    📝 Edit Metadata
-                </button>
                 <button id="btnEditNodes" onclick="openModelEditor()" disabled class="bg-violet-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
                     ⬡ Edit Nodes
                 </button>
@@ -82,7 +79,7 @@
                     🗂️ Tax Editor
                 </button>
                 <button id="btnSave" onclick="saveAsset()" disabled class="bg-indigo-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
-                    💾 Save changes
+                    💾 Save
                 </button>
                 <button id="btnDelete" onclick="deleteAsset()" disabled class="bg-rose-600 opacity-50 cursor-not-allowed text-white font-bold py-2 px-4 rounded text-sm transition">
                     🗑️ Delete Asset
@@ -109,9 +106,23 @@
                 </div>
             </div>
 
-            <div class="flex-1 flex flex-col min-h-0">
-                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Turtle (.ttl) Serialization</label>
-                <textarea id="ttlEditor" placeholder="# Select an asset or click Create New to write Turtle code here..." class="w-full flex-1 min-h-0 overflow-y-auto bg-gray-950 text-emerald-400 font-mono text-sm p-4 rounded border border-gray-700 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+            <!-- Embedded metadata editor (replaces always-visible TTL textarea) -->
+            <div id="metaFrameWrap" class="flex-1 min-h-0 rounded border border-gray-700 overflow-hidden bg-gray-950 hidden">
+                <iframe id="metaFrame" class="w-full h-full border-0" title="Metadata Editor"></iframe>
+            </div>
+            <div id="metaFrameEmpty" class="flex-1 min-h-0 rounded border border-gray-700 bg-gray-950 flex items-center justify-center text-gray-600 text-sm">
+                Select an asset from the sidebar to edit its metadata here.
+            </div>
+
+            <!-- TTL serialization — advanced / optional, collapsed by default -->
+            <div class="flex-shrink-0">
+                <button onclick="toggleTtlPanel()" id="btnToggleTtl"
+                    class="text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1 mb-1 transition">
+                    <span id="ttlToggleIcon">▶</span> Advanced: Turtle (.ttl) Serialization
+                </button>
+                <div id="ttlPanelWrap" class="hidden" style="height:240px;">
+                    <textarea id="ttlEditor" placeholder="# Select an asset or click Create New to write Turtle code here..." class="w-full h-full overflow-y-auto bg-gray-950 text-emerald-400 font-mono text-sm p-4 rounded border border-gray-700 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+                </div>
             </div>
         </div>
     </div>
@@ -245,6 +256,40 @@
             });
         }
 
+        // ── TTL panel toggle (advanced/optional, collapsed by default) ──
+        function toggleTtlPanel() {
+            const wrap = document.getElementById('ttlPanelWrap');
+            const icon = document.getElementById('ttlToggleIcon');
+            const isHidden = wrap.classList.contains('hidden');
+            wrap.classList.toggle('hidden', !isHidden ? true : false);
+            if (isHidden) { wrap.classList.remove('hidden'); icon.textContent = '▼'; }
+            else { wrap.classList.add('hidden'); icon.textContent = '▶'; }
+        }
+
+        // Map asset kind -> metadata editor file (same convention as before)
+        function metaFileFor(uri) {
+            const kind = modelKindOf(uri);
+            return kind === 'taxo'  ? 'model-metadata-tax.html'
+                 : kind === 'vocab' ? 'model-metadata-skos.html'
+                 : 'model-metadata-owl.html';
+        }
+
+        // Load the appropriate metadata editor into the embedded iframe
+        function loadMetaFrame(uri) {
+            const repo = document.getElementById('repoId').value;
+            const file = metaFileFor(uri);
+            const url = `${file}?uri=${encodeURIComponent(uri)}&repo=${encodeURIComponent(repo)}&embedded=1`;
+            document.getElementById('metaFrame').src = url;
+            document.getElementById('metaFrameWrap').classList.remove('hidden');
+            document.getElementById('metaFrameEmpty').classList.add('hidden');
+        }
+
+        function clearMetaFrame() {
+            document.getElementById('metaFrame').src = 'about:blank';
+            document.getElementById('metaFrameWrap').classList.add('hidden');
+            document.getElementById('metaFrameEmpty').classList.remove('hidden');
+        }
+
         // 2. REVIEW: Fetch raw Turtle code using the Statements Graph Protocol API
         async function loadAssetDetails(uri) {
             isCreateMode = false;
@@ -255,8 +300,12 @@
             document.getElementById('currentAssetUri').innerText = `Graph context: ${uri}`;
 
             if (!uri) { alert("No graph context for this asset."); return; }
-            const statementsUrl = `${getBaseUrl()}/statements?context=${encodeURIComponent('<' + uri + '>')}`;
 
+            // Load metadata editor inline
+            loadMetaFrame(uri);
+
+            // Also keep the optional TTL view in sync (advanced/debug use)
+            const statementsUrl = `${getBaseUrl()}/statements?context=${encodeURIComponent('<' + uri + '>')}`;
             try {
                 const response = await fetch(statementsUrl, {
                     method: 'GET',
@@ -273,20 +322,7 @@
             }
         }
 
-        // Open the metadata editor in a new tab for the currently selected asset
-        function openMetadataEditor() {
-            if (!selectedGraphUri) {
-                alert("No asset selected.");
-                return;
-            }
-            const repo = document.getElementById('repoId').value;
-            const kind = modelKindOf(selectedGraphUri);
-            const metaFile = kind === 'taxo'  ? 'model-metadata-tax.html'
-                            : kind === 'vocab' ? 'model-metadata-skos.html'
-                            : 'model-metadata-owl.html';
-            const url = `${metaFile}?uri=${encodeURIComponent(selectedGraphUri)}&repo=${encodeURIComponent(repo)}`;
-            window.open(url, '_blank');
-        }
+        // (openMetadataEditor removed — metadata now loads inline via loadMetaFrame)
 
         // Open the visualizer in a new tab for the currently selected asset
         function openVisualizer() {
@@ -361,46 +397,119 @@
             toggleActionButtons(false);
             document.getElementById('btnSave').disabled = false;
             document.getElementById('btnSave').classList.remove('opacity-50', 'cursor-not-allowed');
-            document.getElementById('btnMetadata').disabled = true;
-            document.getElementById('btnMetadata').classList.add('opacity-50', 'cursor-not-allowed');
+            clearMetaFrame();
             document.getElementById('btnVisualize').disabled = true;
             document.getElementById('btnVisualize').classList.add('opacity-50', 'cursor-not-allowed');
+            // Create mode has no metadata iframe — auto-expand the TTL editor
+            document.getElementById('ttlPanelWrap').classList.remove('hidden');
+            document.getElementById('ttlToggleIcon').textContent = '▼';
         }
 
-        // 3. CREATE & EDIT: Push the complete payload using PUT (Overwrites/Writes graph)
+        // 3. SAVE — for an existing asset, delegate to the embedded metadata
+        // editor's own (proven) save logic via postMessage. For Create New
+        // mode (no asset loaded yet, raw Turtle authoring), fall back to the
+        // original TTL PUT — there's no metadata editor loaded in that case.
+        let _saveResolve = null;
+        window.addEventListener('message', (ev) => {
+            if (!ev.data || typeof ev.data !== 'object') return;
+            if (ev.data.type === 'ev-metadata-saved') {
+                if (_saveResolve) { _saveResolve({ ok: true, uriChanged: !!ev.data.uriChanged, newUri: ev.data.newUri || null }); _saveResolve = null; }
+            } else if (ev.data.type === 'ev-metadata-save-failed') {
+                if (_saveResolve) { _saveResolve({ ok: false, error: ev.data.error || 'Unknown error' }); _saveResolve = null; }
+            } else if (ev.data.type === 'ev-metadata-uri-renamed') {
+                // The Rename URI modal inside the iframe was used directly
+                // (independent of the main Save button). This message was
+                // previously dropped entirely — Model Manager kept pointing
+                // at the OLD URI, so Edit Nodes / tree editor would load
+                // the stale graph and show zero concepts after a rename.
+                const newUri = ev.data.newUri;
+                if (newUri && newUri !== selectedGraphUri) {
+                    console.log('[model-manager] URI renamed inside metadata editor:', selectedGraphUri, '->', newUri);
+                    selectedGraphUri = newUri;
+                    refreshSidebar();
+                    document.getElementById('currentAssetTitle').innerText = newUri.split('/').pop().split('#').pop() || newUri;
+                    document.getElementById('currentAssetUri').innerText = `Graph context: ${newUri}`;
+                }
+            }
+        });
+
+        function requestIframeSave(timeoutMs = 20000) {
+            return new Promise((resolve) => {
+                _saveResolve = resolve;
+                const frame = document.getElementById('metaFrame');
+                try {
+                    frame.contentWindow.postMessage({ type: 'ev-request-save' }, '*');
+                } catch(e) {
+                    resolve({ ok: false, error: 'Could not reach metadata editor frame: ' + e.message });
+                    _saveResolve = null;
+                    return;
+                }
+                setTimeout(() => {
+                    if (_saveResolve) {
+                        _saveResolve({ ok: false, error: 'Metadata editor did not respond (timeout). It may not support embedded save yet.' });
+                        _saveResolve = null;
+                    }
+                }, timeoutMs);
+            });
+        }
+
         async function saveAsset() {
-            let targetUri = selectedGraphUri;
-            
+            const btn = document.getElementById('btnSave');
+
+            // CREATE MODE: no metadata editor loaded — raw Turtle PUT (unchanged from before)
             if (isCreateMode) {
-                targetUri = document.getElementById('newGraphUri').value.trim();
+                let targetUri = document.getElementById('newGraphUri').value.trim();
                 if(!targetUri) {
                     alert("A complete target graph context URI string path is required!");
                     return;
                 }
-            }
-
-            const statementsUrl = `${getBaseUrl()}/statements?context=${encodeURIComponent('<' + targetUri + '>')}`;
-            const ttlPayload = document.getElementById('ttlEditor').value;
-
-            try {
-                const response = await fetch(statementsUrl, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'text/turtle' },
-                    body: ttlPayload
-                });
-
-                if(response.ok) {
-                    alert("Asset context pushed successfully!");
-                    if(isCreateMode) {
+                const statementsUrl = `${getBaseUrl()}/statements?context=${encodeURIComponent('<' + targetUri + '>')}`;
+                const ttlPayload = document.getElementById('ttlEditor').value;
+                try {
+                    const response = await fetch(statementsUrl, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'text/turtle' },
+                        body: ttlPayload
+                    });
+                    if(response.ok) {
+                        alert("Asset context pushed successfully!");
                         currentTab = document.getElementById('newGraphType').value;
                         switchTab(currentTab);
+                        loadAssetDetails(targetUri);
+                    } else {
+                        throw new Error("Push payload modification rejected.");
                     }
-                    loadAssetDetails(targetUri);
-                } else {
-                    throw new Error("Push payload modification rejected.");
+                } catch (err) {
+                    alert("Failed processing updates. Check Turtle syntax grammar rules.");
                 }
-            } catch (err) {
-                alert("Failed processing updates. Check Turtle syntax grammar rules.");
+                return;
+            }
+
+            // EXISTING ASSET: delegate to the embedded metadata editor's own
+            // save logic (atomic-payload pattern, includes URI-rename cascade
+            // if the editor detects the URI field changed).
+            if (!selectedGraphUri) { alert("No asset selected."); return; }
+
+            btn.disabled = true;
+            const origLabel = btn.textContent;
+            btn.textContent = '⏳ Saving…';
+
+            const result = await requestIframeSave();
+
+            btn.disabled = false;
+            btn.textContent = origLabel;
+
+            if (result.ok) {
+                if (result.uriChanged && result.newUri) {
+                    // The asset's URI was renamed during save — the iframe's own
+                    // rename cascade already handled member migration & graph move.
+                    // Just update our pointer and reload everything fresh.
+                    selectedGraphUri = result.newUri;
+                }
+                refreshSidebar();
+                loadAssetDetails(selectedGraphUri); // reload to confirm persisted state
+            } else {
+                alert("Save failed: " + result.error);
             }
         }
 
@@ -445,13 +554,13 @@
             document.getElementById('currentAssetUri').innerText = "";
             document.getElementById('ttlEditor').value = "";
             document.getElementById('metaPanel').classList.add('hidden');
+            clearMetaFrame();
             toggleActionButtons(false);
         }
 
         function toggleActionButtons(enabled) {
             const btnSave = document.getElementById('btnSave');
             const btnDelete = document.getElementById('btnDelete');
-            const btnMetadata = document.getElementById('btnMetadata');
             const btnVisualize = document.getElementById('btnVisualize');
             const btnEditNodes = document.getElementById('btnEditNodes');
             const btnVocEditor = document.getElementById('btnVocEditor');
@@ -473,8 +582,6 @@
                 btnDelete.classList.remove('opacity-50', 'cursor-not-allowed');
                 // Metadata/Visualize/editor only make sense for existing assets, not new ones
                 if (!isCreateMode) {
-                    btnMetadata.disabled = false;
-                    btnMetadata.classList.remove('opacity-50', 'cursor-not-allowed');
                     btnVisualize.disabled = false;
                     btnVisualize.classList.remove('opacity-50', 'cursor-not-allowed');
                     if (activeEditorBtn) {
@@ -484,12 +591,10 @@
                 }
             } else {
                 btnSave.disabled = true; btnDelete.disabled = true;
-                btnMetadata.disabled = true;
                 btnVisualize.disabled = true;
                 editorButtons.forEach(b => { b.disabled = true; b.classList.add('opacity-50', 'cursor-not-allowed'); });
                 btnSave.classList.add('opacity-50', 'cursor-not-allowed');
                 btnDelete.classList.add('opacity-50', 'cursor-not-allowed');
-                btnMetadata.classList.add('opacity-50', 'cursor-not-allowed');
                 btnVisualize.classList.add('opacity-50', 'cursor-not-allowed');
             }
         }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ontology Model Editor — Enabling Value</title>
+<title>Ont Edit — Enabling Value</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -494,20 +494,263 @@
     .workspace { grid-template-columns: var(--left-w, 220px) 6px 1fr; }
     .panel:last-child { display: none; }
   }
+
+  /* ═══════════════════════════════════════════════════════
+     GRAPH / CANVAS VIEW
+     ═══════════════════════════════════════════════════════ */
+  .center-tabs {
+    display: flex; gap: 4px; padding: 6px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+    flex-shrink: 0; align-items: center;
+  }
+  .center-tab {
+    font-size: 11px; font-weight: 600; padding: 5px 12px; border-radius: 20px;
+    cursor: pointer; border: 1px solid var(--border); color: var(--text-dim);
+    background: transparent; transition: all .15s;
+  }
+  .center-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .center-tabs .spacer { flex: 1; }
+
+  .graph-toolbar {
+    display: flex; gap: 6px; align-items: center; padding: 6px 12px;
+    background: var(--panel2); border-bottom: 1px solid var(--border);
+    flex-shrink: 0; flex-wrap: wrap;
+  }
+  .graph-toolbar .sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
+  .graph-toolbar input[type=text] {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: var(--radius); padding: 4px 8px; font-size: 11px; width: 130px;
+  }
+  #selection-hint-model {
+    font-size: 10px; color: var(--accent2); margin-left: 4px; display: none;
+  }
+
+  .graph-wrap { flex: 1; position: relative; overflow: hidden; display: flex; }
+  .graph-area {
+    flex: 1; overflow: hidden; position: relative; cursor: grab; background: var(--bg);
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .graph-area.panning { cursor: grabbing; }
+  .graph-inner { padding: 40px; display: inline-block; transform-origin: 0 0; will-change: transform; user-select: none; }
+  .graph-empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 13px; text-align: center; padding: 40px; flex-direction: column; gap: 8px;
+  }
+
+  #graph-rubber-band {
+    position: absolute; border: 1.5px dashed var(--accent);
+    background: rgba(124,131,245,.08); display: none; pointer-events: none; z-index: 5;
+  }
+
+  .gnode {
+    background: var(--panel2); border: 2px solid var(--text-muted);
+    border-radius: 8px; padding: 7px 10px 16px 10px; width: 170px; box-sizing: border-box;
+    cursor: grab; user-select: none; transition: box-shadow .15s, background .15s;
+    position: absolute; overflow: visible;
+  }
+  .gnode:hover { background: var(--node-hover, #363a5a); box-shadow: 0 0 0 1px var(--accent2); }
+  .gnode.selected { box-shadow: 0 0 0 2px var(--accent), 0 0 12px rgba(124,131,245,.4); }
+  .gnode.multi-selected { box-shadow: 0 0 0 2px var(--success); }
+  .gnode.is-ontology { border-color: var(--warn); }
+  .gnode.is-class    { border-color: var(--accent2); }
+  .gnode.is-objprop  { border-color: #82aaff; }
+  .gnode.is-annprop, .gnode.is-dataprop { border-color: #c3e88d; }
+  .gnode.is-dirty::before {
+    content: '●'; position: absolute; top: -7px; right: -7px; color: var(--warn); font-size: 13px;
+    background: var(--bg); border-radius: 50%; line-height: 1;
+  }
+  .gnode-model-dot {
+    position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--model-color, var(--text-muted));
+  }
+  .gnode-weight {
+    position: absolute; top: -8px; left: -8px; min-width: 17px; height: 17px; padding: 0 3px;
+    border-radius: 9px; background: var(--accent); color: #fff; font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--bg);
+  }
+  .gnode-type { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 1px; }
+  .gnode-label { font-size: 12px; font-weight: 600; color: var(--text); padding-right: 14px; }
+  .gnode-iri { font-size: 9px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+  .gnode-chevron {
+    position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 18px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: var(--text-dim); cursor: pointer; z-index: 2;
+  }
+  .gnode-chevron:hover { color: var(--accent2); border-color: var(--accent); }
+  .gnode-attrs {
+    margin-top: 5px; padding-top: 4px; border-top: 1px dashed var(--border);
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .gnode-attr-row {
+    font-size: 9.5px; color: var(--text-dim); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  }
+  .gnode-attr-row:hover { color: var(--text); }
+  .gnode-attr-type { color: var(--accent2); }
+
+  .graph-zoom-ctl {
+    position: absolute; bottom: 14px; right: 14px; display: flex; flex-direction: column;
+    gap: 4px; z-index: 6;
+  }
+  .graph-zoom-ctl button {
+    width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text-dim); cursor: pointer; font-size: 13px;
+  }
+  .graph-zoom-ctl button:hover { border-color: var(--accent); color: var(--text); }
+
+  /* ── CONTEXT MENU ── */
+  .ctx-menu {
+    position: fixed; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 4px; min-width: 210px; z-index: 200;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4); font-size: 12px;
+  }
+  .ctx-item { padding: 7px 10px; border-radius: 4px; cursor: pointer; color: var(--text); }
+  .ctx-item:hover { background: var(--panel2); }
+  .ctx-item.danger { color: var(--danger); }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 2px; }
+
+  /* ── VIEWS FLYOUT ── */
+  .views-flyout {
+    position: absolute; top: 38px; right: 8px; width: 250px; max-height: 70%;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    box-shadow: 0 10px 28px rgba(0,0,0,.45); z-index: 50; display: none; flex-direction: column;
+    overflow: hidden;
+  }
+  .views-flyout.open { display: flex; }
+  .views-flyout-hdr {
+    padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--text-dim); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .views-flyout-body { overflow-y: auto; padding: 8px; flex: 1; }
+  .views-flyout-new { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--border); }
+  .views-flyout-new input { flex: 1; }
+  .view-item {
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: var(--radius);
+    cursor: pointer; margin-bottom: 3px; border: 1px solid transparent;
+  }
+  .view-item:hover { background: var(--panel2); }
+  .view-item.active { border-color: var(--accent); background: rgba(124,131,245,.12); }
+  .view-name { font-size: 11px; font-weight: 600; color: var(--text); }
+  .view-meta { font-size: 9px; color: var(--text-muted); }
+  .view-default-badge {
+    font-size: 8px; background: var(--accent); color: #fff; padding: 1px 5px; border-radius: 8px;
+  }
+  .view-actions { display: flex; gap: 2px; }
+  .view-act-btn {
+    background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 11px; padding: 2px 4px;
+  }
+  .view-act-btn:hover { color: var(--text); }
+  .view-act-btn.danger:hover { color: var(--danger); }
+
+  /* ── GRAPH FILTERS FLYOUT ── */
+  .filters-flyout {
+    position: absolute; top: 38px; right: 8px; width: 268px; max-height: 80%;
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    box-shadow: 0 10px 28px rgba(0,0,0,.45); z-index: 50; display: none; flex-direction: column;
+    overflow: hidden;
+  }
+  .filters-flyout.open { display: flex; }
+  .filters-flyout-hdr {
+    padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--text-dim); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .filters-flyout-body { overflow-y: auto; padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .filt-field { display: flex; flex-direction: column; gap: 5px; }
+  .filt-field label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-dim); display: flex; align-items: center; justify-content: space-between;
+  }
+  .filt-field label .filt-val { color: var(--accent2); font-weight: 600; text-transform: none; letter-spacing: 0; }
+  .filt-field input[type=range] { width: 100%; accent-color: var(--accent); }
+  .filt-field input[type=number], .filt-field select {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: var(--radius); padding: 5px 8px; font-size: 11px; width: 100%;
+  }
+  .filt-cats { display: flex; flex-wrap: wrap; gap: 5px; }
+  .filt-cat-chip {
+    font-size: 10px; padding: 3px 8px; border-radius: 14px; cursor: pointer;
+    border: 1px solid var(--border); color: var(--text-dim); background: transparent; transition: all .15s;
+    user-select: none;
+  }
+  .filt-cat-chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .filt-reset { font-size: 10px; color: var(--text-dim); cursor: pointer; text-decoration: underline; align-self: flex-start; }
+  .filt-reset:hover { color: var(--accent2); }
+  .filt-badge {
+    background: var(--accent); color: #fff; font-size: 9px; font-weight: 700; min-width: 15px;
+    height: 15px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+    padding: 0 4px; margin-left: 4px;
+  }
+
+  /* ── "JUMP / STAND OUT" HIGHLIGHT — used when navigating to a node from
+     the left-hand tree, distinct from the steady-state .selected glow ── */
+  @keyframes gnodeJumpPulse {
+    0%   { box-shadow: 0 0 0 2px var(--warn), 0 0 0 0 rgba(251,191,36,.55); }
+    70%  { box-shadow: 0 0 0 2px var(--warn), 0 0 0 16px rgba(251,191,36,0); }
+    100% { box-shadow: 0 0 0 2px var(--warn), 0 0 0 0 rgba(251,191,36,0); }
+  }
+  .gnode.jump-highlight {
+    animation: gnodeJumpPulse 1.2s ease-out 2;
+    border-color: var(--warn) !important;
+    z-index: 8;
+  }
+
+  /* ── PROPERTIES PANEL (right side, tab of TTL panel) ── */
+  .props-body { flex: 1; overflow-y: auto; padding: 12px 14px; }
+  .props-banner {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 12px;
+    border-radius: var(--radius); background: var(--panel2);
+    border-left: 3px solid var(--props-accent, var(--accent2));
+  }
+  .props-banner-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px var(--panel2), 0 0 6px var(--props-model, var(--accent2)); }
+  .props-banner-type { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .props-banner-label { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 1px; }
+  .prop-row { margin-bottom: 12px; }
+  .prop-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted);
+    margin-bottom: 3px; font-weight: 700;
+  }
+  .prop-val { font-size: 12px; color: var(--text); line-height: 1.5; }
+  .prop-val.mono { font-family: var(--mono); font-size: 10px; word-break: break-all; color: var(--accent2); }
+  .prop-link { color: var(--accent2); cursor: pointer; }
+  .prop-link:hover { text-decoration: underline; }
+  .prop-edge-row {
+    display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 4px 0;
+    border-bottom: 1px solid rgba(54,58,90,.4);
+  }
+  .prop-edge-pred { color: var(--text-muted); font-family: var(--mono); font-size: 10px; flex-shrink: 0; }
+  .prop-edge-tgt { color: var(--accent2); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .prop-edge-del { background: none; border: none; color: var(--danger); cursor: pointer; flex-shrink: 0; opacity: .6; }
+  .prop-edge-del:hover { opacity: 1; }
+  .right-tabs { display: flex; }
+  .right-tab {
+    flex: 1; text-align: center; padding: 9px 0; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .07em; color: var(--text-dim); cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .right-tab.active { color: var(--accent2); border-color: var(--accent); }
+
+  /* ── ADD RELATIONSHIP MODAL grid ── */
+  .rel-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
 </style>
 </head>
 <body>
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="topbar-brand">Enabling Value <span>/ Ontology Model Editor</span></div>
+  <div class="topbar-brand">Enabling Value <span>/ Ont Edit</span></div>
   <div class="topbar-sep"></div>
   <div id="active-ontology-label" style="font-size:11px;color:var(--text-muted);font-family:var(--mono)">No ontology loaded</div>
+  <span id="dirty-indicator" style="display:none;font-size:10px;color:var(--warn);border:1px solid var(--warn);border-radius:10px;padding:1px 8px">● unsaved changes</span>
   <div class="topbar-actions">
     <button class="btn btn-ghost btn-sm" onclick="showRelationsModal()" title="Open the Relation Taxonomy manager in a new window">⇄ Relation Taxonomy</button>
     <button class="btn btn-ghost btn-sm" onclick="exportTTL()">⬇ Export TTL</button>
     <button class="btn btn-ghost btn-sm" onclick="saveToLocalStorage()">💾 Save Draft</button>
     <button class="btn btn-primary btn-sm" onclick="showNewNodeModal()">＋ New Node</button>
+    <button class="btn btn-success btn-sm" id="btn-graphdb-save" onclick="saveAllToGraphDB()" title="Push all changes to GraphDB and bump owl:versionInfo by 0.1">⬆ Save (v+0.1)</button>
   </div>
 </div>
 
@@ -551,6 +794,7 @@
     <div class="filter-tabs" id="mode-tabs">
       <div class="filter-tab active" onclick="setViewMode('nodes',this)">⬡ Nodes</div>
       <div class="filter-tab" onclick="setViewMode('edges',this)">⟶ Edges</div>
+      <div class="filter-tab" onclick="setViewMode('categories',this)">🗂 Categories</div>
     </div>
 
     <!-- Type filter tabs (apply within Nodes view) -->
@@ -687,11 +931,121 @@
       </div>
     </div>
 
+    <!-- Graph / Form tab switcher -->
+    <div class="center-tabs">
+      <div class="center-tab active" id="tab-graph" onclick="setCenterTab('graph')">🕸 Graph</div>
+      <div class="center-tab" id="tab-form" onclick="setCenterTab('form')">📝 Form</div>
+      <div class="spacer"></div>
+      <span id="selection-hint-model" style="display:none"></span>
+    </div>
+
+    <!-- GRAPH VIEW -->
+    <div id="center-graph" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="graph-toolbar">
+        <div class="filter-tab active" id="gv-hierarchy" onclick="setGraphMode('hierarchy',this)" title="Layered DAG — inheritance paths top to bottom">⌃ Hierarchy</div>
+        <div class="filter-tab" id="gv-flow" onclick="setGraphMode('flow',this)" title="Layered DAG — left to right, good for process/lifecycle ontologies">➡ Flow</div>
+        <div class="filter-tab" id="gv-grid" onclick="setGraphMode('grid',this)" title="Swimlanes grouped by Class / ObjectProperty / etc.">▦ Grid by Type</div>
+        <div class="filter-tab" id="gv-network" onclick="setGraphMode('network',this)" title="Radial overview — every node on a ring, every relation drawn">◎ Network</div>
+        <div class="filter-tab" id="gv-force" onclick="setGraphMode('force',this)" title="Physics simulation — clusters emerge from connection density">✺ Force-Directed</div>
+        <div class="filter-tab" id="gv-cloud" onclick="setGraphMode('cloud',this)" title="Multi-level hub &amp; spoke — top concept centered, every level of connections forms its own ring of straight spokes around the level before it">☁ Cloud</div>
+        <div class="sep"></div>
+        <button class="btn btn-ghost btn-sm" onclick="graphExpandAll(true)" title="Expand all">⊞ Expand</button>
+        <button class="btn btn-ghost btn-sm" onclick="graphExpandAll(false)" title="Collapse all">⊟ Collapse</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetGraphView()" title="Reset pan/zoom">⤢ Fit</button>
+        <button class="btn btn-ghost btn-sm" id="btn-relayout" onclick="relayoutForce()" title="Recompute the force simulation" style="display:none">🔄 Re-layout</button>
+        <div class="sep"></div>
+        <button class="btn btn-ghost btn-sm" id="btn-attr-toggle" onclick="toggleAttrMode()" title="Toggle datatype attributes: shown inside class nodes, or only in the side panel">🏷 Attrs: Panel</button>
+        <div class="sep"></div>
+        <span id="graph-selection-hint" style="font-size:11px;color:var(--accent2);display:none"></span>
+        <div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="btn-graph-filters" onclick="toggleGraphFiltersFlyout()">🔍 Filters</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleViewsFlyout()">📐 Views</button>
+        <button class="btn btn-primary btn-sm" onclick="quickSaveView()">💾 Save Layout</button>
+      </div>
+      <div class="graph-wrap">
+        <div class="graph-area" id="graph-area">
+          <div class="graph-inner" id="graph-inner"></div>
+          <div id="graph-rubber-band"></div>
+        </div>
+        <div class="graph-zoom-ctl">
+          <button onclick="graphZoomBy(1.15)" title="Zoom in">＋</button>
+          <button onclick="graphZoomBy(0.87)" title="Zoom out">－</button>
+          <button onclick="resetGraphView()" title="Fit graph to view">⤢</button>
+        </div>
+        <div class="views-flyout" id="views-flyout">
+          <div class="views-flyout-hdr">
+            Saved Layouts
+            <span style="cursor:pointer;color:var(--text-dim)" onclick="toggleViewsFlyout()">✕</span>
+          </div>
+          <div class="views-flyout-body" id="views-flyout-body"></div>
+          <div class="views-flyout-new">
+            <input type="text" id="new-view-name" placeholder="Name this layout…" onkeydown="if(event.key==='Enter')saveCurrentGraphView()">
+            <button class="btn btn-primary btn-sm" onclick="saveCurrentGraphView()">Save</button>
+          </div>
+        </div>
+        <div class="filters-flyout" id="graph-filters-flyout">
+          <div class="filters-flyout-hdr">
+            Graph Filters
+            <span style="cursor:pointer;color:var(--text-dim)" onclick="toggleGraphFiltersFlyout()">✕</span>
+          </div>
+          <div class="filters-flyout-body">
+
+            <div class="filt-field">
+              <label>Max nodes shown <span class="filt-val" id="filt-maxnodes-val">All</span></label>
+              <input type="range" id="filt-maxnodes" min="10" max="300" step="10" value="300" oninput="onGraphFilterChange()">
+              <span style="font-size:10px;color:var(--text-muted)">Keeps the most-connected concepts when over the limit.</span>
+            </div>
+
+            <div class="filt-field">
+              <label>Node size <span class="filt-val" id="filt-nodesize-val">1.0×</span></label>
+              <input type="range" id="filt-nodesize" min="0.6" max="1.8" step="0.1" value="1" oninput="onGraphFilterChange()">
+            </div>
+
+            <div class="filt-field">
+              <label>Link distance <span class="filt-val" id="filt-linkdist-val">1.0×</span></label>
+              <input type="range" id="filt-linkdist" min="0.5" max="2.5" step="0.1" value="1" oninput="onGraphFilterChange()">
+            </div>
+
+            <div class="filt-field">
+              <label>Category</label>
+              <div class="filt-cats" id="filt-cats"></div>
+            </div>
+
+            <div class="filt-field">
+              <label>Show labels</label>
+              <select id="filt-labels" onchange="onGraphFilterChange()">
+                <option value="all">All nodes</option>
+                <option value="selected">Selected node only</option>
+              </select>
+            </div>
+
+            <div class="filt-field">
+              <label>Relation names</label>
+              <select id="filt-rellabels" onchange="onGraphFilterChange()">
+                <option value="hide">Hide</option>
+                <option value="show">Show on edges</option>
+              </select>
+            </div>
+
+            <div class="filt-field">
+              <label>Level</label>
+              <select id="filt-level" onchange="onGraphFilterChange()">
+                <option value="0">All levels</option>
+              </select>
+              <span style="font-size:10px;color:var(--text-muted)">Shows L1 through the selected level (cumulative), not just that level.</span>
+            </div>
+
+            <span class="filt-reset" onclick="resetGraphFilters()">↺ Reset filters</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Node form or placeholder -->
-    <div id="node-form-area" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div id="node-form-area" style="flex:1;display:none;flex-direction:column;overflow:hidden">
       <div class="placeholder-message" id="node-placeholder">
         <div class="big-icon">⬡</div>
-        <div>Select a node from the tree to edit,<br>or click <strong>＋ New Node</strong> to create one.</div>
+        <div>Select a node from the tree or graph to edit,<br>or click <strong>＋ New Node</strong> to create one.</div>
       </div>
       <div id="node-form" style="display:none;flex:1;flex-direction:column;overflow:hidden">
         <div class="node-form" id="node-form-fields">
@@ -708,18 +1062,39 @@
 
   </div>
 
-  <!-- RIGHT: TTL PREVIEW -->
+  <!-- RIGHT: TTL PREVIEW / PROPERTIES -->
   <div class="panel ttl-preview">
-    <div class="ttl-preview-header">
-      TTL Preview
-      <button class="btn btn-ghost btn-sm" onclick="copyTTL()">⧉ Copy</button>
+    <div class="right-tabs">
+      <div class="right-tab active" id="rt-ttl" onclick="setRightTab('ttl')">TTL Preview</div>
+      <div class="right-tab" id="rt-props" onclick="setRightTab('props')">Properties</div>
     </div>
-    <div class="ttl-code" id="ttl-preview-panel">
-      <span class="cmt"># TTL will appear here as you edit nodes.</span>
+    <div id="right-ttl-view" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+      <div class="ttl-preview-header">
+        TTL
+        <button class="btn btn-ghost btn-sm" onclick="copyTTL()">⧉ Copy</button>
+      </div>
+      <div class="ttl-code" id="ttl-preview-panel">
+        <span class="cmt"># TTL will appear here as you edit nodes.</span>
+      </div>
+    </div>
+    <div id="right-props-view" style="display:none;flex-direction:column;flex:1;overflow:hidden">
+      <div class="ttl-preview-header">
+        Properties
+        <button class="btn btn-ghost btn-sm" id="props-edit-btn" onclick="propsPanelEdit()" style="display:none">✏ Edit</button>
+      </div>
+      <div class="props-body" id="props-body">
+        <div class="placeholder-message" style="padding:20px">
+          <div class="big-icon">🖱</div>
+          <div>Right-click (or click) a node in the graph to see its full details here.</div>
+        </div>
+      </div>
     </div>
   </div>
 
 </div>
+
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="graph-ctx-menu" style="display:none"></div>
 
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
@@ -731,6 +1106,7 @@
     <p id="delete-modal-msg">Are you sure you want to delete this node? This cannot be undone.</p>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('delete-modal')">Cancel</button>
+
       <button class="btn btn-danger" onclick="executeDelete()">Delete</button>
     </div>
   </div>
@@ -774,6 +1150,44 @@
   </div>
 </div>
 
+<!-- ADD / EDIT RELATIONSHIP MODAL (validated dropdown lists only) -->
+<div class="modal-overlay" id="rel-modal">
+  <div class="modal" style="width:520px">
+    <h3 id="rel-modal-title">New Relationship</h3>
+    <div class="rel-modal-grid">
+      <div class="field" style="grid-column:1/-1">
+        <label>Subject (from)</label>
+        <select id="rel-modal-subject"></select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Relation type — validated list only</label>
+        <select id="rel-modal-pred"></select>
+      </div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Object (to)</label>
+        <select id="rel-modal-target"></select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('rel-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRelModal()">Save Relationship</button>
+    </div>
+  </div>
+</div>
+
+<!-- GRAPHDB SAVE CONFIRM MODAL -->
+<div class="modal-overlay" id="save-confirm-modal">
+  <div class="modal" style="width:560px;max-width:96vw">
+    <h3>⬆ Push Changes to GraphDB</h3>
+    <p>This writes every added/changed/removed triple for dirty, new, and deleted nodes directly to the connected repository, and bumps <code>owl:versionInfo</code> by <strong>+0.1</strong>.</p>
+    <div id="save-confirm-summary" style="font-family:var(--mono);font-size:11px;color:var(--text-dim);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;max-height:240px;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('save-confirm-modal')">Cancel</button>
+      <button class="btn btn-success" onclick="executeGraphDBSave()">⬆ Confirm &amp; Save</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════
 //  STATE
@@ -794,6 +1208,41 @@ const state = {
   modelColors: {},        // namespace -> color
   scopeToModel: true,     // when true, only show active model + included models
   viewMode: 'nodes',      // 'nodes' (hierarchy) or 'edges' (relation list)
+  centerTab: 'graph',      // 'graph' | 'form'
+  rightTab: 'ttl',         // 'ttl' | 'props'
+};
+
+// ── GRAPH (canvas) sub-state ──────────────────────────────
+const G = {
+  mode: 'hierarchy',       // 'hierarchy' | 'grid'
+  attrMode: 'panel',       // 'panel' | 'inline' — class attribute display
+  collapsed: new Set(),    // IRIs collapsed in hierarchy view
+  manualOffsets: {},       // iri[__sub] -> {dx,dy}
+  panX: 40, panY: 40, zoom: 1,
+  selected: null,           // single-selected iri (mirrors state.selectedIRI)
+  multiSelected: new Set(), // multi-selected iris
+  rubberBand: null,
+  pendingDrag: null, dragging: null, groupDrag: null,
+  isPanning: false, panStartX: 0, panStartY: 0, panOriginX: 0, panOriginY: 0,
+  currentViewId: null,
+  dirtyLayout: false,
+  forcePositions: {},
+};
+const GNODE_W = 172, GNODE_H = 54, G_HGAP = 24, G_VGAP = 56, G_TOPGAP = 44, G_PAD = 40;
+const GDRAG_THRESHOLD = 6;
+
+// ── GRAPH FILTERS (top toolbar) ────────────────────────────
+// Controls what gGraphNodes() returns and how buildGNodeHTML renders each
+// node — independent of the left-hand tree, which always shows everything.
+const GRAPH_NODE_TYPES = ['Class', 'ObjectProperty', 'AnnotationProperty', 'DatatypeProperty', 'Ontology'];
+state.graphFilters = {
+  maxNodes: 0,                          // 0 = no cap
+  sizeMul: 1,                           // node-size multiplier
+  linkMul: 1,                           // link-distance multiplier
+  categories: new Set(GRAPH_NODE_TYPES), // visible node types
+  labelMode: 'all',                     // 'all' | 'selected'
+  level: 0,                             // 0 = all levels, else 1-based hierarchy depth (L1, L2, ...)
+  showRelLabels: false,                 // show predicate name on relation edges
 };
 
 // Distinct palette for per-model color coding (active model first)
@@ -1056,8 +1505,9 @@ async function connectAndLoad() {
     await loadNodesFromSparql();
     await loadMetaFromSparql();
     seedRelationTaxonomyFromModels();
+    state.connected = true; // set before the relation pull so sparqlSelect can run
+    await loadAllRelationsFromSparql();
     setConnStatus('connected');
-    state.connected = true;
     toast('Connected and loaded ' + state.nodes.length + ' nodes', 'success');
   } catch (e) {
     setConnStatus('error');
@@ -1169,6 +1619,56 @@ async function loadNodesFromSparql() {
   checkLocalStorageDraft();
 }
 
+// Bulk-load every non-hierarchy relation-taxonomy predicate (the validated
+// custom relations, e.g. "implements", "uses") for ALL loaded nodes, scoped
+// in VALUES chunks like the hierarchy loader above. Without this, a node's
+// relations stay empty until the user clicks into it via loadNodeDetails(),
+// so most of the graph would show no relation lines/arrows until visited.
+async function loadAllRelationsFromSparql() {
+  const relPreds = flatRelations().map(r => '<' + r.iri + '>');
+  if (!relPreds.length) return;
+  const loadedIRIs = state.nodes.map(n => n.iri).filter(iri => iri.startsWith('http'));
+  const byIRI = {}; state.nodes.forEach(n => { byIRI[n.iri] = n; });
+  const CHUNK = 50;
+  let done = 0;
+  for (let i = 0; i < loadedIRIs.length; i += CHUNK) {
+    const chunk = loadedIRIs.slice(i, i + CHUNK);
+    const values = chunk.map(iri => '<' + iri + '>').join(' ');
+    const qRel = `
+      SELECT DISTINCT ?s ?p ?o
+      WHERE {
+        VALUES ?s { ${values} }
+        ?s ?p ?o .
+        FILTER(isIRI(?o))
+        FILTER(?p IN (${relPreds.join(', ')}))
+      }
+    `;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      const res = await sparqlSelectWithSignal(qRel, controller.signal);
+      clearTimeout(timer);
+      for (const row of res.results.bindings) {
+        const s = row.s.value, p = row.p.value, o = row.o.value;
+        const n = byIRI[s];
+        if (!n) continue;
+        n.relations = n.relations || [];
+        if (!n.relations.some(r => r.predicate === p && r.target === o)) {
+          n.relations.push({ predicate: p, target: o });
+        }
+      }
+      done += chunk.length;
+    } catch (e) {
+      console.warn('Relation chunk timed out/failed at offset ' + i, e);
+    }
+    if ((i / CHUNK) % 4 === 0) {
+      if (state.centerTab === 'graph') renderGraph();
+      toast('Loading relations… ' + Math.min(done, loadedIRIs.length) + ' / ' + loadedIRIs.length, 'info');
+    }
+  }
+  if (state.centerTab === 'graph') renderGraph();
+}
+
 // Load full details for a single node on demand (when selected)
 async function loadNodeDetails(iri) {
   const n = state.nodes.find(x => x.iri === iri);
@@ -1203,7 +1703,25 @@ async function loadNodeDetails(iri) {
       else if (p === 'isDefinedBy' && !n.isDefinedBy) n.isDefinedBy = v;
       else if (p === 'subject' && !n.dcSubject.includes(v)) n.dcSubject.push(v);
     }
+    // Also pull in any relation whose predicate is in the validated relation
+    // taxonomy (not just subClassOf/subPropertyOf, which were already loaded
+    // in bulk) so existing non-hierarchy edges are editable/visible.
+    const relPreds = flatRelations().map(r => '<' + r.iri + '>');
+    if (relPreds.length) {
+      const qRel = `SELECT ?p ?o WHERE { <${iri}> ?p ?o . FILTER(isIRI(?o)) FILTER(?p IN (${relPreds.join(', ')})) }`;
+      try {
+        const resRel = await sparqlSelect(qRel);
+        for (const row of resRel.results.bindings) {
+          const pred = row.p.value, target = row.o.value;
+          n.relations = n.relations || [];
+          if (!n.relations.some(r => r.predicate === pred && r.target === target)) {
+            n.relations.push({ predicate: pred, target });
+          }
+        }
+      } catch(e) { /* non-fatal */ }
+    }
     n.detailsLoaded = true;
+    n._baseline = nodeTripleSet(n);  // snapshot for diffing on save
   } catch(e) { /* non-fatal */ }
 }
 
@@ -1247,6 +1765,7 @@ async function loadMetaFromSparql() {
     rebuildModelColors();
     renderModelLegend();
     renderTree();
+    loadDefaultGraphView();
   } catch(e) { /* meta optional */ }
 }
 
@@ -1392,6 +1911,7 @@ function renderModelLegend() {
 
 function toggleScope(on) {
   state.scopeToModel = on;
+  G.forcePositions = {};
   renderTree();
 }
 
@@ -1409,8 +1929,8 @@ function setViewMode(mode, el) {
   state.viewMode = mode;
   document.querySelectorAll('#mode-tabs .filter-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  // Type filters only make sense for Nodes view
-  document.getElementById('type-tabs').style.display = mode === 'edges' ? 'none' : 'flex';
+  // Type filters only make sense for the flat Nodes view
+  document.getElementById('type-tabs').style.display = mode === 'nodes' ? 'flex' : 'none';
   const search = document.getElementById('tree-search');
   if (search) search.placeholder = mode === 'edges' ? 'Search relations…' : 'Search nodes…';
   renderTree();
@@ -1422,7 +1942,9 @@ function filterTree(q) {
 }
 
 function renderTree() {
+  if (state.centerTab === 'graph') renderGraph();
   if (state.viewMode === 'edges') { renderEdges(); return; }
+  if (state.viewMode === 'categories') { renderCategories(); return; }
   const panel = document.getElementById('tree-panel');
   let nodes = state.nodes.filter(n => !n.isDeleted);
 
@@ -1562,7 +2084,7 @@ function renderOntologyGroup(g, byIRIall) {
     div.style.paddingLeft = (depth * 16) + 'px';
     div.innerHTML = buildTreeItem(n, children.length > 0, isCollapsed);
     const treeItem = div.querySelector('.tree-item');
-    treeItem.addEventListener('click', () => selectNode(n.iri));
+    treeItem.addEventListener('click', () => treeNavigateToNode(n.iri));
     const toggle = div.querySelector('.tree-toggle');
     if (children.length > 0) toggle.addEventListener('click', e => { e.stopPropagation(); toggleCollapse(n.iri); });
     if (n.iri === state.selectedIRI) treeItem.classList.add('selected');
@@ -1575,7 +2097,7 @@ function renderOntologyGroup(g, byIRIall) {
       const div = document.createElement('div');
       div.style.paddingLeft = '16px';
       div.innerHTML = buildTreeItem(n, false, false);
-      div.querySelector('.tree-item').addEventListener('click', () => selectNode(n.iri));
+      div.querySelector('.tree-item').addEventListener('click', () => treeNavigateToNode(n.iri));
       if (n.iri === state.selectedIRI) div.querySelector('.tree-item').classList.add('selected');
       panel.appendChild(div);
     }
@@ -1583,7 +2105,78 @@ function renderOntologyGroup(g, byIRIall) {
 }
 
 // ── EDGES VIEW: flat list of relations (source —predicate→ target) ──
+// ═══════════════════════════════════════════════════════════
+//  CATEGORIES — sidebar grouped by ontology role, not raw hierarchy.
+//  Helps business experts and knowledge engineers scan "what kind of
+//  building block is this" rather than drilling through nested classes.
+// ═══════════════════════════════════════════════════════════
+function renderCategories() {
+  rebuildModelColors();
+  renderModelLegend();
+  const panel = document.getElementById('tree-panel');
+  let nodes = gScopeNodes();
+  if (state.searchQuery) nodes = nodes.filter(n =>
+    (n.label||'').toLowerCase().includes(state.searchQuery) ||
+    n.iri.toLowerCase().includes(state.searchQuery)
+  );
+  const byIRI = {}; nodes.forEach(n => { byIRI[n.iri] = n; });
+
+  const coreClasses = [], subClasses = [], objProps = [], dataProps = [], annProps = [], ontologies = [];
+  nodes.forEach(n => {
+    if (n.type === 'Class') {
+      const hasParent = (n.subOf||[]).some(p => byIRI[p]);
+      (hasParent ? subClasses : coreClasses).push(n);
+    } else if (n.type === 'ObjectProperty') objProps.push(n);
+    else if (n.type === 'DatatypeProperty') dataProps.push(n);
+    else if (n.type === 'AnnotationProperty') annProps.push(n);
+    else if (n.type === 'Ontology') ontologies.push(n);
+  });
+
+  const weights = computeNodeWeights(nodes);
+  const sections = [
+    { label: '🏛 Core Classes', hint: 'No superclass — foundational types', items: coreClasses, cls: 'is-class' },
+    { label: '🧬 Subclasses', hint: 'Specializations of a core class', items: subClasses, cls: 'is-class' },
+    { label: '🔗 Object Properties', hint: 'Relationships between classes', items: objProps, cls: 'is-objprop' },
+    { label: '🏷 Datatype Properties', hint: 'Literal-valued attributes', items: dataProps, cls: 'is-dataprop' },
+    { label: '📝 Annotation Properties', hint: 'Metadata properties', items: annProps, cls: 'is-annprop' },
+    { label: '📦 Ontologies / Models', hint: 'owl:Ontology declarations', items: ontologies, cls: 'is-ontology' },
+  ];
+
+  document.getElementById('tree-count').textContent = nodes.length;
+  panel.innerHTML = '';
+  if (!nodes.length) {
+    panel.innerHTML = '<div class="tree-empty">No concepts match.</div>';
+    return;
+  }
+
+  sections.forEach(sec => {
+    if (!sec.items.length) return;
+    const header = document.createElement('div');
+    header.className = 'onto-group-header';
+    header.style.borderLeftColor = 'var(--border)';
+    header.innerHTML = `<span class="onto-group-label" title="${escHtml(sec.hint)}">${sec.label}</span><span class="onto-group-badge">${sec.items.length}</span>`;
+    panel.appendChild(header);
+
+    sec.items.sort((a,b) => (weights[b.iri]||0) - (weights[a.iri]||0) || (a.label||'').localeCompare(b.label||''));
+    sec.items.forEach(n => {
+      const row = document.createElement('div');
+      row.className = `tree-item ${sec.cls}` + (n.iri === state.selectedIRI ? ' selected' : '');
+      const w = weights[n.iri] || 0;
+      row.innerHTML = `
+        <span class="tree-toggle no-children"></span>
+        <span class="tree-icon">${sec.cls === 'is-class' ? '⬡' : sec.cls === 'is-objprop' ? '⟶' : sec.cls === 'is-ontology' ? '◆' : '▪'}</span>
+        <span class="tree-label">${escHtml(n.label || shrinkIRI(n.iri))}</span>
+        ${w ? `<span class="tree-badge" title="${w} relation(s)">${w}</span>` : ''}
+      `;
+      row.addEventListener('click', () => treeNavigateToNode(n.iri));
+      panel.appendChild(row);
+    });
+  });
+}
+
 function renderEdges() {
+
+
   const panel = document.getElementById('tree-panel');
   rebuildModelColors();
   renderModelLegend();
@@ -1649,7 +2242,7 @@ function renderEdges() {
         <span class="edge-arrow">→</span>
         <span class="edge-ep" style="--ep:${tgtColor}" title="${escHtml(e.tgt?e.tgt.iri:e.rel.target)}">${escHtml(e.tgtLabel)}${e.tgt?'':' <span class=\"edge-missing\">(external)</span>'}</span>
       `;
-      row.addEventListener('click', () => selectNode(e.src.iri));
+      row.addEventListener('click', () => treeNavigateToNode(e.src.iri));
       panel.appendChild(row);
     });
   });
@@ -1707,8 +2300,10 @@ function buildTreeItem(n, hasChildren, isCollapsed) {
 // ═══════════════════════════════════════════════════════════
 //  NODE SELECTION & FORM
 // ═══════════════════════════════════════════════════════════
-async function selectNode(iri) {
+async function selectNode(iri, opts) {
+  opts = opts || {};
   state.selectedIRI = iri;
+  G.selected = iri;
   const n = state.nodes.find(x => x.iri === iri);
   if (!n) return;
   renderTree();
@@ -1717,6 +2312,36 @@ async function selectNode(iri) {
   }
   showNodeForm(n);
   updateTTLPreview(n);
+  if (opts.switchTab !== false) setCenterTab('form');
+  if (state.centerTab === 'graph') highlightGraphSelection();
+}
+
+// Walk subClassOf/subPropertyOf parents and uncollapse them so a node deep
+// inside a collapsed branch is actually visible in the graph layout.
+function expandAncestorsOf(iri) {
+  const seen = new Set();
+  (function walk(curIri) {
+    if (seen.has(curIri)) return;
+    seen.add(curIri);
+    const n = state.nodes.find(x => x.iri === curIri);
+    if (!n) return;
+    (n.subOf || []).forEach(p => { G.collapsed.delete(p); walk(p); });
+  })(iri);
+}
+
+// Called when a node is clicked in the LEFT TREE PANEL: jumps to the
+// node's location in the graph (main panel), centers/pulses it so it
+// stands out, and shows its color-coded metadata in the right panel.
+async function treeNavigateToNode(iri) {
+  if (!iri) return;
+  state.selectedIRI = iri;
+  G.selected = iri;
+  G.multiSelected.clear();
+  expandAncestorsOf(iri);
+  setCenterTab('graph');                          // show + render the graph panel
+  await selectNode(iri, { switchTab: false });     // load details, refresh tree/TTL, stay on graph tab
+  setRightTab('props');                            // show ontology metadata, color-coded by type/model
+  centerOnGraphNode(iri, { flash: true });          // pan/zoom so the node is centered + pulses
 }
 
 function showNodeForm(n) {
@@ -1970,8 +2595,10 @@ function saveNode() {
   updateStats();
   saveToLocalStorage();
   renderTree();
+  if (state.centerTab === 'graph') renderGraph();
+  if (state.rightTab === 'props' && state.selectedIRI === newIRI) renderPropsPanel(newIRI);
   updateTTLPreview(n);
-  toast('Node saved to draft — export TTL or push to GraphDB', 'success');
+  toast('Node saved to draft — push to GraphDB to persist', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1995,14 +2622,16 @@ function createNewNode() {
     modified: new Date().toISOString(),
     isDefinedBy: document.getElementById('meta-iri').value || '',
     isNew: true, isDirty: true, isDeleted: false,
+    detailsLoaded: true, _baseline: new Set(),
   };
   state.nodes.push(n);
   closeModal('new-node-modal');
   state.selectedIRI = iri;
   renderTree();
+  if (state.centerTab === 'graph') renderGraph();
   selectNode(iri);
   updateStats();
-  toast('Node created — fill in the form and save', 'info');
+  toast('Node created — fill in the form and push to GraphDB', 'info');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2012,7 +2641,7 @@ function confirmDelete() {
   const n = state.nodes.find(x=>x.iri===state.selectedIRI);
   if (!n) return;
   document.getElementById('delete-modal-msg').textContent =
-    `Delete "${n.label || shrinkIRI(n.iri)}"? This marks it for removal from the TTL. Push to GraphDB to execute.`;
+    `Delete "${n.label || shrinkIRI(n.iri)}"? This marks it for removal. Push to GraphDB to execute.`;
   document.getElementById('delete-modal').classList.add('open');
 }
 
@@ -2023,7 +2652,8 @@ function executeDelete() {
   cancelEdit();
   updateStats();
   saveToLocalStorage();
-  toast('Node marked for deletion', 'info');
+  if (state.centerTab === 'graph') renderGraph();
+  toast('Node marked for deletion — push to GraphDB to execute', 'info');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2171,6 +2801,7 @@ function updateStats() {
     state.nodes.filter(n=>!n.isDeleted && n.type!=='Class' && n.type!=='Ontology').length;
   document.getElementById('stat-modified').textContent =
     state.nodes.filter(n=>n.isDirty && !n.isDeleted).length;
+  refreshDirtyIndicator();
 }
 
 function setConnStatus(s) {
@@ -2194,6 +2825,1684 @@ function closeModal(id) {
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ═══════════════════════════════════════════════════════════
+//  CENTER / RIGHT TAB SWITCHING
+// ═══════════════════════════════════════════════════════════
+function setCenterTab(tab) {
+  state.centerTab = tab;
+  document.getElementById('tab-graph').classList.toggle('active', tab === 'graph');
+  document.getElementById('tab-form').classList.toggle('active', tab === 'form');
+  document.getElementById('center-graph').style.display = tab === 'graph' ? 'flex' : 'none';
+  document.getElementById('node-form-area').style.display = tab === 'form' ? 'flex' : 'none';
+  if (tab === 'graph') renderGraph();
+}
+
+function setRightTab(tab) {
+  state.rightTab = tab;
+  document.getElementById('rt-ttl').classList.toggle('active', tab === 'ttl');
+  document.getElementById('rt-props').classList.toggle('active', tab === 'props');
+  document.getElementById('right-ttl-view').style.display = tab === 'ttl' ? 'flex' : 'none';
+  document.getElementById('right-props-view').style.display = tab === 'props' ? 'flex' : 'none';
+  if (tab === 'props' && G.selected) renderPropsPanel(G.selected);
+}
+
+function refreshDirtyIndicator() {
+  const ind = document.getElementById('dirty-indicator');
+  if (!ind) return;
+  const dataDirty = state.nodes.some(n => n.isDirty || n.isNew || n.isDeleted);
+  ind.style.display = (dataDirty || G.dirtyLayout) ? 'inline-block' : 'none';
+}
+
+// Predicates that drive the hierarchy / subOf tree
+const HIER_PREDS = [
+  'http://www.w3.org/2000/01/rdf-schema#subClassOf',
+  'http://www.w3.org/2000/01/rdf-schema#subPropertyOf'
+];
+
+// ═══════════════════════════════════════════════════════════
+//  GRAPH — SCOPE HELPERS
+// ═══════════════════════════════════════════════════════════
+function gScopeNodes() {
+  const scope = scopeModelBases();
+  const scopeSet = new Set(scope);
+  let nodes = state.nodes.filter(n => !n.isDeleted);
+  if (state.scopeToModel && scope.length) nodes = nodes.filter(n => scopeSet.has(nodeModelBase(n)));
+  return nodes;
+}
+
+// Hierarchy depth (1-based) for every in-scope node, via the same longest-path
+// topological ranking used by the Hierarchy/Flow layouts — but always computed
+// over the FULL scope (gScopeNodes), so the Level filter's numbering doesn't
+// shift as other filters (category, max nodes) change which nodes are shown.
+function computeNodeLevelMap() {
+  const nodes = gScopeNodes();
+  const byIRI = {}; nodes.forEach(n => { byIRI[n.iri] = n; });
+  const parentsOf = {}, childrenOf = {};
+  nodes.forEach(n => { parentsOf[n.iri] = (n.subOf || []).filter(p => byIRI[p]); childrenOf[n.iri] = []; });
+  nodes.forEach(n => parentsOf[n.iri].forEach(p => childrenOf[p].push(n.iri)));
+  const indeg = {}; nodes.forEach(n => { indeg[n.iri] = parentsOf[n.iri].length; });
+  const rank = {};
+  const queue = nodes.filter(n => indeg[n.iri] === 0).map(n => n.iri);
+  queue.forEach(iri => { rank[iri] = 0; });
+  let qi = 0;
+  while (qi < queue.length) {
+    const iri = queue[qi++];
+    childrenOf[iri].forEach(c => {
+      rank[c] = Math.max(rank[c] || 0, rank[iri] + 1);
+      indeg[c]--;
+      if (indeg[c] === 0) queue.push(c);
+    });
+  }
+  nodes.forEach(n => { if (!(n.iri in rank)) rank[n.iri] = 0; }); // cycle fallback
+  const level = {};
+  nodes.forEach(n => { level[n.iri] = (rank[n.iri] || 0) + 1; }); // 1-based: L1 = root
+  return level;
+}
+
+// Graph-only view of the scope: applies the top-toolbar Filters (category,
+// level, max-nodes-by-connections) on top of gScopeNodes(). The left tree
+// always uses gScopeNodes() directly so it is never affected by these filters.
+function gGraphNodes() {
+  let nodes = gScopeNodes();
+  const f = state.graphFilters;
+  if (!f) return nodes;
+  if (f.categories && f.categories.size && f.categories.size < GRAPH_NODE_TYPES.length) {
+    nodes = nodes.filter(n => f.categories.has(n.type));
+  }
+  if (f.level && f.level > 0) {
+    const levels = computeNodeLevelMap();
+    nodes = nodes.filter(n => levels[n.iri] <= f.level); // cumulative: L1 … selected level
+  }
+  if (f.maxNodes && f.maxNodes > 0 && nodes.length > f.maxNodes) {
+    const weights = computeNodeWeights(nodes);
+    nodes = nodes.slice()
+      .sort((a, b) => (weights[b.iri] || 0) - (weights[a.iri] || 0))
+      .slice(0, f.maxNodes);
+  }
+  return nodes;
+}
+function gLinkMul() { return (state.graphFilters && state.graphFilters.linkMul) || 1; }
+function gSizeMul() { return (state.graphFilters && state.graphFilters.sizeMul) || 1; }
+function gByIRI() {
+  const m = {};
+  gGraphNodes().forEach(n => { m[n.iri] = n; });
+  return m;
+}
+function gChildrenOf(iri) {
+  return gGraphNodes().filter(n => (n.subOf || []).includes(iri));
+}
+function gTopNodes() {
+  const byIRI = gByIRI();
+  return gGraphNodes().filter(n => !(n.subOf || []).some(p => byIRI[p]));
+}
+// All descendants of a node, following subClassOf/subPropertyOf children edges
+// (a node may be reached via more than one path in a DAG — dedup with a Set).
+function gDescendantsOf(iri) {
+  const result = new Set();
+  const stack = [iri];
+  while (stack.length) {
+    const cur = stack.pop();
+    gChildrenOf(cur).forEach(k => {
+      if (!result.has(k.iri)) { result.add(k.iri); stack.push(k.iri); }
+    });
+  }
+  return result;
+}
+
+// ── Attribute inline/panel toggle ──────────────────────────
+// In 'inline' mode, owl:DatatypeProperty nodes whose rdfs:domain is an
+// in-scope Class are absorbed into that class's card instead of being drawn
+// as separate nodes/edges (metaphactory-style attribute display).
+function gAbsorbedAttrIRIs() {
+  const absorbed = new Set();
+  if (G.attrMode !== 'inline') return absorbed;
+  const classIRIs = new Set(gGraphNodes().filter(n => n.type === 'Class').map(n => n.iri));
+  state.nodes.forEach(p => {
+    if (!p.isDeleted && p.type === 'DatatypeProperty' && p.domain && classIRIs.has(p.domain)) absorbed.add(p.iri);
+  });
+  return absorbed;
+}
+function gNodeAttrs(n) {
+  if (G.attrMode !== 'inline' || n.type !== 'Class') return [];
+  return state.nodes.filter(p => !p.isDeleted && p.type === 'DatatypeProperty' && p.domain === n.iri);
+}
+function gNodeHeight(n) {
+  const attrs = gNodeAttrs(n);
+  return attrs.length ? GNODE_H + 8 + attrs.length * 15 : GNODE_H;
+}
+function gLayoutableNodes() {
+  const absorbed = gAbsorbedAttrIRIs();
+  return gGraphNodes().filter(n => !absorbed.has(n.iri));
+}
+function toggleAttrMode() {
+  G.attrMode = G.attrMode === 'inline' ? 'panel' : 'inline';
+  G.forcePositions = {};
+  const btn = document.getElementById('btn-attr-toggle');
+  if (btn) btn.textContent = G.attrMode === 'inline' ? '🏷 Attrs: Inline' : '🏷 Attrs: Panel';
+  renderGraph();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GRAPH — LAYOUT
+//  Hierarchy view uses proper DAG layering (longest-path rank +
+//  barycenter crossing-reduction), NOT a tree algorithm — a class with
+//  multiple subClassOf parents is laid out once, at the layer below its
+//  deepest parent, with an edge drawn in from every parent.
+// ═══════════════════════════════════════════════════════════
+let gridSections = [];
+
+// Longest-path topological ranking. Tolerant of accidental cycles (rare in
+// authored OWL, but possible mid-edit): any node that never reaches in-degree
+// zero is treated as an extra root so layout never hangs or drops nodes.
+function computeDagRanks() {
+  const nodes = gLayoutableNodes();
+  const byIRI = {}; nodes.forEach(n => { byIRI[n.iri] = n; });
+  const parentsOf = {}, childrenOf = {};
+  nodes.forEach(n => {
+    parentsOf[n.iri] = (n.subOf || []).filter(p => byIRI[p]);
+    childrenOf[n.iri] = [];
+  });
+  nodes.forEach(n => parentsOf[n.iri].forEach(p => childrenOf[p].push(n.iri)));
+
+  const indeg = {}; nodes.forEach(n => { indeg[n.iri] = parentsOf[n.iri].length; });
+  const rank = {};
+  const queue = nodes.filter(n => indeg[n.iri] === 0).map(n => n.iri);
+  queue.forEach(iri => { rank[iri] = 0; });
+  const order = [];
+  let qi = 0;
+  while (qi < queue.length) {
+    const iri = queue[qi++];
+    order.push(iri);
+    childrenOf[iri].forEach(c => {
+      rank[c] = Math.max(rank[c] || 0, rank[iri] + 1);
+      indeg[c]--;
+      if (indeg[c] === 0) queue.push(c);
+    });
+  }
+  // Cycle fallback — any node never reached above gets dropped in at rank 0
+  // so it still renders instead of silently vanishing.
+  nodes.forEach(n => {
+    if (!(n.iri in rank)) { rank[n.iri] = 0; order.push(n.iri); }
+  });
+  return { rank, parentsOf, childrenOf, order, byIRI };
+}
+
+// Visibility under collapse, computed in topological order: a non-root node
+// is visible iff at least one of its parents is visible AND not collapsed.
+function computeDagVisible(dag) {
+  const visible = {};
+  dag.order.forEach(iri => {
+    const parents = dag.parentsOf[iri];
+    visible[iri] = !parents.length || parents.some(p => visible[p] && !G.collapsed.has(p));
+  });
+  return visible;
+}
+
+function computeHierarchyLayout() {
+  const dag = computeDagRanks();
+  const visible = computeDagVisible(dag);
+  const byIRI = dag.byIRI;
+
+  const layers = {};
+  dag.order.forEach(iri => {
+    if (!visible[iri]) return;
+    const r = dag.rank[iri];
+    (layers[r] = layers[r] || []).push(iri);
+  });
+  const ranks = Object.keys(layers).map(Number).sort((a, b) => a - b);
+  if (!ranks.length) return {};
+
+  ranks.forEach(r => layers[r].sort((a, b) => (byIRI[a].label||'').localeCompare(byIRI[b].label||'')));
+
+  // Two barycenter sweeps (down using parents, up using children) — the
+  // standard simplified Sugiyama heuristic for reducing edge crossings.
+  function indexMap(arr) { const m = {}; arr.forEach((iri, i) => { m[iri] = i; }); return m; }
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 1; i < ranks.length; i++) {
+      const r = ranks[i], prevIdx = indexMap(layers[ranks[i-1]]);
+      layers[r] = layers[r].map(iri => {
+        const ps = dag.parentsOf[iri].filter(p => visible[p] && prevIdx[p] !== undefined);
+        const bc = ps.length ? ps.reduce((s,p) => s + prevIdx[p], 0) / ps.length : layers[r].indexOf(iri);
+        return { iri, bc };
+      }).sort((a,b) => a.bc - b.bc).map(x => x.iri);
+    }
+    for (let i = ranks.length - 2; i >= 0; i--) {
+      const r = ranks[i], nextIdx = indexMap(layers[ranks[i+1]]);
+      layers[r] = layers[r].map(iri => {
+        const cs = dag.childrenOf[iri].filter(c => visible[c] && nextIdx[c] !== undefined);
+        const bc = cs.length ? cs.reduce((s,c) => s + nextIdx[c], 0) / cs.length : layers[r].indexOf(iri);
+        return { iri, bc };
+      }).sort((a,b) => a.bc - b.bc).map(x => x.iri);
+    }
+  }
+
+  // Per-rank height accounts for taller cards (inline attributes) so rows
+  // never overlap when the attribute toggle is on.
+  const rankHeight = {};
+  ranks.forEach(r => { rankHeight[r] = Math.max(GNODE_H, ...layers[r].map(iri => gNodeHeight(byIRI[iri]))); });
+  const rankY = {};
+  let cumY = G_PAD;
+  ranks.forEach(r => { rankY[r] = cumY; cumY += rankHeight[r] + G_VGAP * gLinkMul(); });
+
+  const layout = {};
+  ranks.forEach(r => {
+    layers[r].forEach((iri, i) => {
+      const n = byIRI[iri];
+      const off = G.manualOffsets[iri] || { dx: 0, dy: 0 };
+      layout[iri] = {
+        x: G_PAD + GNODE_W/2 + i * (GNODE_W + G_HGAP * gLinkMul()) + off.dx,
+        y: rankY[r] + off.dy,
+        h: gNodeHeight(n)
+      };
+    });
+  });
+  return layout;
+}
+
+function computeGridLayout() {
+  const order = ['Ontology', 'Class', 'ObjectProperty', 'AnnotationProperty', 'DatatypeProperty'];
+  const groups = {};
+  order.forEach(t => groups[t] = []);
+  gLayoutableNodes().forEach(n => { (groups[n.type] = groups[n.type] || []).push(n); });
+  const layout = {};
+  const COLW = GNODE_W + G_HGAP * gLinkMul();
+  const PER_ROW = 6;
+  let y = G_PAD;
+  gridSections = [];
+  order.forEach(type => {
+    const list = (groups[type] || []).slice().sort((a, b) => (a.label || '').localeCompare(b.label || ''));
+    if (!list.length) return;
+    gridSections.push({ type, y });
+    const rowH = Math.max(GNODE_H, ...list.map(gNodeHeight)) + G_VGAP * 0.55 * gLinkMul();
+    list.forEach((n, i) => {
+      const col = i % PER_ROW, row = Math.floor(i / PER_ROW);
+      const off = G.manualOffsets[n.iri] || { dx: 0, dy: 0 };
+      layout[n.iri] = {
+        x: G_PAD + GNODE_W / 2 + col * COLW + off.dx,
+        y: y + 22 + row * rowH + off.dy,
+        h: gNodeHeight(n)
+      };
+    });
+    const rows = Math.ceil(list.length / PER_ROW);
+    y += 22 + rows * rowH + G_TOPGAP * 0.6 * gLinkMul();
+  });
+  return layout;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WEIGHT — number of relations touching a node (in + out), used to
+//  vary node size in the weighted layouts (Network, Force, Cloud).
+// ═══════════════════════════════════════════════════════════
+function computeNodeWeights(nodes) {
+  const w = {};
+  nodes.forEach(n => { w[n.iri] = 0; });
+  nodes.forEach(n => {
+    (n.relations || []).forEach(r => {
+      if (!r.predicate || !r.target) return;
+      w[n.iri] = (w[n.iri] || 0) + 1;
+      if (w[r.target] !== undefined) w[r.target] = (w[r.target] || 0) + 1;
+    });
+  });
+  return w;
+}
+function gNodeScale(weight) {
+  weight = weight || 0;
+  const base = Math.min(1.7, Math.max(0.74, 0.74 + Math.sqrt(weight) * 0.16));
+  return base * gSizeMul();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FLOW — same DAG ranking as Hierarchy, but oriented left-to-right
+//  (rank = column) instead of top-to-bottom. Suits lifecycle / process
+//  ontologies where "flow" reads more naturally as a horizontal pipeline.
+// ═══════════════════════════════════════════════════════════
+function computeFlowLayout() {
+  const dag = computeDagRanks();
+  const visible = computeDagVisible(dag);
+  const byIRI = dag.byIRI;
+  const layers = {};
+  dag.order.forEach(iri => {
+    if (!visible[iri]) return;
+    const r = dag.rank[iri];
+    (layers[r] = layers[r] || []).push(iri);
+  });
+  const ranks = Object.keys(layers).map(Number).sort((a,b) => a - b);
+  if (!ranks.length) return {};
+  ranks.forEach(r => layers[r].sort((a,b) => (byIRI[a].label||'').localeCompare(byIRI[b].label||'')));
+
+  function indexMap(arr) { const m = {}; arr.forEach((iri,i) => { m[iri] = i; }); return m; }
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 1; i < ranks.length; i++) {
+      const r = ranks[i], prevIdx = indexMap(layers[ranks[i-1]]);
+      layers[r] = layers[r].map(iri => {
+        const ps = dag.parentsOf[iri].filter(p => visible[p] && prevIdx[p] !== undefined);
+        const bc = ps.length ? ps.reduce((s,p) => s + prevIdx[p], 0) / ps.length : layers[r].indexOf(iri);
+        return { iri, bc };
+      }).sort((a,b) => a.bc - b.bc).map(x => x.iri);
+    }
+    for (let i = ranks.length - 2; i >= 0; i--) {
+      const r = ranks[i], nextIdx = indexMap(layers[ranks[i+1]]);
+      layers[r] = layers[r].map(iri => {
+        const cs = dag.childrenOf[iri].filter(c => visible[c] && nextIdx[c] !== undefined);
+        const bc = cs.length ? cs.reduce((s,c) => s + nextIdx[c], 0) / cs.length : layers[r].indexOf(iri);
+        return { iri, bc };
+      }).sort((a,b) => a.bc - b.bc).map(x => x.iri);
+    }
+  }
+
+  const colX = {};
+  let cumX = G_PAD;
+  ranks.forEach(r => { colX[r] = cumX; cumX += GNODE_W + G_HGAP * 2.4 * gLinkMul(); });
+
+  const layout = {};
+  ranks.forEach(r => {
+    let cumY = G_PAD;
+    layers[r].forEach(iri => {
+      const n = byIRI[iri];
+      const h = gNodeHeight(n);
+      const off = G.manualOffsets[iri] || { dx: 0, dy: 0 };
+      layout[iri] = { x: colX[r] + GNODE_W/2 + off.dx, y: cumY + off.dy, h };
+      cumY += h + G_VGAP * 0.6 * gLinkMul();
+    });
+  });
+  return layout;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NETWORK — fast deterministic radial overview. Every node placed on a
+//  circle; every hierarchy + relation edge drawn straight across. Cheap
+//  enough for thousands of nodes and gives an instant read on how dense
+//  / interconnected the ontology is. Node size reflects connection weight.
+// ═══════════════════════════════════════════════════════════
+// Collapse-respecting visibility reused across the non-ranked layouts
+// (Network / Force / Cloud) so "Expand/Collapse" behaves consistently
+// no matter which visualization is active.
+function gCollapseVisibleSet() {
+  return computeDagVisible(computeDagRanks());
+}
+
+function computeNetworkLayout() {
+  const visible = gCollapseVisibleSet();
+  const nodes = gLayoutableNodes().filter(n => visible[n.iri]);
+  if (!nodes.length) return {};
+  const weights = computeNodeWeights(nodes);
+  const sorted = nodes.slice().sort((a,b) => {
+    if (a.type !== b.type) return a.type.localeCompare(b.type);
+    return (a.label||'').localeCompare(b.label||'');
+  });
+  const n = sorted.length;
+  const baseR = Math.max(220, n * 13) * gLinkMul();
+  const cx = baseR + G_PAD + GNODE_W, cy = baseR + G_PAD + GNODE_H;
+  const layout = {};
+  sorted.forEach((node, i) => {
+    const angle = (i / n) * Math.PI * 2;
+    const off = G.manualOffsets[node.iri] || { dx: 0, dy: 0 };
+    const w = weights[node.iri] || 0;
+    layout[node.iri] = {
+      x: cx + Math.cos(angle) * baseR + off.dx,
+      y: cy + Math.sin(angle) * baseR + off.dy,
+      h: gNodeHeight(node),
+      scale: gNodeScale(w),
+      weight: w
+    };
+  });
+  return layout;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FORCE-DIRECTED — naive but effective spring/repulsion simulation.
+//  Run once (capped, synchronous) when the mode is selected or
+//  "Re-layout" is clicked; results cached in G.forcePositions so
+//  manual drags layer cleanly on top afterward, same as every other mode.
+// ═══════════════════════════════════════════════════════════
+const FORCE_NODE_CAP = 400;
+
+function runForceSimulation() {
+  const visible = gCollapseVisibleSet();
+  const all = gLayoutableNodes().filter(n => visible[n.iri]);
+  const list = all.slice(0, FORCE_NODE_CAP);
+  if (all.length > FORCE_NODE_CAP) {
+    toast(`Force layout capped to ${FORCE_NODE_CAP} of ${all.length} nodes for performance — narrow your search/scope for full coverage`, 'info');
+  }
+  G.forcePositions = {};
+  if (!list.length) return;
+  const idx = {}; list.forEach((n,i) => { idx[n.iri] = i; });
+  const W = Math.max(900, Math.sqrt(list.length) * 150), H = W * 0.75;
+  const pos = list.map(() => ({ x: Math.random()*W, y: Math.random()*H }));
+  const vx = list.map(() => 0), vy = list.map(() => 0);
+  const edges = [];
+  list.forEach(n => (n.relations||[]).forEach(r => {
+    if (r.predicate && r.target && idx[r.target] !== undefined) edges.push([idx[n.iri], idx[r.target]]);
+  }));
+  const REPULSION = 2600, SPRING = 0.018, SPRING_LEN = 140 * gLinkMul(), CENTER = 0.002, DAMP = 0.82;
+  const cx = W/2, cy = H/2;
+  const ITERS = list.length > 200 ? 80 : 140;
+  for (let iter = 0; iter < ITERS; iter++) {
+    for (let i = 0; i < list.length; i++) {
+      let fx = 0, fy = 0;
+      for (let j = 0; j < list.length; j++) {
+        if (i === j) continue;
+        const dx = pos[i].x - pos[j].x, dy = pos[i].y - pos[j].y;
+        const d2 = dx*dx + dy*dy || 0.01;
+        const f = REPULSION / d2;
+        fx += dx * f; fy += dy * f;
+      }
+      fx += (cx - pos[i].x) * CENTER; fy += (cy - pos[i].y) * CENTER;
+      vx[i] = (vx[i] + fx) * DAMP; vy[i] = (vy[i] + fy) * DAMP;
+    }
+    edges.forEach(([a,b]) => {
+      const dx = pos[b].x - pos[a].x, dy = pos[b].y - pos[a].y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 0.01;
+      const f = SPRING * (dist - SPRING_LEN);
+      const fx = dx/dist * f, fy = dy/dist * f;
+      vx[a] += fx; vy[a] += fy; vx[b] -= fx; vy[b] -= fy;
+    });
+    for (let i = 0; i < list.length; i++) { pos[i].x += vx[i]; pos[i].y += vy[i]; }
+  }
+  let minX = Infinity, minY = Infinity;
+  pos.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); });
+  list.forEach((n,i) => {
+    G.forcePositions[n.iri] = { x: pos[i].x - minX + G_PAD + GNODE_W/2, y: pos[i].y - minY + G_PAD };
+  });
+}
+
+function computeForceLayout() {
+  if (!G.forcePositions || !Object.keys(G.forcePositions).length) runForceSimulation();
+  const nodes = gLayoutableNodes();
+  const weights = computeNodeWeights(nodes);
+  const byIRI = gByIRI();
+  const layout = {};
+  Object.entries(G.forcePositions).forEach(([iri, p]) => {
+    const n = byIRI[iri];
+    if (!n) return;
+    const off = G.manualOffsets[iri] || { dx: 0, dy: 0 };
+    const w = weights[iri] || 0;
+    layout[iri] = { x: p.x + off.dx, y: p.y + off.dy, h: gNodeHeight(n), scale: gNodeScale(w), weight: w };
+  });
+  return layout;
+}
+
+function relayoutForce() {
+  G.forcePositions = {};
+  runForceSimulation();
+  renderGraph();
+  toast('Force layout recomputed', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CLOUD — multi-level hub & spoke: the most-connected top concept sits
+//  at the center; EVERY level of connections forms its own concentric
+//  ring of straight spokes around the level before it (a sunburst-style
+//  radial tree), so each node is a smaller hub for its own children,
+//  layer after layer — not just two rings. Disconnected leftovers are
+//  packed outward via a spiral fallback so nothing is dropped.
+// ═══════════════════════════════════════════════════════════
+function computeCloudLayout() {
+  const visible = gCollapseVisibleSet();
+  const nodes = gLayoutableNodes().filter(n => visible[n.iri]);
+  if (!nodes.length) return {};
+  const nodeSet = new Set(nodes.map(n => n.iri));
+  const weights = computeNodeWeights(nodes);
+  const byIRI = {}; nodes.forEach(n => { byIRI[n.iri] = n; });
+  const link = gLinkMul();
+
+  // Undirected adjacency from both hierarchy (subOf) and relation edges,
+  // restricted to nodes actually visible/in-scope.
+  const adj = {}; nodes.forEach(n => { adj[n.iri] = new Set(); });
+  nodes.forEach(n => {
+    (n.subOf || []).forEach(p => { if (nodeSet.has(p)) { adj[n.iri].add(p); adj[p].add(n.iri); } });
+    (n.relations || []).forEach(r => {
+      if (r.predicate && r.target && nodeSet.has(r.target)) { adj[n.iri].add(r.target); adj[r.target].add(n.iri); }
+    });
+  });
+
+  // Pick the "top concept": the most-connected root (no in-scope parent);
+  // fall back to the single most-connected node if there's no clear root.
+  const roots = nodes.filter(n => !(n.subOf || []).some(p => nodeSet.has(p)));
+  const pool = roots.length ? roots : nodes;
+  const hub = pool.slice().sort((a, b) =>
+    (weights[b.iri] || 0) - (weights[a.iri] || 0) || (a.label || '').localeCompare(b.label || '')
+  )[0];
+
+  // ── Build a BFS spanning tree from the hub: every node's "layer" is its
+  // BFS depth, and its parent in the tree is the hub-or-node that first
+  // reached it — so layer N is always spokes hanging off layer N-1. ──
+  const parentOf = {}, childrenOf = { [hub.iri]: [] }, depthOf = { [hub.iri]: 0 };
+  const visitedSet = new Set([hub.iri]);
+  const order = [hub.iri];
+  let qi = 0;
+  while (qi < order.length) {
+    const cur = order[qi++];
+    const next = [...adj[cur]].filter(iri => !visitedSet.has(iri))
+      .sort((a, b) => (weights[b] || 0) - (weights[a] || 0));
+    next.forEach(iri => {
+      visitedSet.add(iri);
+      parentOf[iri] = cur;
+      depthOf[iri] = depthOf[cur] + 1;
+      childrenOf[cur].push(iri);
+      childrenOf[iri] = [];
+      order.push(iri);
+    });
+  }
+  const maxDepth = order.reduce((m, iri) => Math.max(m, depthOf[iri]), 0);
+
+  // Subtree sizes (post-order, walking the BFS order backwards) — used to
+  // give each branch an angular sector proportional to how much it holds,
+  // like a sunburst chart, so dense branches get more room.
+  const subtreeSize = {};
+  for (let i = order.length - 1; i >= 0; i--) {
+    const iri = order[i];
+    subtreeSize[iri] = 1 + childrenOf[iri].reduce((s, c) => s + (subtreeSize[c] || 1), 0);
+  }
+
+  // Angular sector per node: the hub owns the full circle; each node
+  // divides its inherited sector among its children by subtree weight.
+  const angle0 = { [hub.iri]: 0 }, angle1 = { [hub.iri]: Math.PI * 2 };
+  order.forEach(iri => {
+    const kids = childrenOf[iri];
+    if (!kids.length) return;
+    const a0 = angle0[iri], a1 = angle1[iri];
+    const total = kids.reduce((s, c) => s + subtreeSize[c], 0) || 1;
+    let cum = a0;
+    kids.forEach(c => {
+      const width = (a1 - a0) * (subtreeSize[c] / total);
+      angle0[c] = cum; angle1[c] = cum + width;
+      cum += width;
+    });
+  });
+
+  // Ring radius per layer — grows with how many nodes share that layer so
+  // dense outer rings get more circumference to spread out into.
+  const countAtDepth = {};
+  order.forEach(iri => { countAtDepth[depthOf[iri]] = (countAtDepth[depthOf[iri]] || 0) + 1; });
+  const ringRadius = { 0: 0 };
+  for (let d = 1; d <= maxDepth; d++) {
+    const gap = Math.max(130, Math.sqrt(countAtDepth[d] || 1) * 65) * link;
+    ringRadius[d] = ringRadius[d - 1] + gap;
+  }
+
+  const layout = {};
+  const placed = new Set();
+  function place(iri, cx, cy) {
+    const n = byIRI[iri];
+    const w = weights[iri] || 0;
+    const scale = gNodeScale(w);
+    const off = G.manualOffsets[iri] || { dx: 0, dy: 0 };
+    layout[iri] = { x: cx + off.dx, y: cy - (gNodeHeight(n) * scale) / 2 + off.dy, h: gNodeHeight(n), scale, weight: w };
+    placed.add(iri);
+  }
+  order.forEach(iri => {
+    const d = depthOf[iri];
+    if (d === 0) { place(iri, 0, 0); return; }
+    const r = ringRadius[d];
+    const a = (angle0[iri] + angle1[iri]) / 2;
+    place(iri, r * Math.cos(a), r * Math.sin(a));
+  });
+
+  // Anything still unplaced (disconnected components the hub never
+  // reaches) — pack outward with a simple collision spiral, starting
+  // beyond the outermost ring, so nothing goes missing.
+  const leftover = nodes.filter(n => !placed.has(n.iri))
+    .sort((a, b) => (weights[b.iri] || 0) - (weights[a.iri] || 0));
+  const spiralPlaced = [];
+  const outerR = (ringRadius[maxDepth] || 220 * link) + 140 * link;
+  leftover.forEach(n => {
+    const w = weights[n.iri] || 0;
+    const scale = gNodeScale(w);
+    const bw = GNODE_W * scale, bh = gNodeHeight(n) * scale;
+    let x = 0, y = 0, angle = 0, radius = outerR, tries = 0;
+    const step = 8;
+    do {
+      x = radius * Math.cos(angle);
+      y = radius * Math.sin(angle) * 0.85;
+      angle += 0.5;
+      radius += step / (2 * Math.PI);
+      tries++;
+    } while (tries < 2000 && (
+      Object.values(layout).some(p => {
+        const pbw = GNODE_W * (p.scale || 1), pbh = (p.h || GNODE_H) * (p.scale || 1);
+        const pcy = p.y + pbh / 2;
+        return Math.abs(p.x - x) < (pbw + bw) / 2 + 10 * link && Math.abs(pcy - y) < (pbh + bh) / 2 + 10 * link;
+      })
+      || spiralPlaced.some(p => Math.abs(p.x - x) < (p.w + bw) / 2 + 10 * link && Math.abs(p.y - y) < (p.h + bh) / 2 + 10 * link)
+    ));
+    spiralPlaced.push({ x, y, w: bw, h: bh });
+    place(n.iri, x, y);
+  });
+
+  // Normalize into positive canvas space.
+  let minX = Infinity, minY = Infinity;
+  Object.values(layout).forEach(p => { minX = Math.min(minX, p.x - GNODE_W / 2); minY = Math.min(minY, p.y); });
+  const dx0 = G_PAD - minX, dy0 = G_PAD - minY;
+  Object.keys(layout).forEach(k => { layout[k].x += dx0; layout[k].y += dy0; });
+  return layout;
+}
+
+function computeGraphLayout() {
+  switch (G.mode) {
+    case 'grid':    return computeGridLayout();
+    case 'flow':    return computeFlowLayout();
+    case 'network': return computeNetworkLayout();
+    case 'force':   return computeForceLayout();
+    case 'cloud':   return computeCloudLayout();
+    default:        return computeHierarchyLayout();
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+//  GRAPH — RENDER
+// ═══════════════════════════════════════════════════════════
+function renderGraph() {
+
+  const inner = document.getElementById('graph-inner');
+  const area = document.getElementById('graph-area');
+  if (!inner || !area) return;
+  area.querySelectorAll('.graph-empty').forEach(e => e.remove());
+
+  const nodes = gGraphNodes();
+  if (!nodes.length) {
+    inner.innerHTML = '';
+    const empty = document.createElement('div');
+    empty.className = 'graph-empty';
+    empty.innerHTML = '<div style="font-size:32px;opacity:.3">⬡</div><div>Connect to GraphDB or load a draft to see the ontology graph.</div>';
+    area.appendChild(empty);
+    return;
+  }
+
+  const layout = computeGraphLayout();
+  let maxX = 900, maxY = 600;
+  Object.values(layout).forEach(p => {
+    maxX = Math.max(maxX, p.x + GNODE_W / 2 + G_PAD);
+    maxY = Math.max(maxY, p.y + (p.h||GNODE_H) + G_PAD);
+  });
+
+  let html = `<div id="g-stage" style="position:relative;width:${maxX}px;height:${maxY}px;">`;
+  html += `<svg id="g-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>`;
+
+  if (G.mode === 'grid' && gridSections.length) {
+    gridSections.forEach(s => {
+      html += `<div style="position:absolute;left:${G_PAD}px;top:${s.y}px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">${escHtml(s.type)}</div>`;
+    });
+  }
+
+  const byIRI = gByIRI();
+  Object.entries(layout).forEach(([iri, pos]) => {
+    const n = byIRI[iri];
+    if (!n) return;
+    html += buildGNodeHTML(n, pos);
+  });
+
+  html += `</div>`;
+  inner.innerHTML = html;
+
+  requestAnimationFrame(() => {
+    drawGraphEdges(layout, byIRI);
+    document.querySelectorAll('#g-stage .gnode').forEach(el => el.addEventListener('mousedown', gNodeMD));
+    if (window.applyGraphTransform) window.applyGraphTransform();
+    highlightGraphSelection();
+  });
+}
+
+function buildGNodeHTML(n, pos) {
+  const nx = pos.x - GNODE_W / 2, ny = pos.y;
+  const kids = gChildrenOf(n.iri);
+  const isCollapsed = G.collapsed.has(n.iri);
+  const color = modelColorFor(n);
+  const tCls = typeClass(n.type);
+  const safe = n.iri.replace(/'/g, "\\'");
+  const typeLbl = n.type === 'ObjectProperty' ? 'owl:ObjectProperty'
+    : n.type === 'AnnotationProperty' ? 'owl:AnnotationProperty'
+    : n.type === 'DatatypeProperty' ? 'owl:DatatypeProperty'
+    : n.type === 'Ontology' ? 'owl:Ontology' : 'owl:Class';
+  const attrs = gNodeAttrs(n);
+  const attrsHTML = attrs.length ? `<div class="gnode-attrs">${attrs.map(a => {
+    const aSafe = a.iri.replace(/'/g, "\\'");
+    const rangeLbl = a.range ? escHtml(shrinkIRI(a.range).replace(/^xsd:/,'')) : '';
+    return `<div class="gnode-attr-row" onclick="selectGraphNode('${aSafe}');event.stopPropagation()" title="${escHtml(a.iri)}">▪ ${escHtml(a.label||shrinkIRI(a.iri))}${rangeLbl?` <span class="gnode-attr-type">: ${rangeLbl}</span>`:''}</div>`;
+  }).join('')}</div>` : '';
+  const scale = pos.scale ? pos.scale : gSizeMul();
+  const scaleStyle = scale !== 1 ? `transform:scale(${scale.toFixed(2)});transform-origin:top center;` : '';
+  const weightBadge = (pos.weight !== undefined && pos.weight > 0)
+    ? `<span class="gnode-weight" title="${pos.weight} relation(s) touch this concept">${pos.weight}</span>` : '';
+  const showLabel = state.graphFilters.labelMode !== 'selected'
+    || n.iri === G.selected || G.multiSelected.has(n.iri);
+  return `<div id="gn_${n.iri}" class="gnode ${tCls} ${(n.isDirty||n.isNew)?'is-dirty':''}"
+    data-iri="${escHtml(n.iri)}"
+    onclick="selectGraphNode('${safe}', event)"
+    ondblclick="selectNode('${safe}',{switchTab:true});event.stopPropagation()"
+    oncontextmenu="openGraphCtxMenu(event,'${safe}')"
+    style="left:${nx}px;top:${ny}px;width:${GNODE_W}px;--model-color:${color};${scaleStyle}">
+    ${weightBadge}
+    <span class="gnode-model-dot" title="${escHtml(modelShortName(nodeModelBase(n)))}"></span>
+    <div class="gnode-type">${typeLbl}</div>
+    ${showLabel ? `<div class="gnode-label">${escHtml(n.label || shrinkIRI(n.iri))}</div>` : ''}
+    <div class="gnode-iri" title="${escHtml(n.iri)}">${escHtml(n.iri.split(/[#/]/).pop())}</div>
+    ${attrsHTML}
+    ${kids.length ? `<div class="gnode-chevron" onclick="toggleGNodeCollapse('${safe}');event.stopPropagation()" title="${isCollapsed?'Expand':'Collapse'} (${kids.length})">${isCollapsed?'▶':'▼'}</div>` : ''}
+  </div>`;
+}
+
+function relColorFor(predIri) {
+  const rel = flatRelations().find(r => r.iri === predIri);
+  const fam = rel ? rel.familyId : '';
+  const palette = { skos: '#4ade80', rdfs: '#82aaff', owl: '#e879f9', dc: '#fbbf24' };
+  return palette[fam] || 'var(--accent2)';
+}
+
+function relLabelFor(predIri) {
+  const rel = flatRelations().find(r => r.iri === predIri);
+  return (rel && rel.label) ? rel.label : prefixize(predIri);
+}
+
+function drawGraphEdges(layout, byIRI) {
+  const svg = document.getElementById('g-svg');
+  if (!svg) return;
+  const lines = [];
+  const straightHier = G.mode === 'cloud'; // star-of-stars: spokes are straight lines, not curves
+  // Hierarchy edges — drawn from EVERY in-scope parent to a child, so a
+  // class with multiple subClassOf parents (a real DAG, not a tree) shows
+  // every incoming line rather than only the one the layout "owns".
+  Object.values(byIRI).forEach(n => {
+    const pPos = layout[n.iri];
+    if (!pPos || G.collapsed.has(n.iri)) return;
+    gChildrenOf(n.iri).forEach(k => {
+      const kPos = layout[k.iri];
+      if (!kPos) return;
+      if (straightHier) {
+        const x1 = pPos.x, y1 = pPos.y + (pPos.h||GNODE_H) / 2, x2 = kPos.x, y2 = kPos.y + (kPos.h||GNODE_H) / 2;
+        lines.push(`<path d="M${x1},${y1} L${x2},${y2}" stroke="var(--connector,#363a5a)" stroke-width="1.5" fill="none" opacity="0.7"/>`);
+      } else {
+        const x1 = pPos.x, y1 = pPos.y + (pPos.h||GNODE_H) - 8, x2 = kPos.x, y2 = kPos.y;
+        const my = (y1 + y2) / 2;
+        lines.push(`<path d="M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}" stroke="var(--connector,#363a5a)" stroke-width="1.5" fill="none" opacity="0.7"/>`);
+      }
+    });
+  });
+  // Non-hierarchy relation edges (validated-taxonomy predicates) — always
+  // drawn with a directional arrowhead; the predicate name is shown only
+  // when the "Relation names" filter is set to Show.
+  const showRelLabels = !!state.graphFilters.showRelLabels;
+  Object.values(byIRI).forEach(n => {
+    const sPos = layout[n.iri];
+    if (!sPos) return;
+    (n.relations || []).forEach(rel => {
+      if (!rel.predicate || !rel.target || HIER_PREDS.includes(rel.predicate)) return;
+      const tPos = layout[rel.target];
+      if (!tPos) return;
+      const x1 = sPos.x, y1 = sPos.y + (sPos.h||GNODE_H) / 2, x2 = tPos.x, y2 = tPos.y + (tPos.h||GNODE_H) / 2;
+      const famColor = relColorFor(rel.predicate);
+      lines.push(`<path d="M${x1},${y1} L${x2},${y2}" stroke="${famColor}" stroke-width="1.3" stroke-dasharray="4,3" fill="none" opacity="0.65" marker-end="url(#g-arrow)"/>`);
+      if (showRelLabels) {
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+        const label = relLabelFor(rel.predicate);
+        const w = Math.min(150, 10 + label.length * 5.4);
+        lines.push(`<rect x="${(mx - w/2).toFixed(1)}" y="${(my - 8).toFixed(1)}" width="${w.toFixed(1)}" height="14" rx="3" fill="var(--panel,#1b1e33)" opacity="0.9"/>`);
+        lines.push(`<text x="${mx.toFixed(1)}" y="${(my + 3).toFixed(1)}" text-anchor="middle" font-size="9" fill="${famColor}">${escHtml(label)}</text>`);
+      }
+    });
+  });
+  svg.innerHTML = `<defs><marker id="g-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--accent2)"/></marker></defs>` + lines.join('');
+}
+
+function applyGraphLayoutLive() {
+  const layout = computeGraphLayout();
+  Object.entries(layout).forEach(([iri, pos]) => {
+    const el = document.getElementById('gn_' + iri);
+    if (el) { el.style.left = (pos.x - GNODE_W / 2) + 'px'; el.style.top = pos.y + 'px'; }
+  });
+  drawGraphEdges(layout, gByIRI());
+  refreshDirtyIndicator();
+}
+
+function highlightGraphSelection() {
+  document.querySelectorAll('#g-stage .gnode').forEach(el => {
+    const iri = el.dataset.iri;
+    el.classList.toggle('selected', G.selected === iri);
+    el.classList.toggle('multi-selected', G.multiSelected.has(iri));
+  });
+  const hint = document.getElementById('graph-selection-hint');
+  if (hint) {
+    if (G.multiSelected.size > 1) {
+      hint.textContent = G.multiSelected.size + ' selected — drag any to move all';
+      hint.style.display = 'inline';
+    } else {
+      hint.style.display = 'none';
+    }
+  }
+}
+
+function selectGraphNode(iri, e) {
+  if (G.rubberBand) return;
+  if (e && e.shiftKey) {
+    if (G.multiSelected.has(iri)) G.multiSelected.delete(iri); else G.multiSelected.add(iri);
+    G.selected = iri;
+  } else {
+    G.multiSelected.clear();
+    G.selected = (G.selected === iri) ? null : iri;
+  }
+  state.selectedIRI = G.selected;
+  highlightGraphSelection();
+  if (G.selected) {
+    selectNode(G.selected, { switchTab: false }).then(() => {
+      if (state.rightTab === 'props') renderPropsPanel(G.selected);
+    });
+  } else if (state.rightTab === 'props') {
+    document.getElementById('props-body').innerHTML =
+      '<div class="placeholder-message" style="padding:20px"><div class="big-icon">🖱</div><div>Right-click (or click) a node in the graph to see its full details here.</div></div>';
+    document.getElementById('props-edit-btn').style.display = 'none';
+  }
+}
+
+function toggleGNodeCollapse(iri) {
+  if (G.collapsed.has(iri)) G.collapsed.delete(iri); else G.collapsed.add(iri);
+  G.forcePositions = {};
+  renderGraph();
+}
+function graphExpandAll(expand) {
+  if (expand) G.collapsed.clear();
+  else gGraphNodes().forEach(n => { if (gChildrenOf(n.iri).length) G.collapsed.add(n.iri); });
+  G.forcePositions = {};
+  renderGraph();
+}
+const GRAPH_MODE_IDS = ['gv-hierarchy', 'gv-flow', 'gv-grid', 'gv-network', 'gv-force', 'gv-cloud'];
+const GRAPH_MODE_LABELS = { hierarchy: 'Hierarchy', flow: 'Flow', grid: 'Grid by Type', network: 'Network', force: 'Force-Directed', cloud: 'Cloud' };
+function setGraphMode(mode, el) {
+  G.mode = mode;
+  GRAPH_MODE_IDS.forEach(id => {
+    const tab = document.getElementById(id);
+    if (tab) tab.classList.toggle('active', id === 'gv-' + mode);
+  });
+  const relayoutBtn = document.getElementById('btn-relayout');
+  if (relayoutBtn) relayoutBtn.style.display = mode === 'force' ? 'inline-flex' : 'none';
+  renderGraph();
+  // Always re-center the diagram in the main panel when switching layouts.
+  requestAnimationFrame(fitGraphToView);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GRAPH — DRAG (single node + multi-select group drag)
+// ═══════════════════════════════════════════════════════════
+function gNodeMD(e) {
+  if (e.button !== 0) return;
+  if (e.target.closest('.gnode-chevron,.gnode-attr-row')) return;
+  const iri = this.dataset.iri;
+  if (e.shiftKey && G.mode === 'hierarchy') {
+    // Shift+drag: move this node and every descendant together (DAG-safe —
+    // a descendant reachable via more than one path is only offset once).
+    const desc = gDescendantsOf(iri);
+    desc.add(iri);
+    const offsets = {};
+    desc.forEach(d => {
+      const off = G.manualOffsets[d] || { dx: 0, dy: 0 };
+      offsets[d] = { startDx: off.dx, startDy: off.dy };
+    });
+    G.groupDrag = { startMx: e.clientX, startMy: e.clientY, offsets };
+    e.stopPropagation();
+    return;
+  }
+  const off = G.manualOffsets[iri] || { dx: 0, dy: 0 };
+  G.pendingDrag = { iri, offsetKey: iri, startMx: e.clientX, startMy: e.clientY, startDx: off.dx, startDy: off.dy };
+  e.stopPropagation();
+}
+
+window.addEventListener('mousemove', e => {
+  if (state.centerTab !== 'graph') return;
+  if (G.groupDrag) {
+    const dx = (e.clientX - G.groupDrag.startMx) / G.zoom, dy = (e.clientY - G.groupDrag.startMy) / G.zoom;
+    Object.entries(G.groupDrag.offsets).forEach(([iri, start]) => {
+      G.manualOffsets[iri] = { dx: start.startDx + dx, dy: start.startDy + dy };
+    });
+    G.dirtyLayout = true;
+    applyGraphLayoutLive();
+    return;
+  }
+  if (G.dragging) {
+    const { offsetKey, startMx, startMy, startDx, startDy } = G.dragging;
+    G.manualOffsets[offsetKey] = { dx: startDx + (e.clientX - startMx) / G.zoom, dy: startDy + (e.clientY - startMy) / G.zoom };
+    G.dirtyLayout = true;
+    applyGraphLayoutLive();
+    return;
+  }
+  if (G.pendingDrag) {
+    const ddx = e.clientX - G.pendingDrag.startMx, ddy = e.clientY - G.pendingDrag.startMy;
+    if (Math.sqrt(ddx*ddx + ddy*ddy) < GDRAG_THRESHOLD) return;
+    if (G.multiSelected.has(G.pendingDrag.iri) && G.multiSelected.size > 1) {
+      const offsets = {};
+      G.multiSelected.forEach(iri => {
+        const off = G.manualOffsets[iri] || { dx: 0, dy: 0 };
+        offsets[iri] = { startDx: off.dx, startDy: off.dy };
+      });
+      G.groupDrag = { startMx: e.clientX, startMy: e.clientY, offsets };
+      G.pendingDrag = null;
+      document.body.style.cursor = 'grabbing'; document.body.style.userSelect = 'none';
+      return;
+    }
+    G.dragging = { ...G.pendingDrag };
+    G.pendingDrag = null;
+    document.body.style.cursor = 'grabbing'; document.body.style.userSelect = 'none';
+    return;
+  }
+  if (!G.rubberBand) return;
+  const area = document.getElementById('graph-area');
+  const rect = area.getBoundingClientRect();
+  const cx = (e.clientX - rect.left - G.panX) / G.zoom, cy = (e.clientY - rect.top - G.panY) / G.zoom;
+  const x1 = Math.min(G.rubberBand.startX, cx), y1 = Math.min(G.rubberBand.startY, cy);
+  const x2 = Math.max(G.rubberBand.startX, cx), y2 = Math.max(G.rubberBand.startY, cy);
+  const rb = document.getElementById('graph-rubber-band');
+  if (rb) { rb.style.left = x1+'px'; rb.style.top = y1+'px'; rb.style.width = (x2-x1)+'px'; rb.style.height = (y2-y1)+'px'; }
+  const layout = computeGraphLayout();
+  Object.entries(layout).forEach(([iri, pos]) => {
+    const nx = pos.x - GNODE_W / 2, ny = pos.y;
+    const overlaps = nx < x2 && nx + GNODE_W > x1 && ny < y2 && ny + (pos.h||GNODE_H) > y1;
+    if (overlaps) G.multiSelected.add(iri);
+    else if (!G.rubberBand._shift) G.multiSelected.delete(iri);
+  });
+  G.rubberBand._shift = e.shiftKey;
+  highlightGraphSelection();
+});
+
+window.addEventListener('mouseup', () => {
+  if (state.centerTab !== 'graph') return;
+  if (G.groupDrag) { G.groupDrag = null; document.body.style.cursor = ''; document.body.style.userSelect = ''; }
+  if (G.dragging) { G.dragging = null; document.body.style.cursor = ''; document.body.style.userSelect = ''; }
+  G.pendingDrag = null;
+  if (G.rubberBand) {
+    G.rubberBand = null;
+    const rb = document.getElementById('graph-rubber-band');
+    if (rb) rb.style.display = 'none';
+    if (G.multiSelected.size === 1) G.selected = [...G.multiSelected][0];
+    highlightGraphSelection();
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  GRAPH — PAN & ZOOM
+// ═══════════════════════════════════════════════════════════
+(function initGraphPan() {
+  const area = document.getElementById('graph-area');
+  if (!area) return;
+
+  function applyGraphTransform() {
+    const inner = document.getElementById('graph-inner');
+    if (inner) inner.style.transform = `translate(${G.panX}px,${G.panY}px) scale(${G.zoom})`;
+  }
+  window.applyGraphTransform = applyGraphTransform;
+
+  area.addEventListener('mousedown', e => {
+    if (e.target.closest('.gnode,.btn')) return;
+    if (G.pendingDrag || G.dragging || G.groupDrag) return;
+    if (e.button !== 0 && e.button !== 1) return;
+    e.preventDefault();
+    const isRubberBand = e.shiftKey && e.button === 0;
+    if (isRubberBand) {
+      const rect = area.getBoundingClientRect();
+      const sx = (e.clientX - rect.left - G.panX) / G.zoom, sy = (e.clientY - rect.top - G.panY) / G.zoom;
+      G.rubberBand = { startX: sx, startY: sy };
+      G.multiSelected.clear();
+      highlightGraphSelection();
+      const rb = document.getElementById('graph-rubber-band');
+      if (rb) { rb.style.display = 'block'; rb.style.left = sx+'px'; rb.style.top = sy+'px'; rb.style.width = '0px'; rb.style.height = '0px'; }
+    } else {
+      G.isPanning = true;
+      G.panStartX = e.clientX; G.panStartY = e.clientY; G.panOriginX = G.panX; G.panOriginY = G.panY;
+      area.classList.add('panning');
+    }
+  });
+  window.addEventListener('mousemove', e => {
+    if (!G.isPanning) return;
+    G.panX = G.panOriginX + (e.clientX - G.panStartX);
+    G.panY = G.panOriginY + (e.clientY - G.panStartY);
+    applyGraphTransform();
+  });
+  window.addEventListener('mouseup', () => {
+    if (!G.isPanning) return;
+    G.isPanning = false;
+    area.classList.remove('panning');
+  });
+  area.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = area.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const delta = e.deltaY < 0 ? 1.1 : 0.91;
+    const nz = Math.min(3, Math.max(0.2, G.zoom * delta));
+    G.panX = mx - (mx - G.panX) * (nz / G.zoom);
+    G.panY = my - (my - G.panY) * (nz / G.zoom);
+    G.zoom = nz;
+    applyGraphTransform();
+  }, { passive: false });
+})();
+
+function resetGraphView() { fitGraphToView(); }
+function graphZoomBy(f) { G.zoom = Math.min(3, Math.max(0.2, G.zoom * f)); if (window.applyGraphTransform) window.applyGraphTransform(); }
+
+// Scale + pan so the entire visible graph is centered in the main panel.
+// Used whenever the diagram structure changes (layout switch, filters,
+// expand/collapse) so the user is never left looking at empty space.
+function fitGraphToView() {
+  const area = document.getElementById('graph-area');
+  if (!area) return;
+  const layout = computeGraphLayout();
+  const entries = Object.values(layout);
+  const rect = area.getBoundingClientRect();
+  const viewW = rect.width || area.clientWidth || 900;
+  const viewH = rect.height || area.clientHeight || 600;
+  if (!entries.length) { G.panX = 40; G.panY = 40; G.zoom = 1; if (window.applyGraphTransform) window.applyGraphTransform(); return; }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  entries.forEach(p => {
+    minX = Math.min(minX, p.x - GNODE_W / 2);
+    maxX = Math.max(maxX, p.x + GNODE_W / 2);
+    minY = Math.min(minY, p.y);
+    maxY = Math.max(maxY, p.y + (p.h || GNODE_H));
+  });
+  const contentW = Math.max(1, maxX - minX), contentH = Math.max(1, maxY - minY);
+  let zoom = Math.min((viewW - 80) / contentW, (viewH - 80) / contentH);
+  zoom = isFinite(zoom) ? Math.min(1.25, Math.max(0.2, zoom)) : 1;
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  G.zoom = zoom;
+  G.panX = viewW / 2 - cx * zoom;
+  G.panY = viewH / 2 - cy * zoom;
+  if (window.applyGraphTransform) window.applyGraphTransform();
+}
+
+// Pan/zoom so one specific node is centered in the main panel — used when
+// navigating to a node from the left-hand tree — then flashes it so it
+// stands out from the rest of the diagram.
+function centerOnGraphNode(iri, opts) {
+  opts = opts || {};
+  const area = document.getElementById('graph-area');
+  const layout = computeGraphLayout();
+  const pos = layout[iri];
+  if (!area || !pos) return;
+  const rect = area.getBoundingClientRect();
+  const viewW = rect.width || area.clientWidth || 900;
+  const viewH = rect.height || area.clientHeight || 600;
+  const zoom = Math.min(3, Math.max(0.2, opts.zoom != null ? opts.zoom : Math.max(G.zoom, 0.85)));
+  const nodeCx = pos.x, nodeCy = pos.y + (pos.h || GNODE_H) / 2;
+  G.zoom = zoom;
+  G.panX = viewW / 2 - nodeCx * zoom;
+  G.panY = viewH / 2 - nodeCy * zoom;
+  if (window.applyGraphTransform) window.applyGraphTransform();
+  if (opts.flash !== false) {
+    const el = document.getElementById('gn_' + iri);
+    if (el) {
+      el.classList.remove('jump-highlight');
+      void el.offsetWidth; // restart the CSS animation if it's already mid-flash
+      el.classList.add('jump-highlight');
+      setTimeout(() => el.classList.remove('jump-highlight'), 2400);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GRAPH — CONTEXT MENU (right-click)
+// ═══════════════════════════════════════════════════════════
+let graphCtxIri = null;
+function openGraphCtxMenu(e, iri) {
+  e.preventDefault(); e.stopPropagation();
+  graphCtxIri = iri;
+  const n = state.nodes.find(x => x.iri === iri);
+  if (!n) return;
+  const kids = gChildrenOf(iri);
+  const isCollapsed = G.collapsed.has(iri);
+  const menu = document.getElementById('graph-ctx-menu');
+  const safe = iri.replace(/'/g, "\\'");
+  menu.innerHTML = `
+    <div class="ctx-item" onclick="closeGraphCtxMenu();G.selected='${safe}';state.selectedIRI='${safe}';highlightGraphSelection();setRightTab('props');renderPropsPanel('${safe}')">📋 View Properties</div>
+    <div class="ctx-item" onclick="closeGraphCtxMenu();selectNode('${safe}',{switchTab:true})">✏ Edit Properties</div>
+    <div class="ctx-item" onclick="closeGraphCtxMenu();openAddRelModal('${safe}')">🔗 Add Relationship</div>
+    <div class="ctx-sep"></div>
+    ${kids.length ? `<div class="ctx-item" onclick="closeGraphCtxMenu();toggleGNodeCollapse('${safe}')">${isCollapsed?'▶ Expand':'▼ Collapse'} (${kids.length} children)</div>` : ''}
+    <div class="ctx-item" onclick="closeGraphCtxMenu();resetGNodePosition('${safe}')">↺ Reset Position</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" onclick="closeGraphCtxMenu();graphDeleteNode('${safe}')">⊘ Delete Node</div>
+  `;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let x = e.clientX, y = e.clientY;
+  menu.style.display = 'block';
+  if (x + 230 > vw) x = vw - 235;
+  if (y + menu.offsetHeight + 10 > vh) y = vh - menu.offsetHeight - 10;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+function closeGraphCtxMenu() {
+  const m = document.getElementById('graph-ctx-menu');
+  if (m) m.style.display = 'none';
+  graphCtxIri = null;
+}
+document.addEventListener('click', e => { if (!e.target.closest('#graph-ctx-menu')) closeGraphCtxMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGraphCtxMenu(); });
+
+function resetGNodePosition(iri) {
+  delete G.manualOffsets[iri];
+  delete G.manualOffsets[iri + '__sub'];
+  G.dirtyLayout = true;
+  renderGraph();
+  toast('Position reset to auto-layout', 'info');
+}
+function graphDeleteNode(iri) {
+  state.selectedIRI = iri;
+  confirmDelete();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PROPERTIES PANEL (right panel — populated on select / right-click)
+// ═══════════════════════════════════════════════════════════
+function renderPropsPanel(iri) {
+  const n = state.nodes.find(x => x.iri === iri);
+  if (!n) return;
+  document.getElementById('props-edit-btn').style.display = 'inline-flex';
+  const typeLbl = n.type === 'ObjectProperty' ? 'owl:ObjectProperty'
+    : n.type === 'AnnotationProperty' ? 'owl:AnnotationProperty'
+    : n.type === 'DatatypeProperty' ? 'owl:DatatypeProperty'
+    : n.type === 'Ontology' ? 'owl:Ontology' : 'owl:Class';
+  const byIRI = {}; state.nodes.forEach(x => { if (!x.isDeleted) byIRI[x.iri] = x; });
+  const safeSelf = n.iri.replace(/'/g, "\\'");
+
+  // Color-code the banner to match the node's type + model so the metadata
+  // visually stands out and matches the highlighted node in the graph/tree.
+  const TYPE_COLORS = {
+    Class: 'var(--accent2)', ObjectProperty: '#82aaff',
+    AnnotationProperty: '#c3e88d', DatatypeProperty: '#c3e88d', Ontology: 'var(--warn)'
+  };
+  const tColor = TYPE_COLORS[n.type] || 'var(--accent2)';
+  const mColor = modelColorFor(n) || tColor;
+
+  let html = `
+    <div class="props-banner" style="--props-accent:${tColor};--props-model:${mColor}">
+      <span class="props-banner-dot" style="background:${mColor}" title="${escHtml(modelShortName(nodeModelBase(n)))}"></span>
+      <div>
+        <div class="props-banner-type" style="color:${tColor}">${typeLbl}</div>
+        <div class="props-banner-label">${escHtml(n.label || shrinkIRI(n.iri))}</div>
+      </div>
+    </div>
+    <div class="prop-row"><div class="prop-label">IRI</div><div class="prop-val mono">${escHtml(n.iri)}</div></div>
+    <div class="prop-row"><div class="prop-label">Type</div><div class="prop-val">${typeLbl}${n.isNew?' <span style="color:var(--success)">(new)</span>':''}${n.isDirty?' <span style="color:var(--warn)">(unsaved)</span>':''}</div></div>
+    <div class="prop-row"><div class="prop-label">Label</div><div class="prop-val">${escHtml(n.label||'—')}</div></div>`;
+  if (n.comment) html += `<div class="prop-row"><div class="prop-label">Comment</div><div class="prop-val">${escHtml(n.comment)}</div></div>`;
+  if (n.domain) html += `<div class="prop-row"><div class="prop-label">rdfs:domain</div><div class="prop-val mono">${escHtml(shrinkIRI(n.domain))}</div></div>`;
+  if (n.range)  html += `<div class="prop-row"><div class="prop-label">rdfs:range</div><div class="prop-val mono">${escHtml(shrinkIRI(n.range))}</div></div>`;
+  if (n.creator) html += `<div class="prop-row"><div class="prop-label">dct:creator</div><div class="prop-val">${escHtml(n.creator)}</div></div>`;
+  if (n.modified) html += `<div class="prop-row"><div class="prop-label">dct:modified</div><div class="prop-val">${escHtml(n.modified)}</div></div>`;
+  if (n.isDefinedBy) html += `<div class="prop-row"><div class="prop-label">isDefinedBy</div><div class="prop-val mono">${escHtml(shrinkIRI(n.isDefinedBy))}</div></div>`;
+  if ((n.dcSubject||[]).length) {
+    html += `<div class="prop-row"><div class="prop-label">dc:subject</div>`;
+    n.dcSubject.forEach(s => html += `<div class="prop-val mono">${escHtml(shrinkIRI(s))}</div>`);
+    html += `</div>`;
+  }
+
+  const rels = (n.relations||[]).filter(r => r.predicate && r.target);
+  html += `<div class="prop-row"><div class="prop-label">Relationships (${rels.length}) <span class="prop-link" style="float:right" onclick="openAddRelModal('${safeSelf}')">＋ Add</span></div>`;
+  if (!rels.length) {
+    html += `<div class="prop-val" style="color:var(--text-muted)">None yet.</div>`;
+  } else {
+    rels.forEach((r, idx) => {
+      const tgt = byIRI[r.target];
+      const tgtLabel = tgt ? (tgt.label || shrinkIRI(tgt.iri)) : (shrinkIRI(r.target) + ' (external)');
+      const tgtSafe = tgt ? tgt.iri.replace(/'/g, "\\'") : '';
+      html += `<div class="prop-edge-row">
+        <span class="prop-edge-pred">${escHtml(prefixize(r.predicate))}</span>
+        <span class="prop-edge-tgt" ${tgt ? `onclick="selectGraphNode('${tgtSafe}')"` : ''} title="${escHtml(r.target)}">→ ${escHtml(tgtLabel)}</span>
+        <button class="prop-edge-del" title="Remove relationship" onclick="removeRelationship('${safeSelf}', ${idx})">✕</button>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+  document.getElementById('props-body').innerHTML = html;
+}
+
+function propsPanelEdit() {
+  if (G.selected) selectNode(G.selected, { switchTab: true });
+}
+
+function removeRelationship(subjectIri, idx) {
+  const n = state.nodes.find(x => x.iri === subjectIri);
+  if (!n) return;
+  const rels = (n.relations||[]).filter(r => r.predicate && r.target);
+  const target = rels[idx];
+  if (!target) return;
+  n.relations = n.relations.filter(r => !(r.predicate === target.predicate && r.target === target.target));
+  if (HIER_PREDS.includes(target.predicate)) {
+    n.subOf = (n.subOf||[]).filter(t => t !== target.target);
+  }
+  n.isDirty = true;
+  updateStats(); saveToLocalStorage(); renderTree();
+  if (state.centerTab === 'graph') renderGraph();
+  renderPropsPanel(subjectIri);
+  toast('Relationship removed — push to GraphDB to persist', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ADD / EDIT RELATIONSHIP MODAL — validated dropdowns only
+// ═══════════════════════════════════════════════════════════
+function openAddRelModal(subjectIri) {
+  document.getElementById('rel-modal-title').textContent = 'New Relationship';
+  const subjSel = document.getElementById('rel-modal-subject');
+  subjSel.innerHTML = state.nodes.filter(n => !n.isDeleted)
+    .map(n => `<option value="${escHtml(n.iri)}" ${n.iri===subjectIri?'selected':''}>${escHtml(n.label||shrinkIRI(n.iri))}</option>`).join('');
+  const n = state.nodes.find(x => x.iri === subjectIri);
+  const kind = n ? nodeModelKind(n) : 'any';
+  document.getElementById('rel-modal-pred').innerHTML = relationTypeOptions('', kind);
+  document.getElementById('rel-modal-target').innerHTML = relationTargetOptions('');
+  subjSel.onchange = () => {
+    const sn = state.nodes.find(x => x.iri === subjSel.value);
+    const k = sn ? nodeModelKind(sn) : 'any';
+    document.getElementById('rel-modal-pred').innerHTML = relationTypeOptions('', k);
+  };
+  document.getElementById('rel-modal').classList.add('open');
+}
+
+function saveRelModal() {
+  const subjectIri = document.getElementById('rel-modal-subject').value;
+  const predicate = document.getElementById('rel-modal-pred').value;
+  const target = document.getElementById('rel-modal-target').value;
+  if (!subjectIri || !predicate || !target) { toast('Choose subject, relation type, and target', 'error'); return; }
+  if (subjectIri === target) { toast('Subject and target must differ', 'error'); return; }
+  const n = state.nodes.find(x => x.iri === subjectIri);
+  if (!n) return;
+  n.relations = n.relations || [];
+  if (n.relations.some(r => r.predicate === predicate && r.target === target)) {
+    toast('That relationship already exists', 'info');
+  } else {
+    n.relations.push({ predicate, target });
+    if (HIER_PREDS.includes(predicate) && !(n.subOf||[]).includes(target)) {
+      n.subOf = n.subOf || []; n.subOf.push(target);
+    }
+    n.isDirty = true;
+  }
+  closeModal('rel-modal');
+  updateStats(); saveToLocalStorage(); renderTree();
+  if (state.centerTab === 'graph') renderGraph();
+  if (state.selectedIRI === subjectIri) updateTTLPreview(n);
+  if (state.rightTab === 'props' && G.selected === subjectIri) renderPropsPanel(subjectIri);
+  toast('Relationship added — push to GraphDB to persist', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SAVED LAYOUTS ("Views") — per-ontology, localStorage-backed
+// ═══════════════════════════════════════════════════════════
+function graphViewsKey() {
+  const iriEl = document.getElementById('meta-iri');
+  const iri = state.activeModel || (iriEl ? iriEl.value : '') || 'default';
+  return 'ev_model_views_' + iri.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+function loadGraphViewsStore() { try { return JSON.parse(localStorage.getItem(graphViewsKey()) || '{}'); } catch(e) { return {}; } }
+function saveGraphViewsStore(store) {
+  try { localStorage.setItem(graphViewsKey(), JSON.stringify(store)); }
+  catch(e) { toast('Storage error: ' + e.message, 'error'); }
+}
+function captureGraphSnapshot(name) {
+  return {
+    name, mode: G.mode, attrMode: G.attrMode, panX: G.panX, panY: G.panY, zoom: G.zoom,
+    collapsed: [...G.collapsed],
+    manualOffsets: JSON.parse(JSON.stringify(G.manualOffsets)),
+    savedAt: Date.now()
+  };
+}
+function applyGraphSnapshot(snap) {
+  G.mode = snap.mode || 'hierarchy';
+  G.attrMode = snap.attrMode || 'panel';
+  G.panX = snap.panX ?? 40; G.panY = snap.panY ?? 40; G.zoom = snap.zoom ?? 1;
+  G.collapsed = new Set(snap.collapsed || []);
+  G.manualOffsets = snap.manualOffsets || {};
+  G.multiSelected.clear();
+  G.forcePositions = {};
+  GRAPH_MODE_IDS.forEach(id => {
+    const tab = document.getElementById(id);
+    if (tab) tab.classList.toggle('active', id === 'gv-' + G.mode);
+  });
+  const relayoutBtn = document.getElementById('btn-relayout');
+  if (relayoutBtn) relayoutBtn.style.display = G.mode === 'force' ? 'inline-flex' : 'none';
+  const attrBtn = document.getElementById('btn-attr-toggle');
+  if (attrBtn) attrBtn.textContent = G.attrMode === 'inline' ? '🏷 Attrs: Inline' : '🏷 Attrs: Panel';
+  renderGraph();
+  if (window.applyGraphTransform) window.applyGraphTransform();
+  G.dirtyLayout = false;
+  refreshDirtyIndicator();
+}
+function quickSaveView() {
+  if (G.currentViewId) { overwriteGraphView(G.currentViewId); return; }
+  toggleViewsFlyout(true);
+  const inp = document.getElementById('new-view-name');
+  if (inp) inp.focus();
+  toast('Name this layout to save it', 'info');
+}
+function saveCurrentGraphView() {
+  const input = document.getElementById('new-view-name');
+  const name = input.value.trim();
+  if (!name) { toast('Enter a layout name first', 'error'); input.focus(); return; }
+  const store = loadGraphViewsStore();
+  const id = 'v' + Date.now().toString(36);
+  const isFirst = Object.keys(store).length === 0;
+  store[id] = { ...captureGraphSnapshot(name), isDefault: isFirst };
+  saveGraphViewsStore(store);
+  input.value = '';
+  G.currentViewId = id; G.dirtyLayout = false;
+  refreshDirtyIndicator();
+  renderViewsFlyout();
+  toast(`Layout "${name}" saved${isFirst ? ' (set as default)' : ''}`, 'success');
+}
+function overwriteGraphView(id) {
+  const store = loadGraphViewsStore();
+  if (!store[id]) return;
+  const wasDefault = store[id].isDefault, name = store[id].name;
+  store[id] = { ...captureGraphSnapshot(name), isDefault: wasDefault, savedAt: Date.now() };
+  saveGraphViewsStore(store);
+  G.currentViewId = id; G.dirtyLayout = false;
+  refreshDirtyIndicator();
+  renderViewsFlyout();
+  toast(`Layout "${name}" updated`, 'success');
+}
+function loadGraphView(id) {
+  const store = loadGraphViewsStore();
+  const snap = store[id];
+  if (!snap) return;
+  G.currentViewId = id;
+  applyGraphSnapshot(snap);
+  renderViewsFlyout();
+  toast(`Loaded layout "${snap.name}"`, 'info');
+}
+function deleteGraphView(id) {
+  const store = loadGraphViewsStore();
+  const name = (store[id] && store[id].name) || 'layout';
+  delete store[id];
+  if (!Object.values(store).some(v => v.isDefault)) {
+    const first = Object.keys(store)[0];
+    if (first) store[first].isDefault = true;
+  }
+  if (G.currentViewId === id) G.currentViewId = null;
+  saveGraphViewsStore(store);
+  renderViewsFlyout();
+  toast(`Deleted "${name}"`, 'info');
+}
+function setDefaultGraphView(id) {
+  const store = loadGraphViewsStore();
+  Object.values(store).forEach(v => { v.isDefault = false; });
+  if (store[id]) store[id].isDefault = true;
+  saveGraphViewsStore(store);
+  renderViewsFlyout();
+  toast('Default layout updated', 'success');
+}
+function renameGraphView(id) {
+  const store = loadGraphViewsStore();
+  if (!store[id]) return;
+  const name = prompt('Rename layout:', store[id].name);
+  if (!name || !name.trim()) return;
+  store[id].name = name.trim();
+  saveGraphViewsStore(store);
+  renderViewsFlyout();
+}
+// ═══════════════════════════════════════════════════════════
+//  GRAPH — TOP-TOOLBAR FILTERS (max nodes, size, link distance,
+//  category, labels, level)
+// ═══════════════════════════════════════════════════════════
+function toggleGraphFiltersFlyout(forceOpen) {
+  const el = document.getElementById('graph-filters-flyout');
+  if (!el) return;
+  const open = forceOpen === true ? true : !el.classList.contains('open');
+  el.classList.toggle('open', open);
+  if (open) {
+    document.getElementById('views-flyout')?.classList.remove('open');
+    renderGraphFiltersFlyout();
+  }
+}
+
+function renderGraphFiltersFlyout() {
+  const f = state.graphFilters;
+  const catsEl = document.getElementById('filt-cats');
+  if (catsEl) {
+    catsEl.innerHTML = GRAPH_NODE_TYPES.map(t => {
+      const lbl = t === 'ObjectProperty' ? 'Obj.Prop' : t === 'AnnotationProperty' ? 'Ann.Prop'
+        : t === 'DatatypeProperty' ? 'Data.Prop' : t;
+      return `<span class="filt-cat-chip ${f.categories.has(t) ? 'on' : ''}" onclick="toggleGraphFilterCategory('${t}')">${lbl}</span>`;
+    }).join('');
+  }
+  // Level dropdown — populate L1..Lmax from the current hierarchy depth, preserve selection.
+  const levelSel = document.getElementById('filt-level');
+  if (levelSel) {
+    const levels = computeNodeLevelMap();
+    const maxLevel = Object.values(levels).reduce((m, v) => Math.max(m, v), 1);
+    const cur = f.level || 0;
+    let opts = '<option value="0">All levels</option>';
+    for (let i = 1; i <= maxLevel; i++) opts += `<option value="${i}" ${i === cur ? 'selected' : ''}>L${i}</option>`;
+    levelSel.innerHTML = opts;
+    if (cur && cur > maxLevel) { f.level = 0; levelSel.value = '0'; }
+  }
+  document.getElementById('filt-maxnodes').value = f.maxNodes || 300;
+  document.getElementById('filt-maxnodes-val').textContent = f.maxNodes ? f.maxNodes : 'All';
+  document.getElementById('filt-nodesize').value = f.sizeMul;
+  document.getElementById('filt-nodesize-val').textContent = f.sizeMul.toFixed(1) + '×';
+  document.getElementById('filt-linkdist').value = f.linkMul;
+  document.getElementById('filt-linkdist-val').textContent = f.linkMul.toFixed(1) + '×';
+  document.getElementById('filt-labels').value = f.labelMode;
+  document.getElementById('filt-rellabels').value = f.showRelLabels ? 'show' : 'hide';
+  updateGraphFiltersBadge();
+}
+
+function toggleGraphFilterCategory(type) {
+  const f = state.graphFilters;
+  if (f.categories.has(type)) {
+    if (f.categories.size > 1) f.categories.delete(type); // keep at least one category visible
+  } else {
+    f.categories.add(type);
+  }
+  renderGraphFiltersFlyout();
+  applyGraphFiltersNow();
+}
+
+function onGraphFilterChange() {
+  const f = state.graphFilters;
+  const maxRaw = parseInt(document.getElementById('filt-maxnodes').value, 10);
+  f.maxNodes = maxRaw >= 300 ? 0 : maxRaw; // slider maxed out = no cap
+  f.sizeMul = parseFloat(document.getElementById('filt-nodesize').value);
+  f.linkMul = parseFloat(document.getElementById('filt-linkdist').value);
+  f.labelMode = document.getElementById('filt-labels').value;
+  f.level = parseInt(document.getElementById('filt-level').value, 10) || 0;
+  f.showRelLabels = document.getElementById('filt-rellabels').value === 'show';
+  document.getElementById('filt-maxnodes-val').textContent = f.maxNodes ? f.maxNodes : 'All';
+  document.getElementById('filt-nodesize-val').textContent = f.sizeMul.toFixed(1) + '×';
+  document.getElementById('filt-linkdist-val').textContent = f.linkMul.toFixed(1) + '×';
+  updateGraphFiltersBadge();
+  applyGraphFiltersNow();
+}
+
+function applyGraphFiltersNow() {
+  G.forcePositions = {}; // force layout must re-simulate with the new node set/spacing
+  if (state.centerTab === 'graph') renderGraph();
+}
+
+function updateGraphFiltersBadge() {
+  const f = state.graphFilters;
+  const btn = document.getElementById('btn-graph-filters');
+  if (!btn) return;
+  const active = (f.maxNodes > 0 ? 1 : 0) + (f.categories.size < GRAPH_NODE_TYPES.length ? 1 : 0)
+    + (f.level > 0 ? 1 : 0) + (f.labelMode !== 'all' ? 1 : 0)
+    + (f.sizeMul !== 1 ? 1 : 0) + (f.linkMul !== 1 ? 1 : 0) + (f.showRelLabels ? 1 : 0);
+  btn.innerHTML = '🔍 Filters' + (active ? `<span class="filt-badge">${active}</span>` : '');
+}
+
+function resetGraphFilters() {
+  state.graphFilters = {
+    maxNodes: 0, sizeMul: 1, linkMul: 1,
+    categories: new Set(GRAPH_NODE_TYPES), labelMode: 'all', level: 0, showRelLabels: false,
+  };
+  renderGraphFiltersFlyout();
+  applyGraphFiltersNow();
+}
+
+function toggleViewsFlyout(forceOpen) {
+  const el = document.getElementById('views-flyout');
+  if (!el) return;
+  const open = forceOpen === true ? true : !el.classList.contains('open');
+  el.classList.toggle('open', open);
+  if (open) { document.getElementById('graph-filters-flyout')?.classList.remove('open'); renderViewsFlyout(); }
+}
+function renderViewsFlyout() {
+  const store = loadGraphViewsStore();
+  const ids = Object.keys(store).sort((a,b) => (store[a].savedAt||0) - (store[b].savedAt||0));
+  const body = document.getElementById('views-flyout-body');
+  if (!body) return;
+  if (!ids.length) {
+    body.innerHTML = `<div style="color:var(--text-muted);font-size:11px;padding:8px 4px">No layouts saved yet. Arrange the graph, then name and save below.</div>`;
+    return;
+  }
+  body.innerHTML = ids.map(id => {
+    const v = store[id], isAct = id === G.currentViewId;
+    const date = v.savedAt ? new Date(v.savedAt).toLocaleDateString() : '';
+    return `<div class="view-item ${isAct?'active':''}" onclick="loadGraphView('${id}')">
+      <div style="flex:1;overflow:hidden">
+        <div class="view-name">${escHtml(v.name)}</div>
+        <div class="view-meta">${escHtml(GRAPH_MODE_LABELS[v.mode]||'Hierarchy')} · ${date}</div>
+      </div>
+      ${v.isDefault?`<span class="view-default-badge">DEFAULT</span>`:''}
+      <div class="view-actions" onclick="event.stopPropagation()">
+        <button class="view-act-btn" onclick="overwriteGraphView('${id}')" title="Update with current layout">↑</button>
+        <button class="view-act-btn" onclick="setDefaultGraphView('${id}')" title="Set as default">★</button>
+        <button class="view-act-btn" onclick="renameGraphView('${id}')" title="Rename">✎</button>
+        <button class="view-act-btn danger" onclick="deleteGraphView('${id}')" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function loadDefaultGraphView() {
+  const store = loadGraphViewsStore();
+  const defId = Object.keys(store).find(id => store[id].isDefault);
+  if (defId) { G.currentViewId = defId; applyGraphSnapshot(store[defId]); }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SAVE TO GRAPHDB (critical) — diff-based, bumps owl:versionInfo +0.1
+// ═══════════════════════════════════════════════════════════
+const TYPE_IRI = {
+  Class: 'http://www.w3.org/2002/07/owl#Class',
+  ObjectProperty: 'http://www.w3.org/2002/07/owl#ObjectProperty',
+  AnnotationProperty: 'http://www.w3.org/2002/07/owl#AnnotationProperty',
+  DatatypeProperty: 'http://www.w3.org/2002/07/owl#DatatypeProperty',
+  Ontology: 'http://www.w3.org/2002/07/owl#Ontology',
+};
+function gLit(s) { return '"' + String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n') + '"'; }
+
+function nodeTripleSet(n) {
+  const t = new Set();
+  if (!n || n.isDeleted) return t;
+  const S = '<' + n.iri + '>';
+  t.add(`${S} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <${TYPE_IRI[n.type]||TYPE_IRI.Class}>`);
+  (n.relations||[]).filter(r=>r.predicate&&r.target).forEach(r => t.add(`${S} <${r.predicate}> <${r.target}>`));
+  if (n.label) t.add(`${S} <http://www.w3.org/2000/01/rdf-schema#label> ${gLit(n.label)}@en`);
+  if (n.comment) t.add(`${S} <http://www.w3.org/2000/01/rdf-schema#comment> ${gLit(n.comment)}@en`);
+  if (n.domain) t.add(`${S} <http://www.w3.org/2000/01/rdf-schema#domain> <${n.domain}>`);
+  if (n.range)  t.add(`${S} <http://www.w3.org/2000/01/rdf-schema#range> <${n.range}>`);
+  if (n.isDefinedBy) t.add(`${S} <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${n.isDefinedBy}>`);
+  if (n.creator) t.add(`${S} <http://purl.org/dc/terms/creator> ${gLit(n.creator)}`);
+  if (n.modified) {
+    const dt = n.modified.includes('T') ? n.modified : n.modified + 'T00:00:00Z';
+    t.add(`${S} <http://purl.org/dc/terms/modified> ${gLit(dt)}^^<http://www.w3.org/2001/XMLSchema#dateTime>`);
+  }
+  (n.dcSubject||[]).forEach(s => t.add(`${S} <http://purl.org/dc/elements/1.1/subject> <${s}>`));
+  return t;
+}
+
+function computeNodeDiff(n) {
+  const baseline = n._baseline || new Set();
+  if (n.isDeleted) return { toInsert: [], toDelete: [...baseline] };
+  const cur = nodeTripleSet(n);
+  const toInsert = [], toDelete = [];
+  cur.forEach(tp => { if (!baseline.has(tp)) toInsert.push(tp); });
+  baseline.forEach(tp => { if (!cur.has(tp)) toDelete.push(tp); });
+  return { toInsert, toDelete };
+}
+
+function computeAllDiffs() {
+  const dirty = state.nodes.filter(n => n.isDirty || n.isNew || n.isDeleted);
+  let allInsert = [], allDelete = [];
+  const perNode = [];
+  dirty.forEach(n => {
+    const { toInsert, toDelete } = computeNodeDiff(n);
+    if (toInsert.length || toDelete.length) {
+      perNode.push({ n, toInsert, toDelete });
+      allInsert = allInsert.concat(toInsert);
+      allDelete = allDelete.concat(toDelete);
+    }
+  });
+  return { perNode, allInsert, allDelete };
+}
+
+function bumpVersion(v) {
+  const n = parseFloat(v);
+  const bumped = (isNaN(n) ? 1.0 : n) + 0.1;
+  return bumped.toFixed(1);
+}
+
+function saveAllToGraphDB() {
+  if (!state.connected) { toast('Connect to GraphDB first', 'error'); return; }
+  const { perNode, allInsert, allDelete } = computeAllDiffs();
+  if (!perNode.length) { toast('No changes to save', 'info'); return; }
+  const summary = document.getElementById('save-confirm-summary');
+  let html = perNode.map(p => {
+    const tag = p.n.isDeleted ? '⊘ DELETE' : p.n.isNew ? '＋ NEW' : '✎ UPDATE';
+    return `<div style="margin-bottom:6px"><strong style="color:var(--accent2)">${escHtml(tag)}</strong> ${escHtml(p.n.label || shrinkIRI(p.n.iri))} <span style="color:var(--text-muted)">(+${p.toInsert.length} / −${p.toDelete.length})</span></div>`;
+  }).join('');
+  html += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">Total: +${allInsert.length} / −${allDelete.length} triples across ${perNode.length} node(s).<br>owl:versionInfo will bump from <strong>${escHtml(state.meta.versionInfo||'1.0')}</strong> to <strong>${bumpVersion(state.meta.versionInfo)}</strong>.</div>`;
+  summary.innerHTML = html;
+  document.getElementById('save-confirm-modal').classList.add('open');
+}
+
+async function executeGraphDBSave() {
+  closeModal('save-confirm-modal');
+  const { perNode, allInsert, allDelete } = computeAllDiffs();
+  if (!perNode.length) { toast('Nothing to save', 'info'); return; }
+  setConnStatus('loading');
+  const PFX = Object.entries(PREFIXES).map(([p,ns]) => `PREFIX ${p} <${ns}>`).join('\n') + '\n';
+  try {
+    if (allDelete.length) {
+      await sparqlUpdate(`${PFX}DELETE DATA {\n  ${allDelete.join(' .\n  ')} .\n}`);
+    }
+    if (allInsert.length) {
+      await sparqlUpdate(`${PFX}INSERT DATA {\n  ${allInsert.join(' .\n  ')} .\n}`);
+    }
+    // ── bump owl:versionInfo by +0.1 on every save ──
+    const iriEl = document.getElementById('meta-iri');
+    const metaIRI = state.activeModel || (iriEl ? iriEl.value.trim() : '');
+    if (metaIRI) {
+      const oldV = state.meta.versionInfo || '1.0';
+      const newV = bumpVersion(oldV);
+      const oldVIRI = state.meta.versionIRI || (metaIRI + '/' + oldV);
+      const newVIRI = metaIRI + '/' + newV;
+      const nowISO = new Date().toISOString();
+      const delParts = [`<${metaIRI}> owl:versionInfo ${gLit(oldV)}`];
+      if (oldVIRI) delParts.push(`<${metaIRI}> owl:versionIRI <${oldVIRI}>`);
+      if (state.meta.modified) delParts.push(`<${metaIRI}> <http://purl.org/dc/terms/modified> ${gLit(state.meta.modified)}^^xsd:dateTime`);
+      try { await sparqlUpdate(`${PFX}DELETE DATA {\n  ${delParts.join(' .\n  ')} .\n}`); } catch(e) { /* old triples may not match exactly — non-fatal */ }
+      await sparqlUpdate(`${PFX}INSERT DATA {\n  <${metaIRI}> owl:versionInfo ${gLit(newV)} .\n  <${metaIRI}> owl:versionIRI <${newVIRI}> .\n  <${metaIRI}> <http://purl.org/dc/terms/modified> ${gLit(nowISO)}^^xsd:dateTime .\n}`);
+      state.meta.versionInfo = newV;
+      state.meta.versionIRI = newVIRI;
+      state.meta.modified = nowISO;
+      populateMetaForm(state.meta);
+    }
+    // ── clear dirty flags / drop deleted nodes / refresh baselines ──
+    perNode.forEach(p => {
+      const n = p.n;
+      if (n.isDeleted) {
+        state.nodes = state.nodes.filter(x => x !== n);
+      } else {
+        n.isDirty = false; n.isNew = false;
+        n._baseline = nodeTripleSet(n);
+      }
+    });
+    state.unsavedCount = state.nodes.filter(x => x.isDirty || x.isNew).length;
+    updateStats();
+    renderTree();
+    if (state.centerTab === 'graph') renderGraph();
+    if (state.rightTab === 'props' && G.selected) renderPropsPanel(G.selected);
+    setConnStatus('connected');
+    toast(`Saved to GraphDB: +${allInsert.length} / −${allDelete.length} triples · version → ${state.meta.versionInfo}`, 'success');
+  } catch (e) {
+    setConnStatus('error');
+    toast('Save failed: ' + e.message, 'error');
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════════
 //  RELATION TAXONOMY — opens in a separate window

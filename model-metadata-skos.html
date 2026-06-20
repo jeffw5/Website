@@ -191,12 +191,36 @@ const params  = new URLSearchParams(window.location.search);
 let assetUri  = params.get('uri');
 let assetGraphs = [];
 let repoId    = params.get('repo') || 'value-kb';
+const isEmbedded = params.get('embedded') === '1';
+let _renameOccurred = false;
 
 document.getElementById('assetUri').textContent     = assetUri || '(no asset)';
 document.getElementById('display_uri').textContent  = assetUri || '—';
 document.getElementById('display_repo').textContent = `http://localhost:7200/repositories/${repoId}`;
 
 function getBaseUrl() { return `/graphdb/repositories/${repoId}`; }
+
+// ── Embedded-mode postMessage bridge (same contract as model-metadata-owl.html) ──
+if (isEmbedded) {
+    window.addEventListener('message', (ev) => {
+        if (!ev.data || ev.data.type !== 'ev-request-save') return;
+        saveAndClose();
+    });
+}
+
+function notifyParentSaved() {
+    if (!window.parent || window.parent === window) return;
+    window.parent.postMessage({
+        type: 'ev-metadata-saved',
+        uriChanged: _renameOccurred,
+        newUri: _renameOccurred ? assetUri : null
+    }, '*');
+}
+
+function notifyParentSaveFailed(errMsg) {
+    if (!window.parent || window.parent === window) return;
+    window.parent.postMessage({ type: 'ev-metadata-save-failed', error: errMsg }, '*');
+}
 
 // Field map: id → predicate config
 const FIELDS = [
@@ -279,7 +303,108 @@ async function loadMetadata() {
             await populateImportsDropdown(currentImports);
         }
 
+        // Snapshot original field values for change-note diffing on save
+        snapshotOriginalValues();
+
     } catch(err) { showStatus('Failed to load: ' + err.message, true); }
+}
+
+// ── Original-value snapshot (for change-note generation) ──────────────────
+let _originalValues = {};
+function snapshotOriginalValues() {
+    _originalValues = {};
+    FIELDS.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (el) _originalValues[f.id] = el.value;
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUTOFILL LAYER (SKOS vocabulary variant)
+//  Self-contained: only reads from form, writes to form.
+//  Does not touch save/load/rename pipelines.
+// ═══════════════════════════════════════════════════════════
+
+const AUTOFILL_OWNER = 'Jeffrey Wallk';
+
+function _val(id) { return (document.getElementById(id)?.value || '').trim(); }
+function _set(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
+
+function labelFromUri(uri) {
+    if (!uri) return '';
+    const local = uri.replace(/[\/#]+$/, '').split(/[\/#]/).pop() || '';
+    if (!local) return '';
+    return local.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' | ');
+}
+
+function incrementVersion(v) {
+    const s = (v || '').trim();
+    if (!s) return '1.0';
+    const n = parseFloat(s);
+    if (isNaN(n)) return '1.0';
+    return (Math.round((n + 0.1) * 10) / 10).toFixed(1);
+}
+
+// Only these are considered "user edited" for change-note purposes —
+// excludes fields that are always autofilled every save.
+const CHANGE_NOTE_TRACKED_FIELDS = ['f_label', 'f_prefLabel', 'f_title', 'f_description', 'f_definition', 'f_created', 'f_status'];
+function buildChangeNote() {
+    const changes = [];
+    CHANGE_NOTE_TRACKED_FIELDS.forEach(id => {
+        const f = FIELDS.find(x => x.id === id);
+        if (!f) return;
+        const cur = _val(id);
+        const orig = (_originalValues[id] || '').trim();
+        if (cur === orig) return;
+        const label = id.replace('f_', '');
+        if (!orig && cur) changes.push(`${label} set`);
+        else if (orig && !cur) changes.push(`${label} cleared`);
+        else changes.push(`${label} updated`);
+    });
+    if (!changes.length) return '';
+    const date = new Date().toISOString().slice(0, 10);
+    return `[${date}] ${changes.join(', ')}`;
+}
+
+// Apply all autofills. Reads form values, writes form values.
+async function applyAutofills() {
+    // 0. Capture change note BEFORE any autofill below mutates a tracked field
+    const noteAddition = buildChangeNote();
+
+    // 1. Label, prefLabel, and Title all match each other.
+    //    Priority: prefLabel (SKOS-native) > label > title, when multiple are set and differ.
+    let label = _val('f_label');
+    let pref  = _val('f_prefLabel');
+    let title = _val('f_title');
+    const setAll = (v) => { _set('f_label', v); _set('f_prefLabel', v); _set('f_title', v); };
+    if (!label && !pref && !title) {
+        const derived = labelFromUri(assetUri);
+        if (derived) setAll(derived);
+    } else {
+        const canonical = pref || label || title;
+        setAll(canonical);
+    }
+
+    // 2. dct:creator and dct:contributor — ALWAYS exactly "Jeffrey Wallk"
+    _set('f_creator', AUTOFILL_OWNER);
+    _set('f_contributor', AUTOFILL_OWNER);
+
+    // 3. owl:versionInfo: 1.0 if empty, else +0.1
+    _set('f_version', incrementVersion(_val('f_version')));
+
+    // 4. bibo:status — default to "draft" only if currently empty
+    const statusEl = document.getElementById('f_status');
+    if (statusEl && !statusEl.value) {
+        const draftOpt = [...statusEl.options].find(o =>
+            /draft/i.test(o.textContent) || /draft/i.test(o.value));
+        if (draftOpt) statusEl.value = draftOpt.value;
+    }
+
+    // 5. Change note: append pre-captured list of changed editable fields
+    if (noteAddition) {
+        const existing = _val('f_changeNote');
+        _set('f_changeNote', existing ? `${existing}; ${noteAddition}` : noteAddition);
+    }
 }
 
 async function saveAndClose() {
@@ -287,6 +412,10 @@ async function saveAndClose() {
     if (!assetUri) return;
     const now = new Date().toISOString().replace(/\.\d{3}Z$/,'Z');
     document.getElementById('f_modified').value = now;
+
+    // ── AUTOFILL LAYER (applied before save) ──────────────────────────
+    try { await applyAutofills(); }
+    catch(e) { console.warn('[save] autofill issue (non-fatal):', e); }
 
     const g      = assetGraphs.length > 0 ? assetGraphs[0] : null;
     const gOpen  = g ? `GRAPH <${g}> { ` : '';
@@ -334,12 +463,17 @@ async function saveAndClose() {
             body: atomicUpdate
         });
         if (!r.ok) throw new Error(await r.text());
-        showStatus('\u2713 Saved. Closing\u2026');
+        showStatus('\u2713 Saved.' + (isEmbedded ? '' : ' Closing\u2026'));
         if (window.opener && !window.opener.closed) { try { window.opener.refreshSidebar(); } catch(e) {} }
-        setTimeout(() => window.close(), 800);
+        if (isEmbedded) {
+            notifyParentSaved();
+        } else {
+            setTimeout(() => window.close(), 800);
+        }
     } catch(err) {
         console.error('[save] ERROR:', err);
         showStatus('Save failed: ' + err.message, true);
+        if (isEmbedded) notifyParentSaveFailed(err.message);
     }
 }
 
@@ -413,9 +547,13 @@ async function executeRename() {
         await sparqlUpdate(`DELETE{GRAPH ?g{?s ?p <${assetUri}>}}INSERT{GRAPH ?g{?s ?p <${nu}>}}WHERE{GRAPH ?g{?s ?p <${assetUri}>}}`);
         setRS('rename_status',`✓ Done — renamed to ${nu}`,'green');
         assetUri=nu;
+        _renameOccurred = true;
         document.getElementById('display_uri').textContent=nu;
         document.getElementById('assetUri').textContent=nu;
         if(window.opener&&!window.opener.closed) try{window.opener.refreshSidebar();}catch(e){}
+        if (isEmbedded && window.parent && window.parent !== window) {
+            try { window.parent.postMessage({ type: 'ev-metadata-uri-renamed', newUri: nu }, '*'); } catch(e) {}
+        }
         btn.textContent='✓ Done';
         setTimeout(()=>{closeRenameModal();loadMetadata();},1500);
     } catch(err) {

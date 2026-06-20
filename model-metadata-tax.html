@@ -19,7 +19,7 @@
     </div>
     <div class="flex gap-2 flex-shrink-0">
         <button onclick="openRenameModal()" class="bg-violet-700 hover:bg-violet-600 text-white font-bold py-1.5 px-3 rounded text-sm transition">✏️ Rename URI</button>
-        <button onclick="saveAndClose()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-3 rounded text-sm transition">💾 Save &amp; Close</button>
+        <button onclick="saveAndClose()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-1.5 px-3 rounded text-sm transition">💾 Save</button>
         <button onclick="window.close()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded text-sm transition">Cancel</button>
     </div>
 </div>
@@ -106,65 +106,101 @@
         <input id="f_changeNote" type="text" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm focus:outline-none focus:border-amber-500">
     </div>
 
+    <!-- CONCEPTS PANEL — quick list, edit, add, delete -->
+    <div class="border border-gray-700 rounded p-3" style="background:#1a1d2e;">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider">Concepts</h3>
+            <div class="flex gap-2 items-center">
+                <input id="concept_filter" type="text" placeholder="Filter…"
+                    class="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs w-36 focus:outline-none focus:border-amber-500"
+                    oninput="renderConceptList()">
+                <button onclick="openAddConceptForm()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded transition">+ Add Concept</button>
+            </div>
+        </div>
+
+        <!-- Add-concept inline form (hidden by default) -->
+        <div id="add_concept_form" class="hidden bg-gray-800 border border-emerald-700 rounded p-3 mb-3 space-y-2">
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Label</label>
+                    <input id="new_concept_label" type="text" placeholder="New concept label"
+                        class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Parent (rdfs:subClassOf)</label>
+                    <select id="new_concept_parent" class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs focus:outline-none focus:border-emerald-500">
+                        <option value="">— Top-level (no parent) —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button onclick="closeAddConceptForm()" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">Cancel</button>
+                <button onclick="addConcept()" class="text-xs bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3 py-1 rounded transition">Create</button>
+            </div>
+        </div>
+
+        <div id="concept_list_status" class="text-xs text-gray-500 mb-2"></div>
+        <div id="concept_list" class="space-y-1 max-h-96 overflow-y-auto"></div>
+    </div>
+
 </div>
 
 <!-- RENAME MODAL -->
-<div id="renameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;">
-  <div style="background:#1a1d2e;border:1px solid #374151;border-radius:10px;width:560px;max-width:96vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="padding:14px 18px;font-size:13px;font-weight:700;border-bottom:1px solid #374151;color:#e2e8f0;">
-      ✏️ Rename Taxonomy URI
+<div id="renameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:#1a1d2e;border:1px solid #3730a3;border-radius:10px;padding:28px;width:580px;max-width:95vw;">
+        <h2 style="color:#818cf8;font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px;">✏️ Rename Taxonomy URI</h2>
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Current URI</label>
+            <div id="rename_old" style="background:#0f1117;border:1px solid #2d3148;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#6366f1;word-break:break-all;"></div>
+        </div>
+        <div style="margin-bottom:8px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">New URI</label>
+            <input id="rename_new" type="text" style="width:100%;background:#0f1117;border:1px solid #4f46e5;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#e2e8f0;outline:none;">
+        </div>
+        <div id="rename_preview" style="margin-bottom:16px;font-size:11px;color:#6b7280;font-style:italic;line-height:1.6;"></div>
+        <div id="rename_status" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:4px;font-size:12px;"></div>
+        <div style="background:#1e2035;border:1px solid #374151;border-radius:6px;padding:10px;margin-bottom:16px;font-size:11px;color:#9ca3af;line-height:1.6;">
+            ⚠️ Migrates this taxonomy's owl:Class members (via rdfs:isDefinedBy) to the new URI and moves the named graph. Updates all triples where this URI appears as subject, object, or named graph.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeRenameModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
+            <button onclick="previewRename()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">🔍 Preview Impact</button>
+            <button id="rename_confirm_btn" onclick="executeRename()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Execute Rename</button>
+        </div>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
-      <div>
-        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">Current URI</div>
-        <div id="rename_old" style="font-size:11px;font-family:monospace;color:#fbbf24;word-break:break-all;background:#111827;border:1px solid #374151;border-radius:4px;padding:6px 9px;"></div>
-      </div>
-      <div>
-        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">New URI</div>
-        <input id="rename_new" type="text" style="width:100%;font-size:11px;font-family:monospace;background:#111827;border:1px solid #374151;border-radius:4px;padding:6px 9px;color:#e2e8f0;">
-      </div>
-      <button onclick="previewRename()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;align-self:flex-start;">🔍 Preview Impact</button>
-      <div id="rename_preview" style="font-size:12px;color:#9ca3af;line-height:1.7;"></div>
-      <div id="rename_status" style="display:none;"></div>
-    </div>
-    <div style="padding:12px 18px;border-top:1px solid #374151;display:flex;gap:8px;justify-content:flex-end;">
-      <button onclick="closeRenameModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
-      <button id="rename_confirm_btn" onclick="executeRename()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Execute Rename</button>
-    </div>
-  </div>
 </div>
 
 <!-- SET NAMED GRAPH MODAL -->
-<div id="setGraphModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;">
-  <div style="background:#1a1d2e;border:1px solid #374151;border-radius:10px;width:520px;max-width:96vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="padding:14px 18px;font-size:13px;font-weight:700;border-bottom:1px solid #374151;color:#e2e8f0;">
-      ⊕ Set Named Graph
+<div id="setGraphModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;">
+    <div style="background:#1a1d2e;border:1px solid #5b21b6;border-radius:10px;padding:28px;width:580px;max-width:95vw;">
+        <h2 style="color:#a78bfa;font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px;">⊕ Set Named Graph</h2>
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Asset URI</label>
+            <div id="sg_asset_uri" style="background:#0f1117;border:1px solid #2d3148;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#6366f1;word-break:break-all;"></div>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Named Graph URI</label>
+            <input id="sg_graph_uri" type="text" style="width:100%;background:#0f1117;border:1px solid #5b21b6;border-radius:4px;padding:8px;font-size:11px;font-family:monospace;color:#e2e8f0;outline:none;">
+            <div style="font-size:10px;color:#6b7280;margin-top:4px;">Typically the same as the Asset URI.</div>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px;">Scope</label>
+            <select id="sg_scope" style="width:100%;background:#0f1117;border:1px solid #374151;border-radius:4px;padding:8px;font-size:11px;color:#e2e8f0;outline:none;">
+                <option value="members">This asset + its members, by rdfs:isDefinedBy (recommended)</option>
+                <option value="subject">Only triples where Asset URI is subject</option>
+                <option value="all">All triples currently in default graph</option>
+            </select>
+        </div>
+        <div id="sg_status" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:4px;font-size:12px;"></div>
+        <div style="background:#1e2035;border:1px solid #374151;border-radius:6px;padding:10px;margin-bottom:16px;font-size:11px;color:#9ca3af;line-height:1.6;">
+            ⚠️ Moves matching triples from the default graph into the specified named graph.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="closeSetGraphModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
+            <button onclick="previewSetGraph()" style="background:#4f46e5;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Preview Impact</button>
+            <button id="sg_confirm_btn" onclick="executeSetGraph()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Move to Named Graph</button>
+        </div>
     </div>
-    <div style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;">
-      <div>
-        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">Asset</div>
-        <div id="sg_asset_uri" style="font-size:11px;font-family:monospace;color:#fbbf24;word-break:break-all;"></div>
-      </div>
-      <div>
-        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">Target Named Graph URI</div>
-        <input id="sg_graph_uri" type="text" style="width:100%;font-size:11px;font-family:monospace;background:#111827;border:1px solid #374151;border-radius:4px;padding:6px 9px;color:#e2e8f0;">
-      </div>
-      <div>
-        <div style="font-size:10px;color:#9ca3af;margin-bottom:3px;">Scope</div>
-        <select id="sg_scope" style="width:100%;background:#111827;border:1px solid #374151;border-radius:4px;padding:6px 9px;font-size:12px;color:#e2e8f0;">
-          <option value="members">This asset + its members, by namespace (recommended)</option>
-          <option value="subject">Only triples where Asset URI is subject</option>
-          <option value="all">All triples currently in default graph</option>
-        </select>
-      </div>
-      <button onclick="previewSetGraph()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;align-self:flex-start;">🔍 Preview Impact</button>
-      <div id="sg_status" style="display:none;"></div>
-    </div>
-    <div style="padding:12px 18px;border-top:1px solid #374151;display:flex;gap:8px;justify-content:flex-end;">
-      <button onclick="closeSetGraphModal()" style="background:#374151;color:#e2e8f0;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;">Cancel</button>
-      <button id="sg_confirm_btn" onclick="executeSetGraph()" style="background:#7c3aed;color:white;border:none;padding:8px 16px;border-radius:4px;font-size:12px;cursor:pointer;display:none;">⚡ Move to Named Graph</button>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -172,12 +208,36 @@ const params  = new URLSearchParams(window.location.search);
 let assetUri  = params.get('uri');
 let assetGraphs = [];
 let repoId    = params.get('repo') || 'value-kb';
+const isEmbedded = params.get('embedded') === '1';
+let _renameOccurred = false;
 
 document.getElementById('assetUri').textContent     = assetUri || '(no asset)';
 document.getElementById('display_uri').textContent  = assetUri || '—';
 document.getElementById('display_repo').textContent = `http://localhost:7200/repositories/${repoId}`;
 
 function getBaseUrl() { return `/graphdb/repositories/${repoId}`; }
+
+// ── Embedded-mode postMessage bridge (same contract as the other editors) ──
+if (isEmbedded) {
+    window.addEventListener('message', (ev) => {
+        if (!ev.data || ev.data.type !== 'ev-request-save') return;
+        saveAndClose();
+    });
+}
+
+function notifyParentSaved() {
+    if (!window.parent || window.parent === window) return;
+    window.parent.postMessage({
+        type: 'ev-metadata-saved',
+        uriChanged: _renameOccurred,
+        newUri: _renameOccurred ? assetUri : null
+    }, '*');
+}
+
+function notifyParentSaveFailed(errMsg) {
+    if (!window.parent || window.parent === window) return;
+    window.parent.postMessage({ type: 'ev-metadata-save-failed', error: errMsg }, '*');
+}
 
 const RDFS = 'http://www.w3.org/2000/01/rdf-schema#';
 const OWL  = 'http://www.w3.org/2002/07/owl#';
@@ -199,6 +259,40 @@ const FIELDS = [
 async function loadMetadata() {
     if (!assetUri) return;
     try {
+        // ── Detect which slash-form actually exists in GraphDB ──────────────
+        // Stripping the slash unconditionally breaks taxonomies that were
+        // minted WITH a trailing slash (their rdfs:isDefinedBy / scheme IRI
+        // really does end in '/'). Instead: check which form has triples,
+        // and adopt that exact form. This makes every downstream query
+        // (member discovery, rename, Preview Impact) operate on the IRI
+        // that's actually stored, not a guessed canonical form.
+        const candidates = assetUri.endsWith('/')
+            ? [assetUri, assetUri.replace(/\/+$/, '')]
+            : [assetUri, assetUri + '/'];
+
+        let resolvedUri = null;
+        for (const candidate of candidates) {
+            const checkQ = `SELECT (COUNT(*) AS ?n) WHERE { { <${candidate}> ?p ?o } UNION { GRAPH <${candidate}> { ?s ?p ?o } } UNION { ?s ?p <${candidate}> } }`;
+            const checkR = await fetch(getBaseUrl(), {
+                method:'POST',
+                headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},
+                body: new URLSearchParams({query:checkQ})
+            });
+            const checkD = await checkR.json();
+            const n = parseInt(checkD.results.bindings[0]?.n?.value || '0');
+            console.log('[loadMetadata] checking form', JSON.stringify(candidate), '-> ', n, 'triples found');
+            if (n > 0) { resolvedUri = candidate; break; }
+        }
+
+        if (resolvedUri && resolvedUri !== assetUri) {
+            console.log('[loadMetadata] Resolved to actual stored form:', JSON.stringify(resolvedUri), '(URL had:', JSON.stringify(assetUri), ')');
+            assetUri = resolvedUri;
+            document.getElementById('assetUri').textContent = assetUri;
+            document.getElementById('display_uri').textContent = assetUri;
+        } else if (!resolvedUri) {
+            console.warn('[loadMetadata] Neither slash form of', JSON.stringify(assetUri), 'has any triples in GraphDB.');
+        }
+
         const gq = `SELECT DISTINCT ?g WHERE { GRAPH ?g { <${assetUri}> ?p ?o } } LIMIT 5`;
         const gr = await fetch(getBaseUrl(), {
             method:'POST',
@@ -255,9 +349,105 @@ async function loadMetadata() {
         // Show member class count for context
         await refreshMemberCount();
 
+        // Snapshot original field values for change-note diffing on save
+        snapshotOriginalValues();
+
+        // Load the Concepts panel (separate, isolated from header save/rename logic)
+        await loadConceptList();
+
     } catch(err) { showStatus('Failed to load: ' + err.message, true); }
 }
 
+// ── Original-value snapshot (for change-note generation) ──────────────────
+let _originalValues = {};
+function snapshotOriginalValues() {
+    _originalValues = {};
+    FIELDS.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (el) _originalValues[f.id] = el.value;
+    });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUTOFILL LAYER (taxonomy variant — rdfs:label/dct:title pairing,
+//  same as OWL editor since taxonomies use the same predicate set)
+// ═══════════════════════════════════════════════════════════
+
+const AUTOFILL_OWNER = 'Jeffrey Wallk';
+
+function _val(id) { return (document.getElementById(id)?.value || '').trim(); }
+function _set(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
+
+function labelFromUri(uri) {
+    if (!uri) return '';
+    const local = uri.replace(/[\/#]+$/, '').split(/[\/#]/).pop() || '';
+    if (!local) return '';
+    return local.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' | ');
+}
+
+function incrementVersion(v) {
+    const s = (v || '').trim();
+    if (!s) return '1.0';
+    const n = parseFloat(s);
+    if (isNaN(n)) return '1.0';
+    return (Math.round((n + 0.1) * 10) / 10).toFixed(1);
+}
+
+const CHANGE_NOTE_TRACKED_FIELDS = ['f_label', 'f_title', 'f_description', 'f_created'];
+function buildChangeNote() {
+    const changes = [];
+    CHANGE_NOTE_TRACKED_FIELDS.forEach(id => {
+        const f = FIELDS.find(x => x.id === id);
+        if (!f) return;
+        const cur = _val(id);
+        const orig = (_originalValues[id] || '').trim();
+        if (cur === orig) return;
+        const label = id.replace('f_', '');
+        if (!orig && cur) changes.push(`${label} set`);
+        else if (orig && !cur) changes.push(`${label} cleared`);
+        else changes.push(`${label} updated`);
+    });
+    if (!changes.length) return '';
+    const date = new Date().toISOString().slice(0, 10);
+    return `[${date}] ${changes.join(', ')}`;
+}
+
+// Apply all autofills. Reads form values, writes form values.
+async function applyAutofills() {
+    // 0. Capture change note BEFORE any autofill mutates a tracked field
+    const noteAddition = buildChangeNote();
+
+    // 1. Label & Title match each other
+    let label = _val('f_label');
+    let title = _val('f_title');
+    if (label && !title) _set('f_title', label);
+    else if (title && !label) _set('f_label', title);
+    else if (!label && !title) {
+        const derived = labelFromUri(assetUri);
+        if (derived) { _set('f_label', derived); _set('f_title', derived); }
+    } else if (label !== title) {
+        _set('f_title', label);
+    }
+
+    // 2. dct:creator and dct:contributor — ALWAYS exactly "Jeffrey Wallk"
+    _set('f_creator', AUTOFILL_OWNER);
+    _set('f_contributor', AUTOFILL_OWNER);
+
+    // 3. owl:versionInfo: 1.0 if empty, else +0.1
+    _set('f_version', incrementVersion(_val('f_version')));
+
+    // 4. vaem:namespace = named graph (no trailing slash, per app convention)
+    const ng = (typeof assetGraphs !== 'undefined' && assetGraphs.length > 0) ? assetGraphs[0] : assetUri;
+    if (ng) _set('f_namespace', ng.replace(/\/+$/, ''));
+
+    // 5. Change note: append pre-captured list of changed editable fields
+    if (noteAddition) {
+        const existing = _val('f_changeNote');
+        _set('f_changeNote', existing ? `${existing}; ${noteAddition}` : noteAddition);
+    }
+}
+
+// Load member count display
 async function refreshMemberCount() {
     try {
         const q = `PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}>
@@ -271,12 +461,268 @@ SELECT (COUNT(DISTINCT ?c) AS ?n) WHERE {
     } catch(e) {}
 }
 
+// ═══════════════════════════════════════════════════════════
+//  CONCEPTS PANEL — list, inline edit, add, delete
+//  Fully isolated from header save/rename logic above. Every
+//  write here is its own immediate sparqlUpdate — nothing here
+//  is batched into saveAndClose's atomic payload, and nothing
+//  here is touched by executeRename's member-cascade logic.
+// ═══════════════════════════════════════════════════════════
+
+let _concepts = []; // [{iri, label, parentIri, parentLabel}]
+
+async function loadConceptList() {
+    const statusEl = document.getElementById('concept_list_status');
+    if (statusEl) statusEl.textContent = 'Loading concepts…';
+    try {
+        const q = `PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}>
+SELECT ?c ?label ?parent ?parentLabel WHERE {
+  ?c a owl:Class .
+  ?c rdfs:isDefinedBy <${assetUri}> .
+  OPTIONAL { ?c rdfs:label ?label . FILTER(LANG(?label)='en' || LANG(?label)='') }
+  OPTIONAL {
+    ?c rdfs:subClassOf ?parent .
+    OPTIONAL { ?parent rdfs:label ?parentLabel . FILTER(LANG(?parentLabel)='en' || LANG(?parentLabel)='') }
+  }
+} ORDER BY ?label`;
+        const r = await fetch(getBaseUrl(), {
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},
+            body: new URLSearchParams({query:q})
+        });
+        const d = await r.json();
+
+        // Group by concept IRI (a concept may have multiple subClassOf rows if poly-hierarchy)
+        const byIri = new Map();
+        d.results.bindings.forEach(b => {
+            const iri = b.c.value;
+            if (!byIri.has(iri)) {
+                byIri.set(iri, { iri, label: b.label?.value || localName(iri), parents: [] });
+            }
+            if (b.parent) {
+                byIri.get(iri).parents.push({ iri: b.parent.value, label: b.parentLabel?.value || localName(b.parent.value) });
+            }
+        });
+        _concepts = [...byIri.values()].sort((a,b) => a.label.localeCompare(b.label));
+
+        if (statusEl) statusEl.textContent = `${_concepts.length} concept${_concepts.length===1?'':'s'}`;
+        renderConceptList();
+        populateParentDropdown();
+    } catch(err) {
+        if (statusEl) statusEl.textContent = 'Failed to load concepts: ' + err.message;
+        console.error('[loadConceptList] ERROR:', err);
+    }
+}
+
+function populateParentDropdown() {
+    const sel = document.getElementById('new_concept_parent');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Top-level (no parent) —</option>' +
+        _concepts.map(c => `<option value="${esc(c.iri)}">${esc(c.label)}</option>`).join('');
+    sel.value = current;
+}
+
+function renderConceptList() {
+    const filter = (document.getElementById('concept_filter')?.value || '').toLowerCase();
+    const listEl = document.getElementById('concept_list');
+    if (!listEl) return;
+
+    const filtered = filter
+        ? _concepts.filter(c => c.label.toLowerCase().includes(filter) || c.iri.toLowerCase().includes(filter))
+        : _concepts;
+
+    if (!filtered.length) {
+        listEl.innerHTML = '<div class="text-xs text-gray-600 italic py-2">No concepts found.</div>';
+        return;
+    }
+
+    listEl.innerHTML = filtered.map(c => {
+        const parentNames = c.parents.length ? c.parents.map(p => esc(p.label)).join(', ') : '— top-level —';
+        return `
+        <div class="bg-gray-800 border border-gray-700 rounded p-2 text-xs">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-gray-200 truncate">${esc(c.label)}</div>
+                    <div class="text-gray-500 truncate" style="font-size:10px">${esc(c.iri)}</div>
+                    <div class="text-gray-500" style="font-size:10px">Parent: ${parentNames}</div>
+                </div>
+                <div class="flex gap-1 flex-shrink-0">
+                    <button onclick="openEditConceptForm('${esc(c.iri)}')" class="bg-indigo-700 hover:bg-indigo-600 text-white px-2 py-1 rounded transition" title="Edit">✎</button>
+                    <button onclick="deleteConcept('${esc(c.iri)}')" class="bg-rose-800 hover:bg-rose-700 text-white px-2 py-1 rounded transition" title="Delete">🗑</button>
+                </div>
+            </div>
+            <div id="edit_row_${btoa(c.iri).replace(/[^a-zA-Z0-9]/g,'')}" class="hidden mt-2 pt-2 border-t border-gray-700 space-y-2"></div>
+        </div>`;
+    }).join('');
+}
+
+function conceptRowId(iri) {
+    return 'edit_row_' + btoa(iri).replace(/[^a-zA-Z0-9]/g,'');
+}
+
+function openEditConceptForm(iri) {
+    const c = _concepts.find(x => x.iri === iri);
+    if (!c) return;
+    const row = document.getElementById(conceptRowId(iri));
+    if (!row) return;
+
+    const isOpen = !row.classList.contains('hidden');
+    // Close any other open edit rows first
+    document.querySelectorAll('[id^="edit_row_"]').forEach(el => el.classList.add('hidden'));
+    if (isOpen) return; // was open, now closed — done
+
+    const parentOptions = _concepts
+        .filter(x => x.iri !== iri) // can't be its own parent
+        .map(x => `<option value="${esc(x.iri)}" ${c.parents[0]?.iri === x.iri ? 'selected':''}>${esc(x.label)}</option>`)
+        .join('');
+
+    row.innerHTML = `
+        <div>
+            <label class="block text-gray-500 mb-1" style="font-size:10px">Label</label>
+            <input id="ec_label_${btoa(iri).replace(/[^a-zA-Z0-9]/g,'')}" type="text" value="${esc(c.label)}"
+                class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs focus:outline-none focus:border-indigo-500">
+        </div>
+        <div>
+            <label class="block text-gray-500 mb-1" style="font-size:10px">Parent (rdfs:subClassOf)</label>
+            <select id="ec_parent_${btoa(iri).replace(/[^a-zA-Z0-9]/g,'')}"
+                class="w-full bg-gray-900 border border-gray-700 rounded p-1.5 text-xs focus:outline-none focus:border-indigo-500">
+                <option value="">— Top-level (no parent) —</option>
+                ${parentOptions}
+            </select>
+        </div>
+        <div class="flex gap-2 justify-end">
+            <button onclick="closeEditConceptForm('${esc(iri)}')" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition">Cancel</button>
+            <button onclick="saveConceptEdit('${esc(iri)}')" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-2 py-1 rounded transition">Save</button>
+        </div>`;
+    row.classList.remove('hidden');
+}
+
+function closeEditConceptForm(iri) {
+    const row = document.getElementById(conceptRowId(iri));
+    if (row) row.classList.add('hidden');
+}
+
+async function saveConceptEdit(iri) {
+    const safeId = btoa(iri).replace(/[^a-zA-Z0-9]/g,'');
+    const newLabel = document.getElementById('ec_label_'+safeId)?.value.trim();
+    const newParent = document.getElementById('ec_parent_'+safeId)?.value || '';
+
+    if (!newLabel) { alert('Label cannot be empty.'); return; }
+
+    try {
+        // Update label (both rdfs:label and skos:prefLabel if present, for consistency)
+        await sparqlUpdate(`PREFIX rdfs: <${RDFS}>
+DELETE { <${iri}> rdfs:label ?l } WHERE { <${iri}> rdfs:label ?l };
+INSERT DATA { <${iri}> rdfs:label "${escLit(newLabel)}"@en }`);
+
+        // Update parent (rdfs:subClassOf) — replace existing single-parent link.
+        // Note: this assumes single-parent for the inline editor; poly-hierarchy
+        // concepts should be managed in the tree editor instead.
+        await sparqlUpdate(`PREFIX rdfs: <${RDFS}>
+DELETE { <${iri}> rdfs:subClassOf ?p } WHERE { <${iri}> rdfs:subClassOf ?p }`);
+        if (newParent) {
+            await sparqlUpdate(`PREFIX rdfs: <${RDFS}>
+INSERT DATA { <${iri}> rdfs:subClassOf <${newParent}> }`);
+        }
+
+        closeEditConceptForm(iri);
+        await loadConceptList();
+        await refreshMemberCount();
+    } catch(err) {
+        alert('Failed to save concept: ' + err.message);
+        console.error('[saveConceptEdit] ERROR:', err);
+    }
+}
+
+async function deleteConcept(iri) {
+    const c = _concepts.find(x => x.iri === iri);
+    const label = c ? c.label : iri;
+    const hasChildren = _concepts.some(x => x.parents.some(p => p.iri === iri));
+    if (hasChildren) {
+        if (!confirm(`"${label}" has child concepts pointing to it as their parent. Deleting it will leave those children without this parent (they'll become top-level unless they have another parent). Continue?`)) return;
+    } else {
+        if (!confirm(`Delete concept "${label}"? This removes all its triples. This cannot be undone.`)) return;
+    }
+    try {
+        await sparqlUpdate(`DELETE { <${iri}> ?p ?o } WHERE { <${iri}> ?p ?o }`);
+        await sparqlUpdate(`DELETE { ?s ?p <${iri}> } WHERE { ?s ?p <${iri}> }`);
+        await loadConceptList();
+        await refreshMemberCount();
+    } catch(err) {
+        alert('Failed to delete concept: ' + err.message);
+        console.error('[deleteConcept] ERROR:', err);
+    }
+}
+
+function openAddConceptForm() {
+    document.getElementById('add_concept_form').classList.remove('hidden');
+    document.getElementById('new_concept_label').value = '';
+    document.getElementById('new_concept_parent').value = '';
+    populateParentDropdown();
+    setTimeout(() => document.getElementById('new_concept_label').focus(), 50);
+}
+
+function closeAddConceptForm() {
+    document.getElementById('add_concept_form').classList.add('hidden');
+}
+
+function slugify(label) {
+    return label.replace(/[^a-zA-Z0-9]+/g, '');
+}
+
+async function addConcept() {
+    const label = document.getElementById('new_concept_label').value.trim();
+    const parentIri = document.getElementById('new_concept_parent').value || '';
+    if (!label) { alert('Enter a label for the new concept.'); return; }
+
+    const base = assetUri.replace(/\/+$/, '') + '/';
+    let slug = slugify(label);
+    if (!slug) { alert('Label must contain at least one letter or number.'); return; }
+
+    // Ensure the new IRI doesn't collide with an existing concept
+    let candidateIri = base + slug;
+    let suffix = 2;
+    while (_concepts.some(c => c.iri === candidateIri)) {
+        candidateIri = base + slug + suffix;
+        suffix++;
+    }
+
+    try {
+        const g = assetGraphs.length > 0 ? assetGraphs[0] : assetUri;
+        const lines = [
+            `<${candidateIri}> a <${OWL}Class> .`,
+            `<${candidateIri}> rdfs:label "${escLit(label)}"@en .`,
+            `<${candidateIri}> rdfs:isDefinedBy <${assetUri}> .`
+        ];
+        if (parentIri) lines.push(`<${candidateIri}> rdfs:subClassOf <${parentIri}> .`);
+
+        await sparqlUpdate(`PREFIX rdfs: <${RDFS}>
+INSERT DATA { GRAPH <${g}> {
+${lines.join('\n')}
+} }`);
+
+        closeAddConceptForm();
+        await loadConceptList();
+        await refreshMemberCount();
+    } catch(err) {
+        alert('Failed to add concept: ' + err.message);
+        console.error('[addConcept] ERROR:', err);
+    }
+}
+
+function escLit(s) { return String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n'); }
+
 // ── Save (atomic payload) — exact proven pattern, header fields only ──
 async function saveAndClose() {
     console.log('[save] ENTERED, assetUri=', assetUri, 'assetGraphs=', assetGraphs);
     if (!assetUri) return;
     const now = new Date().toISOString().replace(/\.\d{3}Z$/,'Z');
     document.getElementById('f_modified').value = now;
+
+    // ── AUTOFILL LAYER (applied before save) ──────────────────────────
+    try { await applyAutofills(); }
+    catch(e) { console.warn('[save] autofill issue (non-fatal):', e); }
 
     const g      = assetGraphs.length > 0 ? assetGraphs[0] : null;
     const gOpen  = g ? `GRAPH <${g}> { ` : '';
@@ -321,12 +767,17 @@ async function saveAndClose() {
             body: atomicUpdate
         });
         if (!r.ok) throw new Error(await r.text());
-        showStatus('\u2713 Saved. Closing\u2026');
+        showStatus('\u2713 Saved.' + (isEmbedded ? '' : ' Closing\u2026'));
         if (window.opener && !window.opener.closed) { try { window.opener.refreshSidebar(); } catch(e) {} }
-        setTimeout(() => window.close(), 800);
+        if (isEmbedded) {
+            notifyParentSaved();
+        } else {
+            setTimeout(() => window.close(), 800);
+        }
     } catch(err) {
         console.error('[save] ERROR:', err);
         showStatus('Save failed: ' + err.message, true);
+        if (isEmbedded) notifyParentSaveFailed(err.message);
     }
 }
 
@@ -341,12 +792,32 @@ function esc(s) { return s.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n
 
 async function sparqlUpdate(u) {
     const r = await fetch(`${getBaseUrl()}/statements`,{method:'POST',headers:{'Content-Type':'application/sparql-update'},body:u});
-    if (!r.ok) throw new Error(await r.text()||`HTTP ${r.status}`);
+    if (!r.ok) {
+        const errText = await r.text();
+        console.error('[sparqlUpdate] FAILED. Status:', r.status);
+        console.error('[sparqlUpdate] Query sent:\n', u);
+        console.error('[sparqlUpdate] GraphDB response:\n', errText);
+        throw new Error(errText || `HTTP ${r.status}`);
+    }
 }
 
 async function countTriples(q) {
     const r = await fetch(getBaseUrl(),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/sparql-results+json'},body:new URLSearchParams({query:q})});
-    const d = await r.json();
+    if (!r.ok) {
+        const errText = await r.text();
+        console.error('[countTriples] HTTP', r.status, 'Query:', q);
+        console.error('[countTriples] GraphDB response:', errText);
+        throw new Error(`GraphDB query failed (${r.status}): ${errText.slice(0,200)}`);
+    }
+    let d;
+    try {
+        d = await r.json();
+    } catch(parseErr) {
+        const raw = await r.clone().text().catch(()=> '(could not read body)');
+        console.error('[countTriples] Response was not valid JSON. Query:', q);
+        console.error('[countTriples] Raw response:', raw);
+        throw new Error('GraphDB returned a non-JSON response (likely a malformed query). See console for details.');
+    }
     return parseInt(d.results.bindings[0]?.c?.value || d.results.bindings[0]?.n?.value || '0');
 }
 
@@ -375,7 +846,7 @@ function setModalStatus(id,msg,c) {
 
 function openRenameModal() {
     document.getElementById('rename_old').textContent=assetUri;
-    document.getElementById('rename_new').value=assetUri;
+    document.getElementById('rename_new').value=assetUri.replace(/\/+$/, '');
     document.getElementById('rename_preview').textContent='';
     document.getElementById('rename_status').style.display='none';
     document.getElementById('rename_confirm_btn').style.display='none';
@@ -390,7 +861,11 @@ function localName(iri) {
 }
 
 async function previewRename() {
-    const nu=document.getElementById('rename_new').value.trim();
+    let nu=document.getElementById('rename_new').value.trim();
+    if (nu.endsWith('/')) {
+        nu = nu.replace(/\/+$/, '');
+        document.getElementById('rename_new').value = nu;
+    }
     if (!nu||nu===assetUri) { document.getElementById('rename_preview').textContent='New URI must differ.'; return; }
     document.getElementById('rename_preview').textContent='Counting…';
     document.getElementById('rename_confirm_btn').style.display='none';
@@ -399,8 +874,13 @@ async function previewRename() {
             countTriples(`SELECT (COUNT(*) as ?c) WHERE{<${assetUri}> ?p ?o}`),
             countTriples(`SELECT (COUNT(*) as ?c) WHERE{?s ?p <${assetUri}>}`),
             countTriples(`SELECT (COUNT(*) as ?c) WHERE{GRAPH<${assetUri}>{?s ?p ?o}}`),
-            countTriples(`PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}> SELECT (COUNT(DISTINCT ?c) as ?c) WHERE{?c a owl:Class . ?c rdfs:isDefinedBy <${assetUri}>}`)
+            countTriples(`PREFIX owl: <${OWL}> PREFIX rdfs: <${RDFS}> SELECT (COUNT(DISTINCT ?cls) as ?c) WHERE{?cls a owl:Class . ?cls rdfs:isDefinedBy <${assetUri}>}`)
         ]);
+        console.log('[previewRename] assetUri=', JSON.stringify(assetUri));
+        console.log('[previewRename] counts: headerS=', headerS, 'headerO=', headerO, 'headerG=', headerG, 'members=', members);
+        console.log('[previewRename] types: ', typeof headerS, typeof headerO, typeof headerG, typeof members);
+        const total = headerS + headerO + headerG + members;
+        console.log('[previewRename] total=', total, 'gate passes:', total > 0);
         document.getElementById('rename_preview').innerHTML=
             `<span style="color:#e2e8f0">Impact:</span><br>`+
             `• <strong style="color:#818cf8">${headerS}</strong> header triples (subject)<br>`+
@@ -408,16 +888,46 @@ async function previewRename() {
             `• <strong style="color:#f59e0b">${headerG}</strong> in named graph<br>`+
             `• <strong style="color:#facc15">${members}</strong> owl:Class member(s) to migrate<br>`+
             `• <strong style="color:#f87171">${headerS+headerO+headerG} total header triples + ${members} member classes</strong>`;
-        if (headerS+headerO+headerG+members>0) document.getElementById('rename_confirm_btn').style.display='inline-block';
-    } catch(err) { document.getElementById('rename_preview').textContent='Failed: '+err.message; }
+        if (total > 0) {
+            document.getElementById('rename_confirm_btn').style.display='inline-block';
+            console.log('[previewRename] Execute button shown.');
+        } else {
+            console.warn('[previewRename] All counts are zero — Execute button NOT shown. assetUri may not match what is actually stored in GraphDB.');
+            document.getElementById('rename_preview').innerHTML += `<br><br><span style="color:#f59e0b">⚠ All counts are zero. This usually means the asset URI shown above does not exactly match what's stored in GraphDB (e.g. a trailing-slash mismatch, or the asset was already renamed). Check the Current URI field above against GraphDB directly.</span>`;
+        }
+    } catch(err) {
+        console.error('[previewRename] ERROR:', err);
+        document.getElementById('rename_preview').textContent='Failed: '+err.message;
+    }
 }
 
 async function executeRename() {
-    const nu=document.getElementById('rename_new').value.trim();
+    let nu=document.getElementById('rename_new').value.trim();
+    // Going forward: no trailing slashes, regardless of what the old URI had.
+    if (nu.endsWith('/')) {
+        nu = nu.replace(/\/+$/, '');
+        console.log('[executeRename] Stripped trailing slash from new URI:', JSON.stringify(nu));
+    }
     const btn=document.getElementById('rename_confirm_btn');
+
+    // Guard: validate both URIs are well-formed absolute IRIs before sending
+    // any SPARQL. This is the most common source of "did not match the
+    // expected pattern" — GraphDB's IRI parser rejecting a malformed value.
+    const IRI_RE = /^https?:\/\/[^\s<>"{}|\\^`]+$/;
+    if (!assetUri || !IRI_RE.test(assetUri)) {
+        setModalStatus('rename_status','Current asset URI is missing or malformed: '+JSON.stringify(assetUri),'red');
+        return;
+    }
+    if (!nu || !IRI_RE.test(nu)) {
+        setModalStatus('rename_status','New URI is empty or contains invalid characters (spaces, quotes, etc.): '+JSON.stringify(nu),'red');
+        return;
+    }
+
     btn.disabled=true; btn.textContent='Renaming…';
+    console.log('[rename] STARTING. assetUri=', JSON.stringify(assetUri), 'newUri=', JSON.stringify(nu));
     try {
         const newBase = nu.replace(/\/+$/,'') + '/';
+        console.log('[rename] newBase=', JSON.stringify(newBase));
 
         // STEP 1: Find all member classes via rdfs:isDefinedBy (before any rewrite)
         setModalStatus('rename_status','Step 1/5 — Finding member classes…','blue');
@@ -428,13 +938,44 @@ SELECT DISTINCT ?c WHERE { ?c a owl:Class . ?c rdfs:isDefinedBy <${assetUri}> }`
         const members = md.results.bindings.map(b => b.c.value);
         console.log('[rename] found', members.length, 'member classes:', members);
 
-        // Build old->new IRI map using local name preserved under new base
+        // Build old->new IRI map using local name preserved under new base.
+        // IMPORTANT: different source domains can independently produce the
+        // SAME local name (e.g. metaphacts.com/.../OperationsManagement and
+        // verizon.com/.../OperationsManagement both existing for the same
+        // taxonomy). Naively mapping by local name alone would silently
+        // collapse two distinct concepts into one new IRI, overwriting
+        // triples and orphaning any rdfs:subClassOf reference that pointed
+        // specifically at the one that got overwritten. Detect and
+        // disambiguate any such collision before building the map.
+        const localNameCounts = new Map();
+        members.forEach(oldIri => {
+            const ln = localName(oldIri);
+            localNameCounts.set(ln, (localNameCounts.get(ln) || 0) + 1);
+        });
+        const collidingNames = [...localNameCounts.entries()].filter(([,n]) => n > 1).map(([n]) => n);
+        if (collidingNames.length) {
+            console.warn('[rename] LOCAL NAME COLLISIONS detected — these local names appear under multiple source domains:', collidingNames);
+        }
+
         const iriMap = new Map();
         iriMap.set(assetUri, nu);
+        const usedNewIris = new Set();
         members.forEach(oldIri => {
-            const newIri = newBase + localName(oldIri);
+            let ln = localName(oldIri);
+            let newIri = newBase + ln;
+            if (usedNewIris.has(newIri)) {
+                // Collision: disambiguate using a hash of the source domain
+                // so both concepts survive as distinct resources instead of
+                // one silently overwriting the other.
+                const sourceDomain = (oldIri.match(/^https?:\/\/([^\/]+)\//) || [,'unknown'])[1]
+                    .replace(/[^a-zA-Z0-9]/g, '');
+                newIri = newBase + ln + '-' + sourceDomain;
+                console.warn('[rename] Disambiguated collision:', JSON.stringify(oldIri), '->', JSON.stringify(newIri));
+            }
+            usedNewIris.add(newIri);
             iriMap.set(oldIri, newIri);
         });
+        console.log('[rename] Final IRI map (old -> new):', [...iriMap.entries()]);
 
         // STEP 2: For each member, copy its triples to the new graph with rewritten IRIs
         setModalStatus('rename_status',`Step 2/5 — Migrating ${members.length} member classes…`,'blue');
@@ -498,20 +1039,35 @@ INSERT { GRAPH <${nu}> { ?s ?p <${newIri}> } }
 WHERE  { GRAPH <${nu}> { ?s ?p <${oldIri}> } }`);
         }
 
-        // STEP 4: Rewrite the asset header itself (subject + inbound object refs) + move graph
-        setModalStatus('rename_status','Step 4/5 — Rewriting asset header…','blue');
+        // STEP 4: Rewrite the asset header itself (subject position)
+        setModalStatus('rename_status','Step 4/6 — Rewriting asset header…','blue');
         await sparqlUpdate(`DELETE{<${assetUri}> ?p ?o}INSERT{<${nu}> ?p ?o}WHERE{<${assetUri}> ?p ?o}`);
-        await sparqlUpdate(`DELETE{?s ?p <${assetUri}>}INSERT{?s ?p <${nu}>}WHERE{?s ?p <${assetUri}>}`);
-        await sparqlUpdate(`DELETE{GRAPH<${assetUri}>{?s ?p ?o}}INSERT{GRAPH<${nu}>{?s ?p ?o}}WHERE{GRAPH<${assetUri}>{?s ?p ?o}}`);
-        await sparqlUpdate(`DELETE{GRAPH ?g{?s ?p <${assetUri}>}}INSERT{GRAPH ?g{?s ?p <${nu}>}}WHERE{GRAPH ?g{?s ?p <${assetUri}>}}`);
 
-        setModalStatus('rename_status','Step 5/5 — Finalizing…','blue');
+        // STEP 5: Update ALL cross-model references to the old URI —
+        // this is what preserves owl:imports, skos:inScheme, dct:isPartOf,
+        // and any other relationship another model has TO this taxonomy.
+        // Covers both default-graph and named-graph occurrences, repo-wide.
+        setModalStatus('rename_status','Step 5/6 — Updating cross-model references (imports, relationships)…','blue');
+        const refCountBefore = await countTriples(`SELECT (COUNT(*) as ?c) WHERE{?s ?p <${assetUri}>}`);
+        console.log('[rename] cross-model references to update:', refCountBefore);
+        await sparqlUpdate(`DELETE{?s ?p <${assetUri}>}INSERT{?s ?p <${nu}>}WHERE{?s ?p <${assetUri}>}`);
+        await sparqlUpdate(`DELETE{GRAPH ?g{?s ?p <${assetUri}>}}INSERT{GRAPH ?g{?s ?p <${nu}>}}WHERE{GRAPH ?g{?s ?p <${assetUri}>}}`);
+        const refCountAfter = await countTriples(`SELECT (COUNT(*) as ?c) WHERE{?s ?p <${assetUri}>}`);
+        console.log('[rename] remaining references to OLD uri after update:', refCountAfter, '(should be 0)');
+
+        // STEP 6: Move the asset's own named graph
+        setModalStatus('rename_status','Step 6/6 — Moving named graph…','blue');
+        await sparqlUpdate(`DELETE{GRAPH<${assetUri}>{?s ?p ?o}}INSERT{GRAPH<${nu}>{?s ?p ?o}}WHERE{GRAPH<${assetUri}>{?s ?p ?o}}`);
 
         setModalStatus('rename_status',`\u2713 Done — renamed asset + ${members.length} member classes to ${nu}`,'green');
         assetUri=nu;
+        _renameOccurred = true;
         document.getElementById('display_uri').textContent=nu;
         document.getElementById('assetUri').textContent=nu;
         if(window.opener&&!window.opener.closed) try{window.opener.refreshSidebar();}catch(e){}
+        if (isEmbedded && window.parent && window.parent !== window) {
+            try { window.parent.postMessage({ type: 'ev-metadata-uri-renamed', newUri: nu }, '*'); } catch(e) {}
+        }
         btn.textContent='✓ Done';
         setTimeout(()=>{closeRenameModal();loadMetadata();},1800);
     } catch(err) {
@@ -524,7 +1080,7 @@ WHERE  { GRAPH <${nu}> { ?s ?p <${oldIri}> } }`);
 // ── Set Named Graph — same proven pattern, plus a members-by-isDefinedBy scope ──
 function openSetGraphModal() {
     document.getElementById('sg_asset_uri').textContent=assetUri;
-    document.getElementById('sg_graph_uri').value=assetUri;
+    document.getElementById('sg_graph_uri').value=assetUri.replace(/\/+$/, '');
     document.getElementById('sg_status').style.display='none';
     document.getElementById('sg_confirm_btn').style.display='none';
     document.getElementById('setGraphModal').style.display='flex';
@@ -533,7 +1089,8 @@ function openSetGraphModal() {
 function closeSetGraphModal() { document.getElementById('setGraphModal').style.display='none'; }
 
 async function previewSetGraph() {
-    const gu=document.getElementById('sg_graph_uri').value.trim();
+    let gu=document.getElementById('sg_graph_uri').value.trim();
+    if (gu.endsWith('/')) { gu = gu.replace(/\/+$/, ''); document.getElementById('sg_graph_uri').value = gu; }
     const scope=document.getElementById('sg_scope').value;
     document.getElementById('sg_confirm_btn').style.display='none';
     if (!gu) { setModalStatus('sg_status','Enter a named graph URI.','red'); return; }
@@ -567,7 +1124,8 @@ SELECT (COUNT(*) as ?c) WHERE {
 }
 
 async function executeSetGraph() {
-    const gu=document.getElementById('sg_graph_uri').value.trim();
+    let gu=document.getElementById('sg_graph_uri').value.trim();
+    if (gu.endsWith('/')) gu = gu.replace(/\/+$/, '');
     const scope=document.getElementById('sg_scope').value;
     const btn=document.getElementById('sg_confirm_btn');
     btn.disabled=true; btn.textContent='Moving…';
