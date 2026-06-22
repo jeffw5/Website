@@ -1,0 +1,8 @@
+# Core
+anthropic>=0.40.0
+pydantic>=2.6.0
+pinecone>=5.0.0
+
+# Embedding providers (install the one matching config.embedding_provider)
+voyageai>=0.3.0        # default: embedding_provider="voyage"
+# openai>=1.40.0       # alternative: embedding_provider="openai"

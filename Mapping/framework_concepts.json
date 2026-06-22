@@ -1,0 +1,77 @@
+{
+  "namespace": "https://enablingvalue.com/ontology/frameworks#",
+  "concepts": [
+    {
+      "id": "fw_rdsg",
+      "iri": "https://enablingvalue.com/ontology/frameworks#RDSG",
+      "label": "Requirements-Driven Semantic Gateway",
+      "aliases": ["RDSG", "Requirements Driven Semantic Gateway"],
+      "definition": "Architecture integrating STPA/STAMP, UCA four-mode coverage, a Simplex Action Gateway, SHACL/SWRL/SPARQL governance, and INCOSE RM four-level traceability."
+    },
+    {
+      "id": "fw_aicb",
+      "iri": "https://enablingvalue.com/ontology/frameworks#AICircuitBreaker",
+      "label": "AI Circuit Breaker",
+      "aliases": ["AICB", "AI Circuit Breaker", "MTBH"],
+      "definition": "Governance pattern that interrupts unsafe AI behavior; associated with Mean Time Between Hazards (MTBH) metrics and SE4AI research."
+    },
+    {
+      "id": "fw_hsa",
+      "iri": "https://enablingvalue.com/ontology/frameworks#HolonicSemanticArchitecture",
+      "label": "Holonic Semantic Architecture",
+      "aliases": ["HSA", "HSGA", "Holonic Semantic Governance Architecture"],
+      "definition": "Architecture organizing semantic governance as nested holons that are simultaneously wholes and parts."
+    },
+    {
+      "id": "fw_wymore",
+      "iri": "https://enablingvalue.com/ontology/frameworks#WymoreGovernance",
+      "label": "Wymore-Grounded Governance",
+      "aliases": ["Wymore", "Wymorian systems theory", "T3SD"],
+      "definition": "Governance grounded in A. Wayne Wymore's mathematical systems theory for rigorous system definition."
+    },
+    {
+      "id": "fw_stpa",
+      "iri": "https://enablingvalue.com/ontology/frameworks#STPA_STAMP",
+      "label": "STPA / STAMP",
+      "aliases": ["STPA", "STAMP", "Systems-Theoretic Process Analysis"],
+      "definition": "Systems-theoretic hazard analysis (STPA) built on the STAMP accident causality model.",
+      "parent": "fw_rdsg"
+    },
+    {
+      "id": "fw_suda",
+      "iri": "https://enablingvalue.com/ontology/frameworks#SUDA",
+      "label": "SUDA Protocol",
+      "aliases": ["SUDA"],
+      "definition": "Protocol developed within the Kearney KIH solution architecture work."
+    },
+    {
+      "id": "fw_orsd",
+      "iri": "https://enablingvalue.com/ontology/frameworks#ORSD",
+      "label": "ORSD Framework",
+      "aliases": ["ORSD"],
+      "definition": "Ontology Requirements Specification Document framework used in solution architecture deliverables."
+    },
+    {
+      "id": "fw_fabric",
+      "iri": "https://enablingvalue.com/ontology/frameworks#FABRIC",
+      "label": "FABRIC Holonic Architecture",
+      "aliases": ["FABRIC"],
+      "definition": "Seven-layer holonic architecture developed for Baxter Healthcare."
+    },
+    {
+      "id": "fw_incose_rm",
+      "iri": "https://enablingvalue.com/ontology/frameworks#INCOSE_RM",
+      "label": "INCOSE Requirements Management (Four-Level Traceability)",
+      "aliases": ["INCOSE RM", "four-level traceability"],
+      "definition": "INCOSE requirements-management practice providing four levels of requirement traceability."
+    },
+    {
+      "id": "fw_shacl",
+      "iri": "https://enablingvalue.com/ontology/frameworks#SHACL_SWRL_SPARQL",
+      "label": "SHACL / SWRL / SPARQL Governance",
+      "aliases": ["SHACL", "SWRL", "SPARQL governance"],
+      "definition": "Constraint, rule, and query layer enforcing semantic governance over RDF knowledge graphs.",
+      "parent": "fw_rdsg"
+    }
+  ]
+}
