@@ -94,6 +94,29 @@
 
   .nav-cta:hover { opacity: 0.85; }
 
+  /* ── MOBILE MENU TOGGLE (hamburger) ── */
+  .nav-toggle {
+    display: none;            /* hidden on desktop, shown on mobile */
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 38px; height: 38px;
+    padding: 7px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 101;
+  }
+  .nav-toggle span {
+    display: block;
+    width: 100%; height: 2px;
+    background: var(--accent);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  .nav-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-toggle.open span:nth-child(2) { opacity: 0; }
+  .nav-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
   /* ── MAIN CONTENT ── */
   main {
     position: relative;
@@ -668,7 +691,30 @@
     .community-grid { grid-template-columns: 1fr; }
     .edu-grid { grid-template-columns: 1fr; }
     nav { padding: 1.2rem 1.5rem; }
-    .nav-links { display: none; }
+    .nav-toggle { display: flex; }
+    .nav-cta { margin-left: auto; margin-right: 0.75rem; }
+    .nav-links {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 100%; left: 0; right: 0;
+      gap: 1.6rem;
+      padding: 1.75rem 1.5rem;
+      background: rgba(13,27,42,0.98);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(200,169,110,0.22);
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    }
+    .nav-links.open {
+      max-height: 80vh;
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .nav-links a { font-size: 0.8rem; }
     section { padding: 4rem 1.5rem; }
     footer { flex-direction: column; gap: 1.5rem; text-align: center; }
   }
@@ -685,15 +731,17 @@
     <img src="logo.png" alt="The Value Enablement Group"
       style="height:52px; width:52px; object-fit:contain; mix-blend-mode:multiply;">
   </a>
-  <ul class="nav-links">
-    <li><a href="index.html">Home</a></li>
+  <ul class="nav-links" id="navLinks">
     <li><a href="about.html" class="active">About</a></li>
+    <li><a href="frameworks.html">Frameworks</a></li>
     <li><a href="services.html">Services</a></li>
-    <li><a href="index.html#frameworks">Frameworks</a></li>
-    <li><a href="index.html#portfolio">Portfolio</a></li>
-    <li><a href="https://jeffw5.github.io/Value/index.html" target="_blank">Demos</a></li>
+    <li><a href="https://jeffw5.github.io/Value/index.html" target="_top">Portfolio</a></li>
+    <li><a href="https://jeffw5.github.io/blog/" target="_top">Blog</a></li>
   </ul>
   <a href="avatar.html" class="nav-cta">Ask Jeffrey ›</a>
+  <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
 
 <main>
@@ -990,6 +1038,25 @@
   }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Mobile menu toggle
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  if (navToggle && navLinks) {
+    navToggle.addEventListener('click', () => {
+      const open = navToggle.classList.toggle('open');
+      navLinks.classList.toggle('open', open);
+      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    // Close the menu after a link is tapped
+    navLinks.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        navToggle.classList.remove('open');
+        navLinks.classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
 </script>
 </body>
 </html>
